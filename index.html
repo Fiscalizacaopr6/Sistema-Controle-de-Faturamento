@@ -690,6 +690,9 @@ function initLogin() {
       saveUsersToStorage();
     }
     hideLoadingOverlay();
+    // Exibir stats na tela de login com dados hardcoded
+    calcLive();
+    updateLoginStats();
     // configurar listeners do formulário
     document.getElementById('lf-btn').addEventListener('click', doLogin);
     document.getElementById('lf-u').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
@@ -2469,6 +2472,9 @@ function loadAllFromFirebase(callback) {
     if (dadosVal) {
       var arr = Array.isArray(dadosVal) ? dadosVal : Object.values(dadosVal);
       DADOS.length = 0; arr.forEach(function(x){ if(x) DADOS.push(x); });
+    } else {
+      // Primeira vez: salva os dados padrão no Firebase
+      saveDadosToStorage();
     }
     // fiscais
     var fiscaisVal = snaps[1].val();
@@ -2822,6 +2828,8 @@ document.addEventListener('DOMContentLoaded', function() { initTheme(); initLogi
 </div>
 </body>
 </html>
+
+
 
 
 
