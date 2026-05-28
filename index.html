@@ -275,10 +275,11 @@ tr:last-child td{border-bottom:none}
       <div class="lg-name">Sistema de Controle de<br>Faturamento de Contratos</div>
       <div class="lg-sub">PRÓ REITORIA DE GESTÃO - PR6</div>
       <div class="lg-stats">
-        <div class="lg-stat" style="animation-delay:.1s"><div class="lg-si">📄</div><div><div class="lg-sv" id="ls-total">—</div><div class="lg-sl">Contratos cadastrados</div></div></div>
-        <div class="lg-stat" style="animation-delay:.2s"><div class="lg-si">✅</div><div><div class="lg-sv" id="ls-vigentes">—</div><div class="lg-sl">Contratos vigentes</div></div></div>
-        <div class="lg-stat" style="animation-delay:.3s"><div class="lg-si">👷</div><div><div class="lg-sv" id="ls-funcs">—</div><div class="lg-sl">Funcionários vinculados</div></div></div>
-        <div class="lg-stat" style="animation-delay:.4s"><div class="lg-si">💰</div><div><div class="lg-sv" id="ls-global">—</div><div class="lg-sl">Valor global total</div></div></div>
+        <div class="lg-stat" style="animation-delay:.1s"><div class="lg-si">✅</div><div><div class="lg-sv" id="ls-vigentes">—</div><div class="lg-sl">Contratos vigentes</div></div></div>
+        <div class="lg-stat" style="animation-delay:.2s"><div class="lg-si">💵</div><div><div class="lg-sv" id="ls-mensal">—</div><div class="lg-sl">Valor mensal (vigentes)</div></div></div>
+        <div class="lg-stat" style="animation-delay:.3s"><div class="lg-si">💰</div><div><div class="lg-sv" id="ls-global">—</div><div class="lg-sl">Valor global total</div></div></div>
+        <div class="lg-stat" style="animation-delay:.4s"><div class="lg-si">👷</div><div><div class="lg-sv" id="ls-funcs">—</div><div class="lg-sl">Funcionários vigentes</div></div></div>
+        <div class="lg-stat" style="animation-delay:.5s"><div class="lg-si">🏭</div><div><div class="lg-sv" id="ls-empresas">—</div><div class="lg-sl">Total de empresas</div></div></div>
       </div>
     </div>
   </div>
@@ -600,21 +601,23 @@ function hideLoadingOverlay() {
 }
 
 function updateLoginStats() {
-  var total = DADOS.length;
   var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
-  var funcs = vig.reduce(function(s,d){ return s + (d['FUNCIONÁRIOS VIGENTES']||d['N° FUNCIONÁRIO']||0); }, 0);
+  var mensal = vig.reduce(function(s,d){ return s + (d['TOTAL MENSAL']||0); }, 0);
   var global = DADOS.reduce(function(s,d){ return s + (d['TOTAL GLOBAL']||0); }, 0);
+  var funcs = vig.reduce(function(s,d){ return s + (d['FUNCIONÁRIOS VIGENTES']||d['N° FUNCIONÁRIO']||0); }, 0);
+  var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
   function fmtM(v) {
     if (v >= 1e9) return 'R$ ' + (v/1e9).toFixed(1).replace('.',',') + 'B';
-    if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(0) + 'M';
-    if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(0) + 'K';
+    if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(1).replace('.',',') + 'M';
+    if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(1).replace('.',',') + 'K';
     return 'R$ ' + v.toFixed(0);
   }
   var els = {
-    'ls-total': total.toLocaleString('pt-BR'),
     'ls-vigentes': vig.length.toLocaleString('pt-BR'),
+    'ls-mensal': fmtM(mensal),
+    'ls-global': fmtM(global),
     'ls-funcs': funcs.toLocaleString('pt-BR'),
-    'ls-global': fmtM(global)
+    'ls-empresas': empresas.toLocaleString('pt-BR')
   };
   Object.keys(els).forEach(function(id) {
     var el = document.getElementById(id);
@@ -2819,6 +2822,8 @@ document.addEventListener('DOMContentLoaded', function() { initTheme(); initLogi
 </div>
 </body>
 </html>
+
+
 
 
 
