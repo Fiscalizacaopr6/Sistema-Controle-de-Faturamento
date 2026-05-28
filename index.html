@@ -275,10 +275,10 @@ tr:last-child td{border-bottom:none}
       <div class="lg-name">Sistema de Controle de<br>Faturamento de Contratos</div>
       <div class="lg-sub">PRÓ REITORIA DE GESTÃO - PR6</div>
       <div class="lg-stats">
-        <div class="lg-stat" style="animation-delay:.1s"><div class="lg-si">📄</div><div><div class="lg-sv">194</div><div class="lg-sl">Contratos cadastrados</div></div></div>
-        <div class="lg-stat" style="animation-delay:.2s"><div class="lg-si">✅</div><div><div class="lg-sv">88</div><div class="lg-sl">Contratos vigentes</div></div></div>
-        <div class="lg-stat" style="animation-delay:.3s"><div class="lg-si">👷</div><div><div class="lg-sv">1.683</div><div class="lg-sl">Funcionários vinculados</div></div></div>
-        <div class="lg-stat" style="animation-delay:.4s"><div class="lg-si">💰</div><div><div class="lg-sv">R$ 292M</div><div class="lg-sl">Valor global total</div></div></div>
+        <div class="lg-stat" style="animation-delay:.1s"><div class="lg-si">📄</div><div><div class="lg-sv" id="ls-total">—</div><div class="lg-sl">Contratos cadastrados</div></div></div>
+        <div class="lg-stat" style="animation-delay:.2s"><div class="lg-si">✅</div><div><div class="lg-sv" id="ls-vigentes">—</div><div class="lg-sl">Contratos vigentes</div></div></div>
+        <div class="lg-stat" style="animation-delay:.3s"><div class="lg-si">👷</div><div><div class="lg-sv" id="ls-funcs">—</div><div class="lg-sl">Funcionários vinculados</div></div></div>
+        <div class="lg-stat" style="animation-delay:.4s"><div class="lg-si">💰</div><div><div class="lg-sv" id="ls-global">—</div><div class="lg-sl">Valor global total</div></div></div>
       </div>
     </div>
   </div>
@@ -301,8 +301,7 @@ tr:last-child td{border-bottom:none}
         </div>
       </div>
       <button class="lf-btn" id="lf-btn" type="button">Entrar no Sistema</button>
-      <div class="lf-hint"><b>Usuários demo:</b><br>admin / admin123 · <b>Administrador</b><br>gestor / ufrj2024 · <b>Editor</b><br>fiscal / faturamento · <b>Visualizador</b></div>
-      <div class="lf-foot">UFRJ &middot; Diretoria de Contratos &middot; Acesso restrito</div>
+
     </div>
   </div>
 </div>
@@ -598,6 +597,29 @@ function showLoadingOverlay(msg) {
 function hideLoadingOverlay() {
   var el = document.getElementById('fb-loading');
   if (el) el.style.display = 'none';
+}
+
+function updateLoginStats() {
+  var total = DADOS.length;
+  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
+  var funcs = vig.reduce(function(s,d){ return s + (d['FUNCIONÁRIOS VIGENTES']||d['N° FUNCIONÁRIO']||0); }, 0);
+  var global = DADOS.reduce(function(s,d){ return s + (d['TOTAL GLOBAL']||0); }, 0);
+  function fmtM(v) {
+    if (v >= 1e9) return 'R$ ' + (v/1e9).toFixed(1).replace('.',',') + 'B';
+    if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(0) + 'M';
+    if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(0) + 'K';
+    return 'R$ ' + v.toFixed(0);
+  }
+  var els = {
+    'ls-total': total.toLocaleString('pt-BR'),
+    'ls-vigentes': vig.length.toLocaleString('pt-BR'),
+    'ls-funcs': funcs.toLocaleString('pt-BR'),
+    'ls-global': fmtM(global)
+  };
+  Object.keys(els).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = els[id];
+  });
 }
 
 var USERS_DB = {
@@ -2502,6 +2524,7 @@ function loadAllFromFirebase(callback) {
       }
     }
     hideLoadingOverlay();
+    updateLoginStats();
     callback();
   }).catch(function(e) {
     console.error('loadAllFromFirebase:', e);
@@ -2796,3 +2819,6 @@ document.addEventListener('DOMContentLoaded', function() { initTheme(); initLogi
 </div>
 </body>
 </html>
+
+
+
