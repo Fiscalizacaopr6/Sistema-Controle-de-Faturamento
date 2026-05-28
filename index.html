@@ -75,8 +75,8 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .lg-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.15) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-50%);animation:gp 5s ease-in-out infinite}
 @keyframes gp{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}}
 .lg-brand{position:relative;z-index:2;text-align:center;animation:fu .8s ease both}
-.lg-logo{width:76px;height:76px;border-radius:20px;margin:0 auto 24px;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 0 40px rgba(59,130,246,.5),0 0 80px rgba(59,130,246,.15)}
-.lg-name{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;color:#fff;letter-spacing:-1.5px}
+.lg-logo{display:none}
+.lg-name{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;letter-spacing:-0.5px;line-height:1.25}
 .lg-sub{font-size:12px;color:#475569;margin-top:8px;letter-spacing:3px;text-transform:uppercase;font-family:'DM Mono',monospace}
 .lg-stats{margin-top:52px;display:flex;flex-direction:column;gap:0;min-width:280px}
 .lg-stat{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05);animation:fu .8s ease both}
@@ -271,9 +271,9 @@ tr:last-child td{border-bottom:none}
     <div class="lg-grid"></div>
     <div class="lg-glow"></div>
     <div class="lg-brand">
-      <div class="lg-logo">📋</div>
-      <div class="lg-name">Faturamento</div>
-      <div class="lg-sub">UFRJ &middot; Sistema de Contratos</div>
+      <img src="https://fiscalizacaopr6.github.io/Sistema-Controle-de-Faturamento/ufrj-logo.png" alt="UFRJ" style="width:220px;margin:0 auto 20px;display:block;filter:brightness(0) invert(1)" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Fiscalizacaopr6/Sistema-Controle-de-Faturamento/main/ufrj-logo.png'">
+      <div class="lg-name">Sistema de Controle de<br>Faturamento de Contratos</div>
+      <div class="lg-sub">PRÓ REITORIA DE GESTÃO - PR6</div>
       <div class="lg-stats">
         <div class="lg-stat" style="animation-delay:.1s"><div class="lg-si">📄</div><div><div class="lg-sv">194</div><div class="lg-sl">Contratos cadastrados</div></div></div>
         <div class="lg-stat" style="animation-delay:.2s"><div class="lg-si">✅</div><div><div class="lg-sv">88</div><div class="lg-sl">Contratos vigentes</div></div></div>
