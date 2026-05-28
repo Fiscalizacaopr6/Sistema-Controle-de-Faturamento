@@ -461,6 +461,11 @@ tr:last-child td{border-bottom:none}
         <span id="alert-email-status" style="font-size:11px;color:var(--text-muted)"></span>
       </div>
 
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn-export pdf" onclick="exportAlertasPDF()">⬇ PDF</button>
+        <button class="btn-export xlsx" onclick="exportAlertasExcel()">⬇ Excel</button>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
         <div><div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:14px">🔴 Vencendo em até 30 dias</div><div class="al" id="al-30"></div></div>
         <div><div style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:14px">🟡 Vencendo em 31–90 dias</div><div class="al" id="al-90"></div></div>
@@ -473,6 +478,8 @@ tr:last-child td{border-bottom:none}
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Fiscais de Contrato</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
           <input id="fiscal-q" type="text" placeholder="Buscar por nome, contrato ou empresa..." oninput="buildFiscaisCards()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-export pdf" onclick="exportFiscaisPDF()">⬇ PDF</button>
+          <button class="btn-export xlsx" onclick="exportFiscaisExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-fiscal" onclick="openNewFiscalModal()" style="display:none;white-space:nowrap">+ Novo Fiscal</button>
         </div>
       </div>
@@ -489,6 +496,8 @@ tr:last-child td{border-bottom:none}
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Reajuste e Repactuação</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:500px">
           <input id="reajuste-q" type="text" placeholder="Buscar por contrato, empresa, responsável, período ou situação..." oninput="buildReajustesTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-export pdf" onclick="exportReajustesPDF()">⬇ PDF</button>
+          <button class="btn-export xlsx" onclick="exportReajustesExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-reajuste" onclick="openNewReajusteModal()" style="display:none;white-space:nowrap">+ Novo Registro</button>
         </div>
       </div>
@@ -500,6 +509,8 @@ tr:last-child td{border-bottom:none}
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Conta Vinculada</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:500px">
           <input id="conta-q" type="text" placeholder="Buscar por contrato, processo, responsável, empresa ou situação..." oninput="buildContasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-export pdf" onclick="exportContasPDF()">⬇ PDF</button>
+          <button class="btn-export xlsx" onclick="exportContasExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-conta" onclick="openNewContaModal()" style="display:none;white-space:nowrap">+ Novo Registro</button>
         </div>
       </div>
@@ -511,6 +522,8 @@ tr:last-child td{border-bottom:none}
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Empresas</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
           <input id="empresa-q" type="text" placeholder="Buscar por empresa, responsável ou e-mail..." oninput="buildEmpresasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-export pdf" onclick="exportEmpresasPDF()">⬇ PDF</button>
+          <button class="btn-export xlsx" onclick="exportEmpresasExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-empresa" onclick="openNewEmpresaModal()" style="display:none;white-space:nowrap">+ Nova Empresa</button>
         </div>
       </div>
@@ -522,6 +535,8 @@ tr:last-child td{border-bottom:none}
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Unidades</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
           <input id="unidade-q" type="text" placeholder="Buscar por nome, unidade, cargo ou e-mail..." oninput="buildUnidadesTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-export pdf" onclick="exportUnidadesPDF()">⬇ PDF</button>
+          <button class="btn-export xlsx" onclick="exportUnidadesExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-unidade" onclick="openNewUnidadeModal()" style="display:none;white-space:nowrap">+ Nova Entrada</button>
         </div>
       </div>
@@ -531,6 +546,8 @@ tr:last-child td{border-bottom:none}
     <div class="view" id="view-usuarios">
       <div class="view-header">
         <h2>Gerenciamento de Usuários</h2>
+        <button class="btn-export pdf" onclick="exportUsuariosPDF()">⬇ PDF</button>
+        <button class="btn-export xlsx" onclick="exportUsuariosExcel()">⬇ Excel</button>
         <button class="btn-new" onclick="openNewUserModal()">+ Novo Usuário</button>
       </div>
       <div class="table-wrap">
@@ -1040,6 +1057,133 @@ function exportContratosExcel() {
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Contratos');
   XLSX.writeFile(wb, 'contratos_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+// ── Exportação genérica ──
+function genericExportPDF(title, headers, rows, filename) {
+  if (!rows.length) { alert('Nenhum registro para exportar.'); return; }
+  var isLight = document.documentElement.classList.contains('light');
+  var theme = isLight
+    ? { bg:[255,255,255], surface:[255,255,255], altRow:[248,250,252], head:[226,232,240], headText:[15,23,42], bodyText:[30,41,59], titleText:[15,23,42], sub:[100,116,139] }
+    : { bg:[11,15,26], surface:[17,24,39], altRow:[17,24,39], head:[27,40,69], headText:[180,195,220], bodyText:[220,230,240], titleText:[226,232,240], sub:[100,116,139] };
+  var doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  function fillBg(){ doc.setFillColor(theme.bg[0],theme.bg[1],theme.bg[2]); doc.rect(0,0,W,H,'F'); }
+  fillBg();
+  doc.setFontSize(13); doc.setTextColor(theme.titleText[0],theme.titleText[1],theme.titleText[2]);
+  doc.text(title + ' — ' + rows.length + ' registros', 40, 36);
+  doc.setFontSize(9); doc.setTextColor(theme.sub[0],theme.sub[1],theme.sub[2]);
+  doc.text('Gerado em ' + new Date().toLocaleString('pt-BR'), 40, 52);
+  doc.autoTable({
+    head: [headers], body: rows, startY: 64,
+    styles: { fontSize: 7.5, cellPadding: 3, overflow: 'linebreak' },
+    headStyles: { fillColor: theme.head, textColor: theme.headText, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: theme.altRow },
+    bodyStyles: { fillColor: theme.surface, textColor: theme.bodyText },
+    margin: { left: 40, right: 40 },
+    willDrawPage: function(data){ if(data.pageNumber>1) fillBg(); }
+  });
+  doc.save(filename + '_' + new Date().toISOString().slice(0,10) + '.pdf');
+}
+
+function genericExportExcel(sheetName, headers, rows, filename) {
+  if (!rows.length) { alert('Nenhum registro para exportar.'); return; }
+  var ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+// Fiscais
+function exportFiscaisPDF() {
+  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','Telefone'];
+  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.telefone||'']; });
+  genericExportPDF('Fiscais de Contrato', h, r, 'fiscais');
+}
+function exportFiscaisExcel() {
+  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','Telefone'];
+  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.telefone||'']; });
+  genericExportExcel('Fiscais', h, r, 'fiscais');
+}
+
+// Reajustes
+function exportReajustesPDF() {
+  var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação','Observação'];
+  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',x.situacaoNf||'',x.situacao||'',x.observacao||'']; });
+  genericExportPDF('Reajuste e Repactuação', h, r, 'reajustes');
+}
+function exportReajustesExcel() {
+  var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação','Observação'];
+  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',x.situacaoNf||'',x.situacao||'',x.observacao||'']; });
+  genericExportExcel('Reajustes', h, r, 'reajustes');
+}
+
+// Conta Vinculada
+function exportContasPDF() {
+  var h = ['Contrato','Processo','Responsável','Empresa','Valor','Situação'];
+  var r = cvFiltered.map(function(c){ return [c.contrato||'',c.processo||'',c.responsavel||'',c.empresa||'',c.valor||'',c.situacao||'']; });
+  genericExportPDF('Conta Vinculada', h, r, 'contas_vinculadas');
+}
+function exportContasExcel() {
+  var h = ['Contrato','Processo','Responsável','Empresa','Valor','Situação'];
+  var r = cvFiltered.map(function(c){ return [c.contrato||'',c.processo||'',c.responsavel||'',c.empresa||'',c.valor||'',c.situacao||'']; });
+  genericExportExcel('Conta Vinculada', h, r, 'contas_vinculadas');
+}
+
+// Empresas
+function exportEmpresasPDF() {
+  var h = ['Empresa','Responsável','E-mail','Telefone'];
+  var r = empFiltered.map(function(e){ return [e.empresa||'',e.responsavel||'',e.email||'',e.telefone||'']; });
+  genericExportPDF('Empresas', h, r, 'empresas');
+}
+function exportEmpresasExcel() {
+  var h = ['Empresa','Responsável','E-mail','Telefone'];
+  var r = empFiltered.map(function(e){ return [e.empresa||'',e.responsavel||'',e.email||'',e.telefone||'']; });
+  genericExportExcel('Empresas', h, r, 'empresas');
+}
+
+// Unidades
+function exportUnidadesPDF() {
+  var h = ['Nome','Cargo','Unidade','Sigla','E-mail','Telefone'];
+  var r = unFiltered.map(function(u){ return [u.nome||'',u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
+  genericExportPDF('Unidades', h, r, 'unidades');
+}
+function exportUnidadesExcel() {
+  var h = ['Nome','Cargo','Unidade','Sigla','E-mail','Telefone'];
+  var r = unFiltered.map(function(u){ return [u.nome||'',u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
+  genericExportExcel('Unidades', h, r, 'unidades');
+}
+
+// Alertas
+function exportAlertasPDF() {
+  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
+  var v30 = vig.filter(function(d){ return d._dias!==null&&d._dias<=30; }).sort(function(a,b){ return a._dias-b._dias; });
+  var v90 = vig.filter(function(d){ return d._dias!==null&&d._dias>30&&d._dias<=90; }).sort(function(a,b){ return a._dias-b._dias; });
+  var all = v30.concat(v90);
+  var h = ['Contrato','Empresa','Tipo','Responsável','Término da Vigência','Dias Restantes','Urgência'];
+  var r = all.map(function(d){ return [d['CONTRATO']||'',(d['EMPRESA']||'').trim(),d['TIPO']||'',d['RESPONSÁVEL NO FATURAMENTO']||'',d['TÉRMINO DA VIGÊNCIA']||'',d._dias!=null?String(d._dias):'',d._dias<=30?'Crítico':'Atenção']; });
+  genericExportPDF('Alertas de Vencimento', h, r, 'alertas');
+}
+function exportAlertasExcel() {
+  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
+  var v30 = vig.filter(function(d){ return d._dias!==null&&d._dias<=30; }).sort(function(a,b){ return a._dias-b._dias; });
+  var v90 = vig.filter(function(d){ return d._dias!==null&&d._dias>30&&d._dias<=90; }).sort(function(a,b){ return a._dias-b._dias; });
+  var all = v30.concat(v90);
+  var h = ['Contrato','Empresa','Tipo','Responsável','Término da Vigência','Dias Restantes','Urgência'];
+  var r = all.map(function(d){ return [d['CONTRATO']||'',(d['EMPRESA']||'').trim(),d['TIPO']||'',d['RESPONSÁVEL NO FATURAMENTO']||'',d['TÉRMINO DA VIGÊNCIA']||'',d._dias!=null?d._dias:'',d._dias<=30?'Crítico':'Atenção']; });
+  genericExportExcel('Alertas', h, r, 'alertas');
+}
+
+// Usuários
+function exportUsuariosPDF() {
+  var h = ['Usuário','Nome','Permissão'];
+  var r = Object.keys(USERS_DB).map(function(k){ var u=USERS_DB[k]; return [k, u.nome||'', {admin:'Administrador',editor:'Editor',viewer:'Visualizador'}[u.role]||u.role]; });
+  genericExportPDF('Usuários', h, r, 'usuarios');
+}
+function exportUsuariosExcel() {
+  var h = ['Usuário','Nome','Permissão'];
+  var r = Object.keys(USERS_DB).map(function(k){ var u=USERS_DB[k]; return [k, u.nome||'', {admin:'Administrador',editor:'Editor',viewer:'Visualizador'}[u.role]||u.role]; });
+  genericExportExcel('Usuários', h, r, 'usuarios');
 }
 
 // ── Modal ──
