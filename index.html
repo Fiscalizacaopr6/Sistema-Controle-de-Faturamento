@@ -581,7 +581,6 @@ var firebaseConfig = {
   authDomain: "fiscalizacao-d9a39.firebaseapp.com",
   databaseURL: "https://fiscalizacao-d9a39-default-rtdb.firebaseio.com",
   projectId: "fiscalizacao-d9a39",
-  storageBucket: "fiscalizacao-d9a39.firebasestorage.app",
   messagingSenderId: "287091891377",
   appId: "1:287091891377:web:dc9e307af79504bebd5690"
 };
@@ -689,6 +688,14 @@ function initLogin() {
       // primeiro acesso — salvar usuários default no Firebase
       saveUsersToStorage();
     }
+    _finishInitLogin();
+  }).catch(function(e) {
+    console.warn('initLogin Firebase users error (usando padrão):', e);
+    // Continua com usuários padrão em memória
+    _finishInitLogin();
+  });
+}
+function _finishInitLogin() {
     hideLoadingOverlay();
     // Exibir stats na tela de login com dados hardcoded
     calcLive();
@@ -705,11 +712,6 @@ function initLogin() {
     var u = sessionStorage.getItem('ufrj_user');
     if (u && USERS_DB[u]) { launchApp(u); return; }
     setTimeout(function(){ document.getElementById('lf-u').focus(); }, 300);
-  }).catch(function(e) {
-    console.error('initLogin Firebase:', e);
-    hideLoadingOverlay();
-    alert('Erro ao conectar com o Firebase. Verifique a conexão e recarregue a página.');
-  });
 }
 function doLogin() {
   var u = document.getElementById('lf-u').value.trim();
@@ -2459,13 +2461,21 @@ function loadReajustesFromStorage() { /* migrado para loadAllFromFirebase */ }
 // ── Firebase: carregar todos os dados em paralelo ──
 function loadAllFromFirebase(callback) {
   showLoadingOverlay('Carregando dados...');
+
+  function safeRead(ref) {
+    return ref.once('value').catch(function(e) {
+      console.warn('Firebase read error em ' + ref.toString() + ':', e);
+      return { val: function(){ return null; } };
+    });
+  }
+
   Promise.all([
-    fbdb.ref('dados').once('value'),
-    fbdb.ref('fiscais').once('value'),
-    fbdb.ref('unidades').once('value'),
-    fbdb.ref('empresas').once('value'),
-    fbdb.ref('contas').once('value'),
-    fbdb.ref('reajustes').once('value')
+    safeRead(fbdb.ref('dados')),
+    safeRead(fbdb.ref('fiscais')),
+    safeRead(fbdb.ref('unidades')),
+    safeRead(fbdb.ref('empresas')),
+    safeRead(fbdb.ref('contas')),
+    safeRead(fbdb.ref('reajustes'))
   ]).then(function(snaps) {
     // dados
     var dadosVal = snaps[0].val();
@@ -2536,9 +2546,11 @@ function loadAllFromFirebase(callback) {
     updateLoginStats();
     callback();
   }).catch(function(e) {
-    console.error('loadAllFromFirebase:', e);
+    console.error('loadAllFromFirebase erro inesperado:', e);
     hideLoadingOverlay();
-    alert('Erro ao conectar com o banco de dados. Verifique a conexão e recarregue a página.');
+    // Tenta continuar mesmo com erro — usa dados padrão em memória
+    updateLoginStats();
+    callback();
   });
 }
 
