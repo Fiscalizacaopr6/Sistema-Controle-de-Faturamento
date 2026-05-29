@@ -1829,21 +1829,10 @@ function calcAnual(d) {
   var start = new Date(startStr + 'T00:00:00');
   var end   = new Date(endStr   + 'T00:00:00');
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return mensal * 12;
-  // D1: primeiro dia de contagem = dia seguinte ao início
-  var d1 = new Date(start);
-  d1.setDate(d1.getDate() + 1);
-  if (d1 > end) return 0;
-  // Calendário financeiro: cada mês = 30 dias
-  // Último dia do mês (inclusive fevereiro) = dia 30; dia > 30 = dia 30
-  function toFD(dt) {
-    var day = dt.getDate();
-    var lastOfMonth = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
-    if (day >= lastOfMonth || day >= 30) day = 30;
-    return dt.getFullYear() * 360 + (dt.getMonth() + 1) * 30 + day;
-  }
-  var financialDays = toFD(end) - toFD(d1) + 1;
-  if (financialDays <= 0) return 0;
-  return (financialDays / 30) * mensal;
+  // Total do Período = meses exatos entre início e término × valor mensal
+  var months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (months <= 0) return 0;
+  return months * mensal;
 }
 
 function calcOne(d) {
