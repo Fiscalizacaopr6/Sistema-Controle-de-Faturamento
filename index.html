@@ -1833,21 +1833,29 @@ function calcAnual(d) {
   var startDay   = start.getDate();
   var startMonth = start.getMonth();
   var startYear  = start.getFullYear();
+  var endDay     = end.getDate();
   var endMonth   = end.getMonth();
   var endYear    = end.getFullYear();
-  if (startDay === 1) {
-    // Início no dia 1: meses cheios do início ao término (inclusive)
-    var fullMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
-    return fullMonths > 0 ? fullMonths * mensal : 0;
-  } else {
-    // Mês parcial: conta a partir do dia seguinte, base 30 dias
-    // Fórmula: (30 - diaInicio) / 30 × mensal
-    var partialDays = 30 - startDay;
-    var partialValue = mensal * partialDays / 30;
-    // Meses cheios: do mês seguinte ao início até o mês de término (inclusive)
-    var fullMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
-    return partialValue + (fullMonths > 0 ? fullMonths * mensal : 0);
+  // Mesmo mês e ano: apenas os dias entre as datas
+  if (startYear === endYear && startMonth === endMonth) {
+    var dias = endDay - startDay;
+    return dias > 0 ? mensal * dias / 30 : 0;
   }
+  // Mês parcial inicial: conta a partir do dia seguinte ao início, base 30 dias
+  // Se início no dia 1: mês inicial é mês cheio (inclui-se nos meses cheios)
+  var firstValue, fullStart;
+  if (startDay === 1) {
+    firstValue = 0;
+    fullStart  = 0; // mês inicial entra nos meses cheios
+  } else {
+    firstValue = mensal * (30 - startDay) / 30;
+    fullStart  = 1; // mês inicial já contado como parcial
+  }
+  // Meses cheios entre o mês após o início e o mês antes do término
+  var fullMonths = (endYear - startYear) * 12 + (endMonth - startMonth) - fullStart;
+  // Mês parcial final: do dia 1 ao dia de término, base 30 dias (máx 30)
+  var lastValue = mensal * Math.min(endDay, 30) / 30;
+  return firstValue + (fullMonths > 0 ? fullMonths * mensal : 0) + lastValue;
 }
 
 function calcOne(d) {
