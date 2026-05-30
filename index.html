@@ -1830,10 +1830,24 @@ function calcAnual(d) {
   var start = new Date(startStr + 'T00:00:00');
   var end   = new Date(endStr   + 'T00:00:00');
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return mensal * 12;
-  // Total do Período = meses exatos entre início e término × valor mensal
-  var months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  if (months <= 0) return 0;
-  return months * mensal;
+  var startDay   = start.getDate();
+  var startMonth = start.getMonth();
+  var startYear  = start.getFullYear();
+  var endMonth   = end.getMonth();
+  var endYear    = end.getFullYear();
+  if (startDay === 1) {
+    // Início no dia 1: meses cheios do início ao término (inclusive)
+    var fullMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+    return fullMonths > 0 ? fullMonths * mensal : 0;
+  } else {
+    // Mês parcial: conta a partir do dia seguinte, base 30 dias
+    // Fórmula: (30 - diaInicio) / 30 × mensal
+    var partialDays = 30 - startDay;
+    var partialValue = mensal * partialDays / 30;
+    // Meses cheios: do mês seguinte ao início até o mês de término (inclusive)
+    var fullMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
+    return partialValue + (fullMonths > 0 ? fullMonths * mensal : 0);
+  }
 }
 
 function calcOne(d) {
