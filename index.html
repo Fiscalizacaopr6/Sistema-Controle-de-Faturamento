@@ -1848,7 +1848,7 @@ function calcAnual(d) {
     firstValue = 0;
     fullStart  = 0; // mês inicial entra nos meses cheios
   } else {
-    firstValue = mensal * (30 - startDay) / 30;
+    firstValue = mensal * Math.max(0, 30 - startDay) / 30;
     fullStart  = 1; // mês inicial já contado como parcial
   }
   // Meses cheios entre o mês após o início e o mês antes do término
