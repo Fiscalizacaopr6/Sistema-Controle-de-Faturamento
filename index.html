@@ -1776,7 +1776,7 @@ function editFormHtml(d) {
     +'<div class="ef full"><label>Empresa</label><input id="ef-empresa" value="'+(d['EMPRESA']||'').trim()+'"></div>'
     +'<div class="ef"><label>Responsável</label><select id="ef-resp"><option value="">—</option>'+selOpts(RESPS, d['RESPONSÁVEL NO FATURAMENTO'])+'</select></div>'
     +'<div class="ef"><label>Tipo</label><select id="ef-tipo"><option value="">—</option>'+selOpts(TIPOS, d['TIPO'])+'</select></div>'
-    +'<div class="ef"><label>Subtipo</label><select id="ef-subtipo"><option value="">—</option><option value="COM DEDICAÇÃO EXCLUSIVA">COM DEDICAÇÃO EXCLUSIVA</option><option value="SEM DEDICAÇÃO EXCLUSIVA">SEM DEDICAÇÃO EXCLUSIVA</option></select></div>'
+    +'<div class="ef"><label>Subtipo</label><select id="ef-subtipo"><option value="">—</option>'+selOpts(['COM DEDICAÇÃO EXCLUSIVA','SEM DEDICAÇÃO EXCLUSIVA'], d['SUBTIPO'])+'</select></div>'
     +'<div class="ef"><label>Início da vigência</label><input type="date" id="ef-inicio" value="'+(d['INÍCIO DO CONTRATO']||'')+'"></div>'
     +'<div class="ef"><label>Término da Vigência</label><input type="date" id="ef-termino" value="'+(d['TÉRMINO DA VIGÊNCIA']||'')+'"></div>'
     +'<div class="ef full"><label>Termo</label><input id="ef-termo" value="'+(d['TERMO ATUAL']||'')+'"></div>'
@@ -1878,6 +1878,11 @@ function openEditModal(idx) {
   document.getElementById('mo-t').textContent = 'Editar — Contrato ' + (d['CONTRATO']||'');
   document.getElementById('mo-s').textContent = (d['EMPRESA']||'').trim();
   document.getElementById('mo-b').innerHTML = editFormHtml(d);
+  // Força datas via JS (innerHTML nem sempre dispara parsing de date inputs)
+  var iniEl = document.getElementById('ef-inicio');
+  if (iniEl && d['INÍCIO DO CONTRATO']) iniEl.value = d['INÍCIO DO CONTRATO'];
+  var termEl = document.getElementById('ef-termino');
+  if (termEl && d['TÉRMINO DA VIGÊNCIA']) termEl.value = d['TÉRMINO DA VIGÊNCIA'];
   document.getElementById('mo-actions').innerHTML =
     '<button class="btn-cancel-e" onclick="openModal('+idx+')">Cancelar</button>'
     +'<button class="btn-save" onclick="saveEdit('+idx+')">Salvar Alterações</button>';
