@@ -375,6 +375,7 @@ tr:last-child td{border-bottom:none}
           <select class="sel" id="f-ti" onchange="applyFilters()">
             <option value="">Todos</option>
 <option value="ALIMENTAÇÃO">ALIMENTAÇÃO</option>
+<option value="BOMBEIRO CIVIL">BOMBEIRO CIVIL</option>
 <option value="COLETA DE RESÍDUOS">COLETA DE RESÍDUOS</option>
 <option value="COMPRA">COMPRA</option>
 <option value="CONCURSO">CONCURSO</option>
@@ -1762,7 +1763,7 @@ function doDeleteUser(u) {
 
 // ── Edit / New / Delete ──
 var RESPS = ['A DESIGNAR','ALINE','ANDERSON','DALTRO','EDILSON','ELTON','ESDRAS','ISMAEL','JONI','LILIANE','MARCELO','MAYARA','MICHELLI','RENAN','RENATA','ROBERTA','WERNECK'];
-var TIPOS = ['ALIMENTAÇÃO','COLETA DE RESÍDUOS','COMPRA','CONCURSO','DEDETIZAÇÃO','DEMANDA','GASES','GRAFICO','INTÉRPRETE DE LIBRAS','LICENSA DE SOFTWARE','LIMPEZA','LOCAÇÃO','MANUTENÇÃO','MOTORISTA','OBRA','RETROESCAVADEIRA','SEGURO','TRANSPORTE','VIAGENS'];
+var TIPOS = ['ALIMENTAÇÃO','BOMBEIRO CIVIL','COLETA DE RESÍDUOS','COMPRA','CONCURSO','DEDETIZAÇÃO','DEMANDA','GASES','GRAFICO','INTÉRPRETE DE LIBRAS','LICENSA DE SOFTWARE','LIMPEZA','LOCAÇÃO','MANUTENÇÃO','MOTORISTA','OBRA','RETROESCAVADEIRA','SEGURO','TRANSPORTE','VIAGENS'];
 
 function selOpts(arr, val) {
   return arr.map(function(o){ return '<option value="'+o+'"'+(o===val?' selected':'')+'>'+o+'</option>'; }).join('');
