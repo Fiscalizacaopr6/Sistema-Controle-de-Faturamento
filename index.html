@@ -793,6 +793,9 @@ function launchApp(u) {
     applyFilters();
     updateSidebar();
     setupRealtimeListeners();
+    // Restaura a tela em que o usuário estava antes de atualizar
+    var lastView = sessionStorage.getItem('ufrj_view');
+    if (lastView && lastView !== 'dashboard') showView(lastView);
   });
 }
 
@@ -865,6 +868,7 @@ function showView(v) {
   var m = document.querySelector('.main');
   if (m) m.scrollTop = 0;
   fcStickyScrollShow(v === 'fiscais' || v === 'unidades' || v === 'empresas' || v === 'contas' || v === 'reajustes', v);
+  sessionStorage.setItem('ufrj_view', v);
 }
 
 // ── Sidebar ──
@@ -1279,7 +1283,12 @@ function openModal(idx) {
   document.getElementById('mo').classList.add('open');
 }
 function closeMo() { document.getElementById('mo').classList.remove('open'); }
-function closeMoClick(e) { if (e.target === document.getElementById('mo')) closeMo(); }
+function closeMoClick(e) {
+  if (e.target !== document.getElementById('mo')) return;
+  // Não fecha clicando fora quando há formulário aberto (modo edição)
+  if (document.getElementById('mo-b').querySelector('input,select,textarea')) return;
+  closeMo();
+}
 
 // ── Alerts ──
 function buildAlerts() {
