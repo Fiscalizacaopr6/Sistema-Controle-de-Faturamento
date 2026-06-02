@@ -1866,7 +1866,8 @@ function calcAnual(d) {
   // Meses cheios entre o mês após o início e o mês antes do término
   var fullMonths = (endYear - startYear) * 12 + (endMonth - startMonth) - fullStart;
   // Mês parcial final: do dia 1 ao dia de término, base 30 dias (máx 30)
-  var lastValue = mensal * Math.min(endDay, 30) / 30;
+  // Se término é dia 1, não conta parcial (contrato encerrou no fim do mês anterior)
+  var lastValue = endDay > 1 ? mensal * Math.min(endDay, 30) / 30 : 0;
   return firstValue + (fullMonths > 0 ? fullMonths * mensal : 0) + lastValue;
 }
 
