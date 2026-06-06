@@ -910,13 +910,32 @@ function showChart(key) {
 
 var currentYearFilter = '';
 
+// Extrai o ano completo (4 dígitos) do número do contrato (ex: "61/22" → "2022", "01/2022" → "2022")
+function anoDoContrato(contrato) {
+  var m = (contrato || '').match(/\/(\d{2,4})$/);
+  if (!m) return null;
+  var s = m[1];
+  if (s.length === 2) return '20' + s;
+  if (s.length === 4) return s;
+  return null;
+}
+
+// Verifica se o contrato pertence ao ano (2 ou 4 dígitos no número)
+function contratoDoAno(d, year) {
+  if (!year) return true;
+  var yy = year.slice(-2);   // "22"
+  var yyyy = year;            // "2022"
+  var c = d['CONTRATO'] || '';
+  return new RegExp('\\/' + yy + '(\\D|$)').test(c) || c.indexOf('/' + yyyy) !== -1;
+}
+
 function populateYearFilter() {
   var sel = document.getElementById('db-year-filter');
   if (!sel) return;
   var years = {};
   DADOS.forEach(function(d) {
-    var y = (d['INÍCIO DO CONTRATO'] || '').substring(0, 4);
-    if (/^\d{4}$/.test(y)) years[y] = true;
+    var y = anoDoContrato(d['CONTRATO']);
+    if (y) years[y] = true;
   });
   var sorted = Object.keys(years).sort();
   var opts = '<option value="">Todos os anos</option>';
@@ -931,12 +950,10 @@ function setYearFilter(year) {
 }
 
 function buildDashboard() {
-  // Filtra contratos pelo ano selecionado (ativos em algum momento do ano)
-  var base = currentYearFilter ? DADOS.filter(function(d) {
-    var sy = (d['INÍCIO DO CONTRATO'] || '').substring(0, 4);
-    var ey = (d['TÉRMINO DA VIGÊNCIA'] || '').substring(0, 4);
-    return sy && sy <= currentYearFilter && (ey >= currentYearFilter || !ey);
-  }) : DADOS;
+  // Filtra contratos pelo ano do número do contrato (ex: /22 para 2022)
+  var base = currentYearFilter
+    ? DADOS.filter(function(d){ return contratoDoAno(d, currentYearFilter); })
+    : DADOS;
 
   populateYearFilter();
 
@@ -1469,11 +1486,9 @@ function searchContratoModal() {
 }
 
 function openVigentesModal() {
-  var base = currentYearFilter ? DADOS.filter(function(d) {
-    var sy = (d['INÍCIO DO CONTRATO'] || '').substring(0, 4);
-    var ey = (d['TÉRMINO DA VIGÊNCIA'] || '').substring(0, 4);
-    return sy && sy <= currentYearFilter && (ey >= currentYearFilter || !ey);
-  }) : DADOS;
+  var base = currentYearFilter
+    ? DADOS.filter(function(d){ return contratoDoAno(d, currentYearFilter); })
+    : DADOS;
   var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
   vig.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
   var titulo = currentYearFilter ? 'Contratos Vigentes em ' + currentYearFilter + ' (' + vig.length + ')' : 'Contratos Vigentes (' + vig.length + ')';
