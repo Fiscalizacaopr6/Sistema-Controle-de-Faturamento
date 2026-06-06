@@ -1469,10 +1469,16 @@ function searchContratoModal() {
 }
 
 function openVigentesModal() {
-  var vig = DADOS.filter(function(d){ return d._st === 'VIGENTE'; });
+  var base = currentYearFilter ? DADOS.filter(function(d) {
+    var sy = (d['INÍCIO DO CONTRATO'] || '').substring(0, 4);
+    var ey = (d['TÉRMINO DA VIGÊNCIA'] || '').substring(0, 4);
+    return sy && sy <= currentYearFilter && (ey >= currentYearFilter || !ey);
+  }) : DADOS;
+  var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
   vig.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
-  document.getElementById('mo-t').textContent = 'Contratos Vigentes (' + vig.length + ')';
-  document.getElementById('mo-s').textContent = 'Lista de contratos ativos';
+  var titulo = currentYearFilter ? 'Contratos Vigentes em ' + currentYearFilter + ' (' + vig.length + ')' : 'Contratos Vigentes (' + vig.length + ')';
+  document.getElementById('mo-t').textContent = titulo;
+  document.getElementById('mo-s').textContent = 'Lista de contratos ativos' + (currentYearFilter ? ' — ano ' + currentYearFilter : '');
   document.getElementById('mo-b').innerHTML =
     '<div style="padding:12px 24px 4px">'
     + vig.map(function(d){
