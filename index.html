@@ -967,11 +967,11 @@ function buildDashboard() {
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
     {l:'Contratos Vigentes', v:vig.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
-    {l:'Valor Mensal (Vigentes)', v:fmtM(mensal), s:'contratos ativos'+labelAno, c:'green'},
-    {l:'Contratos Encerrados', v:enc.length, s:'histórico'+labelAno, c:'red'},
+    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green'},
+    {l:'Contratos Encerrados', v:enc.length, s:'histórico'+labelAno, c:'red', btnEnc:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber'},
-    {l:'Valor Global Total', v:fmtM(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue'},
+    {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue'},
     {l:'Total de Empresas', v:empresas, s:'empresas distintas'+labelAno, c:'green'},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
@@ -980,6 +980,7 @@ function buildDashboard() {
       +'<div class="kpi-value">'+k.v+'</div>'
       +'<div class="kpi-sub">'+k.s+'</div>'
       +(k.btn?'<button onclick="openVigentesModal()" style="margin-top:10px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:5px;color:var(--accent);font-size:10px;padding:4px 10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600">Ver lista ↗</button>':'')
+      +(k.btnEnc?'<button onclick="openEncerradosModal()" style="margin-top:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:5px;color:var(--red);font-size:10px;padding:4px 10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600">Ver lista ↗</button>':'')
       +'</div>';
   }).join('');
   var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
@@ -1499,6 +1500,28 @@ function openVigentesModal() {
     + vig.map(function(d){
         return '<div style="display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)">'
           + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--accent);min-width:90px;font-size:12px">'+(d['CONTRATO']||'—')+'</span>'
+          + '<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+function openEncerradosModal() {
+  var base = currentYearFilter
+    ? DADOS.filter(function(d){ return contratoDoAno(d, currentYearFilter); })
+    : DADOS;
+  var enc = base.filter(function(d){ return d._st === 'ENCERRADO'; });
+  enc.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
+  var titulo = currentYearFilter ? 'Contratos Encerrados em ' + currentYearFilter + ' (' + enc.length + ')' : 'Contratos Encerrados (' + enc.length + ')';
+  document.getElementById('mo-t').textContent = titulo;
+  document.getElementById('mo-s').textContent = 'Lista de contratos encerrados' + (currentYearFilter ? ' — ano ' + currentYearFilter : '');
+  document.getElementById('mo-b').innerHTML =
+    '<div style="padding:12px 24px 4px">'
+    + enc.map(function(d){
+        return '<div style="display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--red);min-width:90px;font-size:12px">'+(d['CONTRATO']||'—')+'</span>'
           + '<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
           + '</div>';
       }).join('')
