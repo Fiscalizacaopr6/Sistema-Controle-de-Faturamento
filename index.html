@@ -345,14 +345,19 @@ tr:last-child td{border-bottom:none}
 
     <!-- DASHBOARD -->
     <div class="view active" id="view-dashboard">
-      <!-- Barra de pesquisa rápida de contrato -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;max-width:520px">
+      <!-- Barra de pesquisa + filtro por ano -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">
         <input id="db-search-input" type="text" placeholder="🔍 Ex: 01/2022" maxlength="7"
-          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;outline:none;flex:1;transition:border-color .15s"
+          style="width:130px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;outline:none;transition:border-color .15s"
           onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
           oninput="maskContrato(this)"
           onkeydown="if(event.key==='Enter')searchContratoModal()">
         <button onclick="searchContratoModal()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 18px;cursor:pointer;white-space:nowrap">Buscar</button>
+        <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+        <select id="db-year-filter" onchange="setYearFilter(this.value)"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+          <option value="">Todos os anos</option>
+        </select>
       </div>
       <div class="kpi-grid" id="kpi-grid"></div>
       <div class="chart-tabs">
@@ -903,22 +908,54 @@ function showChart(key) {
   document.getElementById('single-chart').innerHTML = d.html;
 }
 
+var currentYearFilter = '';
+
+function populateYearFilter() {
+  var sel = document.getElementById('db-year-filter');
+  if (!sel) return;
+  var years = {};
+  DADOS.forEach(function(d) {
+    var y = (d['INÍCIO DO CONTRATO'] || '').substring(0, 4);
+    if (/^\d{4}$/.test(y)) years[y] = true;
+  });
+  var sorted = Object.keys(years).sort();
+  var opts = '<option value="">Todos os anos</option>';
+  sorted.forEach(function(y) { opts += '<option value="'+y+'">'+y+'</option>'; });
+  sel.innerHTML = opts;
+  sel.value = currentYearFilter;
+}
+
+function setYearFilter(year) {
+  currentYearFilter = year;
+  buildDashboard();
+}
+
 function buildDashboard() {
-  var vig = DADOS.filter(function(d){ return d._st === 'VIGENTE'; });
-  var enc = DADOS.filter(function(d){ return d._st === 'ENCERRADO'; });
+  // Filtra contratos pelo ano selecionado (ativos em algum momento do ano)
+  var base = currentYearFilter ? DADOS.filter(function(d) {
+    var sy = (d['INÍCIO DO CONTRATO'] || '').substring(0, 4);
+    var ey = (d['TÉRMINO DA VIGÊNCIA'] || '').substring(0, 4);
+    return sy && sy <= currentYearFilter && (ey >= currentYearFilter || !ey);
+  }) : DADOS;
+
+  populateYearFilter();
+
+  var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
+  var enc = base.filter(function(d){ return d._st === 'ENCERRADO'; });
   var mensal = vig.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0);
   var func = vig.reduce(function(s,d){ return s+(d['FUNCIONÁRIOS VIGENTES']||0); }, 0);
   var v30 = vig.filter(function(d){ return d._dias !== null && d._dias <= 30; }).length;
-  var totalG = DADOS.reduce(function(s,d){ return s+(d['TOTAL GLOBAL']||0); }, 0);
-  var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
+  var totalG = base.reduce(function(s,d){ return s+(d['TOTAL GLOBAL']||0); }, 0);
+  var empresas = new Set(base.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
+  var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
-    {l:'Contratos Vigentes', v:vig.length, s:'de '+DADOS.length+' no total', c:'blue', btn:true},
-    {l:'Valor Mensal (Vigentes)', v:fmtM(mensal), s:'contratos ativos', c:'green'},
-    {l:'Contratos Encerrados', v:enc.length, s:'histórico', c:'red'},
-    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos', c:'purple'},
+    {l:'Contratos Vigentes', v:vig.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
+    {l:'Valor Mensal (Vigentes)', v:fmtM(mensal), s:'contratos ativos'+labelAno, c:'green'},
+    {l:'Contratos Encerrados', v:enc.length, s:'histórico'+labelAno, c:'red'},
+    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber'},
-    {l:'Valor Global Total', v:fmtM(totalG), s:'todos os contratos', c:'blue'},
-    {l:'Total de Empresas', v:empresas, s:'empresas distintas', c:'green'},
+    {l:'Valor Global Total', v:fmtM(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue'},
+    {l:'Total de Empresas', v:empresas, s:'empresas distintas'+labelAno, c:'green'},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
     return '<div class="kpi '+k.c+'">'
