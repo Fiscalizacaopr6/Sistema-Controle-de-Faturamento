@@ -903,7 +903,7 @@ function buildDashboard() {
   var totalG = DADOS.reduce(function(s,d){ return s+(d['TOTAL GLOBAL']||0); }, 0);
   var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
   var kpis = [
-    {l:'Contratos Vigentes', v:vig.length, s:'de '+DADOS.length+' no total', c:'blue'},
+    {l:'Contratos Vigentes', v:vig.length, s:'de '+DADOS.length+' no total', c:'blue', btn:true},
     {l:'Valor Mensal (Vigentes)', v:fmtM(mensal), s:'contratos ativos', c:'green'},
     {l:'Contratos Encerrados', v:enc.length, s:'histórico', c:'red'},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos', c:'purple'},
@@ -912,7 +912,12 @@ function buildDashboard() {
     {l:'Total de Empresas', v:empresas, s:'empresas distintas', c:'green'},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
-    return '<div class="kpi '+k.c+'"><div class="kpi-label">'+k.l+'</div><div class="kpi-value">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div></div>';
+    return '<div class="kpi '+k.c+'">'
+      +'<div class="kpi-label">'+k.l+'</div>'
+      +'<div class="kpi-value">'+k.v+'</div>'
+      +'<div class="kpi-sub">'+k.s+'</div>'
+      +(k.btn?'<button onclick="openVigentesModal()" style="margin-top:10px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:5px;color:var(--accent);font-size:10px;padding:4px 10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600">Ver lista ↗</button>':'')
+      +'</div>';
   }).join('');
   var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
   function barHtml(data, fmtVal) {
@@ -1283,6 +1288,25 @@ function openModal(idx) {
   document.getElementById('mo').classList.add('open');
 }
 function closeMo() { document.getElementById('mo').classList.remove('open'); }
+
+function openVigentesModal() {
+  var vig = DADOS.filter(function(d){ return d._st === 'VIGENTE'; });
+  vig.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
+  document.getElementById('mo-t').textContent = 'Contratos Vigentes (' + vig.length + ')';
+  document.getElementById('mo-s').textContent = 'Lista de contratos ativos';
+  document.getElementById('mo-b').innerHTML =
+    '<div style="padding:12px 24px 4px">'
+    + vig.map(function(d){
+        return '<div style="display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--accent);min-width:90px;font-size:12px">'+(d['CONTRATO']||'—')+'</span>'
+          + '<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>';
+  document.getElementById('mo').classList.add('open');
+}
 function closeMoClick(e) {
   if (e.target !== document.getElementById('mo')) return;
   // Não fecha clicando fora quando há formulário aberto (modo edição)
