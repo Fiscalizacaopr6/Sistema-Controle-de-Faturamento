@@ -972,7 +972,7 @@ function buildDashboard() {
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber'},
     {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue'},
-    {l:'Total de Empresas', v:empresas, s:'empresas distintas'+labelAno, c:'green'},
+    {l:'Total de Empresas', v:empresas, s:'empresas distintas'+labelAno, c:'green', btnEmp:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
     return '<div class="kpi '+k.c+'">'
@@ -981,6 +981,7 @@ function buildDashboard() {
       +'<div class="kpi-sub">'+k.s+'</div>'
       +(k.btn?'<button onclick="openVigentesModal()" style="margin-top:10px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:5px;color:var(--accent);font-size:10px;padding:4px 10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600">Ver lista ↗</button>':'')
       +(k.btnEnc?'<button onclick="openEncerradosModal()" style="margin-top:10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:5px;color:var(--red);font-size:10px;padding:4px 10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600">Ver lista ↗</button>':'')
+      +(k.btnEmp?'<button onclick="openEmpresasModal()" style="margin-top:10px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:5px;color:#10b981;font-size:10px;padding:4px 10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600">Ver lista ↗</button>':'')
       +'</div>';
   }).join('');
   var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
@@ -1514,15 +1515,50 @@ function openEncerradosModal() {
     : DADOS;
   var enc = base.filter(function(d){ return d._st === 'ENCERRADO'; });
   enc.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
-  var titulo = currentYearFilter ? 'Contratos Encerrados em ' + currentYearFilter + ' (' + enc.length + ')' : 'Contratos Encerrados (' + enc.length + ')';
+  // deduplica por número de contrato
+  var seen = {};
+  var encUniq = enc.filter(function(d){
+    var key = (d['CONTRATO']||'').trim();
+    if (seen[key]) return false;
+    seen[key] = true;
+    return true;
+  });
+  var titulo = currentYearFilter ? 'Contratos Encerrados em ' + currentYearFilter + ' (' + encUniq.length + ')' : 'Contratos Encerrados (' + encUniq.length + ')';
   document.getElementById('mo-t').textContent = titulo;
   document.getElementById('mo-s').textContent = 'Lista de contratos encerrados' + (currentYearFilter ? ' — ano ' + currentYearFilter : '');
   document.getElementById('mo-b').innerHTML =
     '<div style="padding:12px 24px 4px">'
-    + enc.map(function(d){
+    + encUniq.map(function(d){
         return '<div style="display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)">'
           + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--red);min-width:90px;font-size:12px">'+(d['CONTRATO']||'—')+'</span>'
           + '<span style="font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
+          + '</div>';
+      }).join('')
+    + '</div>';
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+function openEmpresasModal() {
+  var base = currentYearFilter
+    ? DADOS.filter(function(d){ return contratoDoAno(d, currentYearFilter); })
+    : DADOS;
+  // coleta empresas distintas (case-insensitive), guarda nome original
+  var empMap = {};
+  base.forEach(function(d){
+    var nome = (d['EMPRESA']||'').trim();
+    if (nome) empMap[nome.toLowerCase()] = nome;
+  });
+  var lista = Object.values(empMap).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  var titulo = currentYearFilter ? 'Empresas em ' + currentYearFilter + ' (' + lista.length + ')' : 'Empresas (' + lista.length + ')';
+  document.getElementById('mo-t').textContent = titulo;
+  document.getElementById('mo-s').textContent = 'Empresas com contratos' + (currentYearFilter ? ' — ano ' + currentYearFilter : '');
+  document.getElementById('mo-b').innerHTML =
+    '<div style="padding:12px 24px 4px">'
+    + lista.map(function(nome, i){
+        return '<div style="display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--border)">'
+          + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:#10b981;min-width:28px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
+          + '<span style="font-size:13px;color:var(--text)">'+nome+'</span>'
           + '</div>';
       }).join('')
     + '</div>';
