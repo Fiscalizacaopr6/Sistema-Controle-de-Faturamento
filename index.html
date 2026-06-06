@@ -347,9 +347,10 @@ tr:last-child td{border-bottom:none}
     <div class="view active" id="view-dashboard">
       <!-- Barra de pesquisa rápida de contrato -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;max-width:520px">
-        <input id="db-search-input" type="text" placeholder="🔍 Buscar contrato pelo número..."
-          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;padding:9px 14px;outline:none;flex:1;transition:border-color .15s"
+        <input id="db-search-input" type="text" placeholder="🔍 Ex: 01/2022" maxlength="7"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;outline:none;flex:1;transition:border-color .15s"
           onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          oninput="maskContrato(this)"
           onkeydown="if(event.key==='Enter')searchContratoModal()">
         <button onclick="searchContratoModal()" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 18px;cursor:pointer;white-space:nowrap">Buscar</button>
       </div>
@@ -1349,7 +1350,7 @@ function searchContratoModal() {
   // Status + info geral
   html += '<div style="margin-bottom:12px"><span class="badge ' + (st === 'VIGENTE' ? 'bg' : 'br') + '">' + st + '</span></div>';
   html += row2('Empresa', (d['EMPRESA'] || '').trim());
-  html += row2('Responsável', d['RESPONSÁVEL NO FATURAMENTO']);
+  html += row2('Responsável no Faturamento', d['RESPONSÁVEL NO FATURAMENTO']);
   html += row2('Tipo', (d['TIPO'] || '') + (d['SUBTIPO'] ? ' › ' + d['SUBTIPO'] : ''));
   html += row2('Proc. Contratação', d['PROCESSO CONTRATAÇÃO']);
   html += row2('Proc. Pagamento', d['PROCESSO PAGAMENTO']);
@@ -1723,6 +1724,14 @@ function fiscalAutoFillEmpresa() {
   var contratoNum = document.getElementById('ff-contrato').value;
   var d = DADOS.find(function(x){ return x['CONTRATO'] === contratoNum; });
   document.getElementById('ff-empresa').value = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
+}
+
+function maskContrato(input) {
+  // Formata como xx/xxxx (ex: 01/2022)
+  var v = input.value.replace(/\D/g, '');
+  if (v.length > 6) v = v.slice(0, 6);
+  if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+  input.value = v;
 }
 
 function maskPhone(input) {
