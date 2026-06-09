@@ -365,6 +365,12 @@ tr:last-child td{border-bottom:none}
           style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
           <option value="">Todos os tipos</option>
         </select>
+        <select id="db-subtipo-filter" onchange="setSubtipoFilter(this.value)"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+          <option value="">Todos os subtipos</option>
+        </select>
+        <button onclick="clearDashFilters()" id="db-clear-btn"
+          style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:var(--red);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">✕ Limpar filtros</button>
       </div>
       <div class="kpi-grid" id="kpi-grid"></div>
       <div class="chart-tabs">
@@ -918,6 +924,9 @@ function showChart(key) {
 
 var currentYearFilter = '';
 var currentTipoFilter = '';
+var currentSubtipoFilter = '';
+
+var SUBTIPOS = ['COM DEDICAÇÃO EXCLUSIVA', 'SEM DEDICAÇÃO EXCLUSIVA'];
 
 function populateTipoFilter() {
   var sel = document.getElementById('db-tipo-filter');
@@ -928,9 +937,36 @@ function populateTipoFilter() {
   sel.value = currentTipoFilter;
 }
 
+function populateSubtipoFilter() {
+  var sel = document.getElementById('db-subtipo-filter');
+  if (!sel) return;
+  var opts = '<option value="">Todos os subtipos</option>';
+  SUBTIPOS.forEach(function(s){ opts += '<option value="'+s+'">'+s+'</option>'; });
+  sel.innerHTML = opts;
+  sel.value = currentSubtipoFilter;
+}
+
 function setTipoFilter(tipo) {
   currentTipoFilter = tipo;
   buildDashboard();
+}
+
+function setSubtipoFilter(subtipo) {
+  currentSubtipoFilter = subtipo;
+  buildDashboard();
+}
+
+function clearDashFilters() {
+  currentYearFilter = '';
+  currentTipoFilter = '';
+  currentSubtipoFilter = '';
+  buildDashboard();
+}
+
+function updateClearBtn() {
+  var btn = document.getElementById('db-clear-btn');
+  if (!btn) return;
+  btn.style.display = (currentYearFilter || currentTipoFilter || currentSubtipoFilter) ? '' : 'none';
 }
 
 // Extrai o ano completo (4 dígitos) do número do contrato (ex: "61/22" → "2022", "01/2022" → "2022")
@@ -975,11 +1011,14 @@ function setYearFilter(year) {
 function buildDashboard() {
   // Filtra por ano e por tipo
   var base = DADOS;
-  if (currentYearFilter) base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
-  if (currentTipoFilter) base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
+  if (currentYearFilter)    base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
+  if (currentTipoFilter)    base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
+  if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
 
   populateYearFilter();
   populateTipoFilter();
+  populateSubtipoFilter();
+  updateClearBtn();
 
   var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
   var enc = base.filter(function(d){ return d._st === 'ENCERRADO'; });
@@ -1668,8 +1707,9 @@ function exportContratoPDF(numContrato) {
 
 function showKpiLista(tipo) {
   var base = DADOS;
-  if (currentYearFilter) base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
-  if (currentTipoFilter) base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
+  if (currentYearFilter)    base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
+  if (currentTipoFilter)    base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
+  if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
   var titulo, subtitulo, rows;
 
   if (tipo === 'vigentes') {
