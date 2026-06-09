@@ -971,11 +971,11 @@ function buildDashboard() {
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
     {l:'Contratos Vigentes', v:vig.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
-    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green'},
+    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true},
     {l:'Contratos Encerrados', v:enc.length, s:'histórico'+labelAno, c:'red', btnEnc:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber'},
-    {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue'},
+    {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true},
     {l:'Total de Empresas', v:empresas, s:'empresas distintas'+labelAno, c:'green', btnEmp:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
@@ -988,7 +988,7 @@ function buildDashboard() {
       +(clickable?' onclick="'+clickFn+'" style="cursor:pointer;transition:filter .15s" onmouseenter="this.style.filter=\'brightness(1.12)\'" onmouseleave="this.style.filter=\'\'"\n':'>')
       +(clickable?'>':'')
       +'<div class="kpi-label">'+k.l+'</div>'
-      +'<div class="kpi-value">'+k.v+'</div>'
+      +'<div class="kpi-value" style="'+(k.small?'font-size:17px;line-height:1.25':'')+'">'+k.v+'</div>'
       +'<div class="kpi-sub">'+k.s+'</div>'
       +'</div>';
   }).join('');
