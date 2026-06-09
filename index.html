@@ -1491,8 +1491,159 @@ function searchContratoModal() {
   document.getElementById('mo-t').textContent = 'Contrato ' + numContrato;
   document.getElementById('mo-s').textContent = (d['EMPRESA'] || '').trim();
   document.getElementById('mo-b').innerHTML = html;
-  document.getElementById('mo-actions').innerHTML = '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>';
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>'
+    +'<button onclick="exportContratoPDF(\''+numContrato+'\')" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">⬇ Exportar PDF</button>';
   document.getElementById('mo').classList.add('open');
+}
+
+function exportContratoPDF(numContrato) {
+  var termos = DADOS.filter(function(d){ return (d['CONTRATO']||'') === numContrato; });
+  if (!termos.length) return;
+  var d = termos[termos.length - 1];
+  var fiscais   = FISCAIS.filter(function(f){ return (f.contrato||'') === numContrato; });
+  var reajustes = REAJUSTES.filter(function(r){ return (r.contrato||'') === numContrato; });
+  var contas    = CONTAS.filter(function(c){ return (c.contrato||'') === numContrato; });
+  var isDedExcl = (d['SUBTIPO']||'').indexOf('DEDICAÇÃO EXCLUSIVA') !== -1;
+
+  var doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  var W = doc.internal.pageSize.getWidth();
+  var margin = 40;
+  var y = 50;
+
+  // ── Cabeçalho ──
+  doc.setFillColor(30, 41, 59);
+  doc.rect(0, 0, W, 70, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text('Contrato ' + numContrato, margin, 30);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text((d['EMPRESA']||'').trim(), margin, 48);
+  var stLabel = d._st || '—';
+  var stColor = d._st === 'VIGENTE' ? [16,185,129] : [239,68,68];
+  doc.setFillColor(stColor[0], stColor[1], stColor[2]);
+  doc.roundedRect(W - margin - 60, 14, 58, 18, 4, 4, 'F');
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text(stLabel, W - margin - 31, 26.5, { align:'center' });
+  doc.setTextColor(30, 41, 59);
+  y = 90;
+
+  // ── Função auxiliar: seção ──
+  function secTitle(title) {
+    doc.setFillColor(241, 245, 249);
+    doc.rect(margin, y, W - margin*2, 16, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.setTextColor(59, 130, 246);
+    doc.text(title.toUpperCase(), margin + 6, y + 11);
+    doc.setTextColor(30, 41, 59);
+    y += 22;
+  }
+
+  function infoRow(label, value) {
+    if (value == null || value === '') return;
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(label + ':', margin, y);
+    doc.setTextColor(30, 41, 59); doc.setFont('helvetica','bold');
+    var val = String(value);
+    var lines = doc.splitTextToSize(val, W - margin - 190);
+    doc.text(lines, 200, y);
+    y += Math.max(lines.length * 14, 16);
+  }
+
+  // ── Info geral ──
+  secTitle('Informações Gerais');
+  infoRow('Empresa',                 (d['EMPRESA']||'').trim());
+  infoRow('Responsável Faturamento', d['RESPONSÁVEL NO FATURAMENTO']);
+  infoRow('Tipo',                    (d['TIPO']||'') + (d['SUBTIPO'] ? ' › '+d['SUBTIPO'] : ''));
+  infoRow('Proc. Contratação',       d['PROCESSO CONTRATAÇÃO']);
+  infoRow('Proc. Pagamento',         d['PROCESSO PAGAMENTO']);
+  infoRow('Proc. Conta Vinculada',   d['PROCESSO CONTA VINCULADA']);
+  infoRow('Qtd. Itens',              d['QTD ITEM']);
+  infoRow('N° Unidades',             d['N° DE UNIDADES']);
+  if (isDedExcl) infoRow('N° Funcionários', d['N° FUNCIONÁRIO']);
+  y += 6;
+
+  // ── Termos ──
+  if (termos.length) {
+    secTitle('Termos (' + termos.length + ')');
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: [30,41,59], textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: [30,41,59] },
+      alternateRowStyles: { fillColor: [248,250,252] },
+      head: [['Termo','Início','Término','Mensal','Objeto']],
+      body: termos.map(function(t){
+        return [
+          t['TERMO ATUAL']||'—',
+          fmtDate(t['INÍCIO DO CONTRATO']),
+          fmtDate(t['TÉRMINO DA VIGÊNCIA']),
+          t['TOTAL MENSAL']!=null ? fmtBR(t['TOTAL MENSAL']) : '—',
+          (t['OBJETO']||'').substring(0,80) + ((t['OBJETO']||'').length>80?'…':'')
+        ];
+      }),
+      columnStyles: { 4: { cellWidth: 'auto' } }
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  // ── Fiscais ──
+  if (fiscais.length) {
+    secTitle('Fiscais (' + fiscais.length + ')');
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: [30,41,59], textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: [30,41,59] },
+      alternateRowStyles: { fillColor: [248,250,252] },
+      head: [['Nome','Unidade','Situação']],
+      body: fiscais.map(function(f){ return [f.nome||'—', f.unidade||'—', f.situacao||'—']; })
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  // ── Reajustes ──
+  if (reajustes.length) {
+    secTitle('Reajustes e Repactuações (' + reajustes.length + ')');
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: [30,41,59], textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: [30,41,59] },
+      alternateRowStyles: { fillColor: [248,250,252] },
+      head: [['Ano','Memória de Cálculo','Período','Origem','Sit. NF']],
+      body: reajustes.map(function(r){ return [r.ano||'—', r.memoriaCalculo||'—', r.periodo||'—', r.origem||'—', r.situacaoNf||'—']; })
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  // ── Contas Vinculadas ──
+  if (contas.length) {
+    secTitle('Conta Vinculada (' + contas.length + ')');
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      headStyles: { fillColor: [30,41,59], textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: [30,41,59] },
+      alternateRowStyles: { fillColor: [248,250,252] },
+      head: [['Pedido','Situação']],
+      body: contas.map(function(c){ return [c.pedido||'—', c.situacao||'—']; })
+    });
+  }
+
+  // ── Rodapé ──
+  var pageCount = doc.internal.getNumberOfPages();
+  for (var i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184);
+    doc.text('Sistema de Controle de Faturamento — UFRJ / PR6', margin, doc.internal.pageSize.getHeight() - 20);
+    doc.text('Página ' + i + ' de ' + pageCount, W - margin, doc.internal.pageSize.getHeight() - 20, { align:'right' });
+  }
+
+  doc.save('Contrato_' + numContrato.replace(/\//g,'-') + '.pdf');
 }
 
 function showKpiLista(tipo) {
