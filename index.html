@@ -361,6 +361,10 @@ tr:last-child td{border-bottom:none}
           style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
           <option value="">Todos os anos</option>
         </select>
+        <select id="db-tipo-filter" onchange="setTipoFilter(this.value)"
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+          <option value="">Todos os tipos</option>
+        </select>
       </div>
       <div class="kpi-grid" id="kpi-grid"></div>
       <div class="chart-tabs">
@@ -913,6 +917,21 @@ function showChart(key) {
 }
 
 var currentYearFilter = '';
+var currentTipoFilter = '';
+
+function populateTipoFilter() {
+  var sel = document.getElementById('db-tipo-filter');
+  if (!sel) return;
+  var opts = '<option value="">Todos os tipos</option>';
+  TIPOS.forEach(function(t){ opts += '<option value="'+t+'">'+t+'</option>'; });
+  sel.innerHTML = opts;
+  sel.value = currentTipoFilter;
+}
+
+function setTipoFilter(tipo) {
+  currentTipoFilter = tipo;
+  buildDashboard();
+}
 
 // Extrai o ano completo (4 dígitos) do número do contrato (ex: "61/22" → "2022", "01/2022" → "2022")
 function anoDoContrato(contrato) {
@@ -954,12 +973,13 @@ function setYearFilter(year) {
 }
 
 function buildDashboard() {
-  // Filtra contratos pelo ano do número do contrato (ex: /22 para 2022)
-  var base = currentYearFilter
-    ? DADOS.filter(function(d){ return contratoDoAno(d, currentYearFilter); })
-    : DADOS;
+  // Filtra por ano e por tipo
+  var base = DADOS;
+  if (currentYearFilter) base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
+  if (currentTipoFilter) base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
 
   populateYearFilter();
+  populateTipoFilter();
 
   var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
   var enc = base.filter(function(d){ return d._st === 'ENCERRADO'; });
@@ -1647,9 +1667,9 @@ function exportContratoPDF(numContrato) {
 }
 
 function showKpiLista(tipo) {
-  var base = currentYearFilter
-    ? DADOS.filter(function(d){ return contratoDoAno(d, currentYearFilter); })
-    : DADOS;
+  var base = DADOS;
+  if (currentYearFilter) base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
+  if (currentTipoFilter) base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
   var titulo, subtitulo, rows;
 
   if (tipo === 'vigentes') {
