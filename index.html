@@ -1408,6 +1408,7 @@ function openModal(idx) {
     +row('N° IMR', d['N° IMR'])
     +row('Objeto', (d['OBJETO']||'').trim(), true)
     +row('Proc. Pagamento', d['PROCESSO PAGAMENTO'])
+    +row('Tipo de Contratação', (d['TIPO DE CONTRATAÇÃO']||'') + (d['N° CONTRATAÇÃO'] ? ' — N° '+d['N° CONTRATAÇÃO'] : ''))
     +row('Proc. Contratação', d['PROCESSO CONTRATAÇÃO'])
     +row('Proc. Conta Vinculada', d['PROCESSO CONTA VINCULADA'])
     +row('ID Contratos.gov', govLink)
@@ -2296,6 +2297,8 @@ function editFormHtml(d) {
     +'<div class="ef"><label>Nº de Funcionários</label><input type="number" id="ef-funcs" value="'+(d['N° FUNCIONÁRIO']!=null?d['N° FUNCIONÁRIO']:'')+'"></div>'
     +'<div class="ef"><label>N° IMR</label><input id="ef-imr" value="'+(d['N° IMR']||'')+'"></div>'
     +'<div class="ef full"><label>Objeto</label><textarea id="ef-objeto">'+(d['OBJETO']||'').trim()+'</textarea></div>'
+    +'<div class="ef"><label>Tipo de Contratação</label><select id="ef-tipocontr"><option value="">—</option>'+selOpts(['PREGÃO','CONCORRÊNCIA','LEILÃO','CONCURSO','DIÁLOGO COMPETITIVO','INEXIGIBILIDADE','RDC'], d['TIPO DE CONTRATAÇÃO'])+'</select></div>'
+    +'<div class="ef"><label>N°</label><input id="ef-numcontr" value="'+(d['N° CONTRATAÇÃO']||'')+'"></div>'
     +'<div class="ef"><label>Processo Pagamento</label><input id="ef-procpag" value="'+(d['PROCESSO PAGAMENTO']||'')+'"></div>'
     +'<div class="ef"><label>Processo Contratação</label><input id="ef-proccont" value="'+(d['PROCESSO CONTRATAÇÃO']||'')+'"></div>'
     +'<div class="ef"><label>Processo Conta Vinculada</label><input id="ef-proccv" value="'+(d['PROCESSO CONTA VINCULADA']||'')+'"></div>'
@@ -2324,6 +2327,8 @@ function readForm() {
     'N° FUNCIONÁRIO': ni('ef-funcs'),
     'N° IMR': v('ef-imr'),
     'OBJETO': document.getElementById('ef-objeto').value.trim(),
+    'TIPO DE CONTRATAÇÃO': v('ef-tipocontr'),
+    'N° CONTRATAÇÃO': v('ef-numcontr') || null,
     'PROCESSO PAGAMENTO': v('ef-procpag'),
     'PROCESSO CONTRATAÇÃO': v('ef-proccont'),
     'PROCESSO CONTA VINCULADA': v('ef-proccv'),
