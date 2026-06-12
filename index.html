@@ -132,6 +132,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
 .kpi-value{font-size:26px;font-weight:700;line-height:1}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace}
+input:not([type=date]):not([type=number]):not([type=email]):not([type=password]):not([type=checkbox]):not([type=radio]),textarea{text-transform:uppercase}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
 .chart-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .chart-tab{background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'Sora',sans-serif;font-size:11px;font-weight:600;padding:8px 14px;cursor:pointer;transition:all .2s;line-height:1.3;text-align:left}
@@ -759,6 +760,19 @@ function _finishInitLogin() {
     if (u && USERS_DB[u]) { launchApp(u); return; }
     setTimeout(function(){ document.getElementById('lf-u').focus(); }, 300);
 }
+// Converte automaticamente para maiúsculas em todos os campos de texto dos formulários
+document.addEventListener('input', function(e) {
+  var el = e.target;
+  var tag = el.tagName;
+  var type = (el.type || '').toLowerCase();
+  var skip = ['email','password','date','number','checkbox','radio','search','file'];
+  if ((tag === 'INPUT' && skip.indexOf(type) === -1) || tag === 'TEXTAREA') {
+    var pos = el.selectionStart;
+    el.value = el.value.toUpperCase();
+    try { el.setSelectionRange(pos, pos); } catch(e) {}
+  }
+});
+
 function doLogin() {
   var u = document.getElementById('lf-u').value.trim();
   var p = document.getElementById('lf-p').value;
