@@ -132,7 +132,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
 .kpi-value{font-size:26px;font-weight:700;line-height:1}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace}
-input:not([type=date]):not([type=number]):not([type=email]):not([type=password]):not([type=checkbox]):not([type=radio]),textarea{text-transform:uppercase}
+input:not([type=date]):not([type=number]):not([type=email]):not([type=password]):not([type=checkbox]):not([type=radio]):not(#lf-u),textarea{text-transform:uppercase}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
 .chart-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 .chart-tab{background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'Sora',sans-serif;font-size:11px;font-weight:600;padding:8px 14px;cursor:pointer;transition:all .2s;line-height:1.3;text-align:left}
@@ -765,8 +765,10 @@ document.addEventListener('input', function(e) {
   var el = e.target;
   var tag = el.tagName;
   var type = (el.type || '').toLowerCase();
-  var skip = ['email','password','date','number','checkbox','radio','search','file'];
-  if ((tag === 'INPUT' && skip.indexOf(type) === -1) || tag === 'TEXTAREA') {
+  var skipTypes = ['email','password','date','number','checkbox','radio','search','file'];
+  var skipIds = ['lf-u'];
+  if (skipIds.indexOf(el.id) !== -1) return;
+  if ((tag === 'INPUT' && skipTypes.indexOf(type) === -1) || tag === 'TEXTAREA') {
     var pos = el.selectionStart;
     el.value = el.value.toUpperCase();
     try { el.setSelectionRange(pos, pos); } catch(e) {}
