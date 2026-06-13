@@ -1158,8 +1158,8 @@ function renderTable() {
     var anual  = calcAnual(d);
     return '<tr style="cursor:pointer" onclick="openModal('+idx+')">'
       +'<td><span style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+d['CONTRATO']+'</span></td>'
-      +'<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+(d['EMPRESA']||'').trim()+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis">'+(d['TERMO ATUAL']||'—')+'</td>'
+      +'<td style="min-width:200px">'+(d['EMPRESA']||'').trim()+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;min-width:180px">'+(d['TERMO ATUAL']||'—')+'</td>'
       +'<td><span class="tag">'+(d['RESPONSÁVEL NO FATURAMENTO']||'—')+'</span></td>'
       +'<td><span class="tag">'+(d['TIPO']||'—')+'</span></td>'
       +'<td><span class="tag">'+(d['SUBTIPO']||'—')+'</span></td>'
