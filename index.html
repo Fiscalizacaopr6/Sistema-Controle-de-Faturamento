@@ -2431,22 +2431,39 @@ function saveEdit(idx) {
 
 function autoFillFromContrato(num) {
   if (!num) return;
-  var existing = DADOS.filter(function(d) { return d['CONTRATO'] === num; })[0];
-  if (!existing) return;
-  document.getElementById('ef-ano').value = existing['ANO'] || '';
-  document.getElementById('ef-empresa').value = (existing['EMPRESA'] || '').trim();
-  var tipoSel = document.getElementById('ef-tipo');
-  for (var i = 0; i < tipoSel.options.length; i++) {
-    if (tipoSel.options[i].value === existing['TIPO']) { tipoSel.selectedIndex = i; break; }
+  var existing = DADOS.filter(function(d) { return d['CONTRATO'] === num; });
+  if (!existing.length) return;
+  // Usa o registro mais recente do contrato
+  var d = existing[existing.length - 1];
+
+  function setVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.value = val != null ? val : '';
   }
-  var subSel = document.getElementById('ef-subtipo');
-  if(subSel) { for(var si=0;si<subSel.options.length;si++){ if(subSel.options[si].value===existing['SUBTIPO']){subSel.selectedIndex=si;break;} } }
-  var qtdEl = document.getElementById('ef-qtditem'); if(qtdEl) qtdEl.value = existing['QTD ITEM'] != null ? existing['QTD ITEM'] : '';
-  document.getElementById('ef-objeto').value = (existing['OBJETO'] || '').trim();
-  document.getElementById('ef-procpag').value = existing['PROCESSO PAGAMENTO'] || '';
-  document.getElementById('ef-proccont').value = existing['PROCESSO CONTRATAÇÃO'] || '';
-  document.getElementById('ef-proccv').value = existing['PROCESSO CONTA VINCULADA'] || '';
-  document.getElementById('ef-idgov').value = existing['ID CONTRATOS_GOV'] || '';
+  function setSel(id, val) {
+    var el = document.getElementById(id);
+    if (!el || !val) return;
+    for (var i = 0; i < el.options.length; i++) {
+      if (el.options[i].value === val) { el.selectedIndex = i; break; }
+    }
+  }
+
+  setVal('ef-ano',      d['ANO']);
+  setVal('ef-empresa',  (d['EMPRESA'] || '').trim());
+  setSel('ef-resp',     d['RESPONSÁVEL NO FATURAMENTO']);
+  setSel('ef-tipo',     d['TIPO']);
+  setSel('ef-subtipo',  d['SUBTIPO']);
+  setVal('ef-qtditem',  d['QTD ITEM'] != null ? d['QTD ITEM'] : '');
+  setVal('ef-unidades', d['N° DE UNIDADES'] != null ? d['N° DE UNIDADES'] : '');
+  setVal('ef-funcs',    d['N° FUNCIONÁRIO'] != null ? d['N° FUNCIONÁRIO'] : '');
+  setVal('ef-imr',      d['N° IMR']);
+  setSel('ef-tipocontr', d['TIPO DE CONTRATAÇÃO']);
+  setVal('ef-numcontr', d['N° CONTRATAÇÃO']);
+  setVal('ef-procpag',  d['PROCESSO PAGAMENTO']);
+  setVal('ef-proccont', d['PROCESSO CONTRATAÇÃO']);
+  setVal('ef-proccv',   d['PROCESSO CONTA VINCULADA']);
+  setVal('ef-idgov',    d['ID CONTRATOS_GOV']);
+  setVal('ef-objeto',   (d['OBJETO'] || '').trim());
 }
 
 function openNewModal() {
