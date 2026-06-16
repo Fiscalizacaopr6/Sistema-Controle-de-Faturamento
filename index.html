@@ -2433,6 +2433,19 @@ function openEditModal(idx) {
   if (iniEl && d['INÍCIO DO CONTRATO']) iniEl.value = d['INÍCIO DO CONTRATO'];
   var termEl = document.getElementById('ef-termino');
   if (termEl && d['TÉRMINO DA VIGÊNCIA']) termEl.value = d['TÉRMINO DA VIGÊNCIA'];
+  // Força campos TERMO via JS (mesmo motivo — innerHTML não garante selected)
+  var termoAtual = d['TERMO ATUAL'] || '';
+  var partesTermo = termoAtual.split(' N° ');
+  var tipoTermo = partesTermo[0].trim();
+  var numTermo  = partesTermo.length > 1 ? partesTermo[1].trim() : '';
+  var termoTipoEl = document.getElementById('ef-termo-tipo');
+  if (termoTipoEl && tipoTermo) {
+    for (var i = 0; i < termoTipoEl.options.length; i++) {
+      if (termoTipoEl.options[i].value === tipoTermo) { termoTipoEl.selectedIndex = i; break; }
+    }
+  }
+  var termoNumEl = document.getElementById('ef-termo-num');
+  if (termoNumEl) termoNumEl.value = numTermo;
   document.getElementById('mo-actions').innerHTML =
     '<button class="btn-cancel-e" onclick="openModal('+idx+')">Cancelar</button>'
     +'<button class="btn-save" onclick="saveEdit('+idx+')">Salvar Alterações</button>';
