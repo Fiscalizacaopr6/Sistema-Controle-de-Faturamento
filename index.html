@@ -1142,6 +1142,13 @@ function sortBy(col) {
   applyFilters();
 }
 
+function contratoUrl(num) {
+  var m = (num || '').match(/^(\d+)\/(\d{2})$/);
+  if (!m) return 'https://pr6.ufrj.br/contratos-vigentes-novo/';
+  var n = m[1].length === 1 ? '0' + m[1] : m[1];
+  return 'https://pr6.ufrj.br/contrato-no-' + n + '-20' + m[2] + '/';
+}
+
 function renderTable() {
   var start = (page-1)*PER;
   var rows = filtered.slice(start, start+PER);
@@ -1159,7 +1166,7 @@ function renderTable() {
     return '<tr style="cursor:pointer" onclick="openModal('+idx+')">'
       +'<td><span style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+d['CONTRATO']+'</span></td>'
       +'<td style="min-width:200px">'+(d['EMPRESA']||'').trim()+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;min-width:180px">'+(d['TERMO ATUAL']||'—')+'</td>'
+      +'<td onclick="event.stopPropagation();window.open(contratoUrl(\''+d['CONTRATO']+'\'),\'_blank\')" style="font-family:\'DM Mono\',monospace;font-size:11px;min-width:180px;color:var(--accent);text-decoration:underline;cursor:pointer">'+(d['TERMO ATUAL']||'—')+'</td>'
       +'<td><span class="tag">'+(d['RESPONSÁVEL NO FATURAMENTO']||'—')+'</span></td>'
       +'<td><span class="tag">'+(d['TIPO']||'—')+'</span></td>'
       +'<td><span class="tag">'+(d['SUBTIPO']||'—')+'</span></td>'
