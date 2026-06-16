@@ -2076,6 +2076,14 @@ function maskContrato(input) {
   input.value = v;
 }
 
+function maskTermoNum(input) {
+  // Formata como XX/XX (ex: 01/24)
+  var v = input.value.replace(/\D/g, '');
+  if (v.length > 4) v = v.slice(0, 4);
+  if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+  input.value = v;
+}
+
 function maskPhone(input) {
   var v = input.value.replace(/\D/g, '');
   if (v.length > 11) v = v.slice(0, 11);
@@ -2306,7 +2314,8 @@ function editFormHtml(d) {
     +'<div class="ef"><label>Subtipo</label><select id="ef-subtipo"><option value="">—</option>'+selOpts(['COM DEDICAÇÃO EXCLUSIVA','SEM DEDICAÇÃO EXCLUSIVA'], d['SUBTIPO'])+'</select></div>'
     +'<div class="ef"><label>Início da vigência</label><input type="date" id="ef-inicio" value="'+(d['INÍCIO DO CONTRATO']||'')+'"></div>'
     +'<div class="ef"><label>Término da Vigência</label><input type="date" id="ef-termino" value="'+(d['TÉRMINO DA VIGÊNCIA']||'')+'"></div>'
-    +'<div class="ef full"><label>Termo</label><input id="ef-termo" value="'+(d['TERMO ATUAL']||'')+'"></div>'
+    +'<div class="ef"><label>Tipo do Termo</label><select id="ef-termo-tipo"><option value="">—</option>'+selOpts(["CONTRATO","ADITIVO","APOSTILA","SUSPENSÃO","ENCERRAMENTO","EXTINÇÃO","RESCISÃO"], (d['TERMO ATUAL']||'').split(' N°')[0].trim())+'</select></div>'
+    +'<div class="ef"><label>N° (XX/XX)</label><input id="ef-termo-num" maxlength="5" placeholder="01/24" oninput="maskTermoNum(this)" value="'+((d['TERMO ATUAL']||'').indexOf(' N° ')!==-1?(d['TERMO ATUAL']||'').split(' N° ')[1].trim():'')+'"></div>'
     +'<div class="ef"><label>Total Mensal (R$)</label><input type="number" step="0.01" id="ef-mensal" value="'+(d['TOTAL MENSAL']!=null?d['TOTAL MENSAL']:'')+'"></div>'
 
     +'<div class="ef"><label>Qtd. Itens</label><input type="number" id="ef-qtditem" value="'+(d['QTD ITEM']!=null?d['QTD ITEM']:'')+'">\</div>'
@@ -2336,7 +2345,7 @@ function readForm() {
     'SUBTIPO': v('ef-subtipo'),
     'INÍCIO DO CONTRATO': v('ef-inicio'),
     'TÉRMINO DA VIGÊNCIA': v('ef-termino'),
-    'TERMO ATUAL': v('ef-termo'),
+    'TERMO ATUAL': (function(){ var t=v('ef-termo-tipo'); var n=document.getElementById('ef-termo-num').value.trim(); return t?(n?t+' N° '+n:t):''; })(),
     'TOTAL MENSAL': n('ef-mensal'),
 
     'QTD ITEM': ni('ef-qtditem'),
@@ -2464,6 +2473,11 @@ function autoFillFromContrato(num) {
   setVal('ef-proccv',   d['PROCESSO CONTA VINCULADA']);
   setVal('ef-idgov',    d['ID CONTRATOS_GOV']);
   setVal('ef-objeto',   (d['OBJETO'] || '').trim());
+  // Preenche tipo do termo e N° separadamente
+  var termoAtual = d['TERMO ATUAL'] || '';
+  var partes = termoAtual.split(' N° ');
+  setSel('ef-termo-tipo', partes[0].trim());
+  setVal('ef-termo-num', partes.length > 1 ? partes[1].trim() : '');
 }
 
 function openNewModal() {
