@@ -766,8 +766,8 @@ document.addEventListener('input', function(e) {
   var el = e.target;
   var tag = el.tagName;
   var type = (el.type || '').toLowerCase();
-  var skipTypes = ['email','password','date','number','checkbox','radio','search','file'];
-  var skipIds = ['lf-u'];
+  var skipTypes = ['email','password','date','number','checkbox','radio','search','file','url'];
+  var skipIds = ['lf-u','ef-link-termo'];
   if (skipIds.indexOf(el.id) !== -1) return;
   if ((tag === 'INPUT' && skipTypes.indexOf(type) === -1) || tag === 'TEXTAREA') {
     var pos = el.selectionStart;
