@@ -1038,7 +1038,10 @@ function buildDashboard() {
   updateClearBtn();
 
   var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
-  var enc = base.filter(function(d){ return d._st === 'ENCERRADO'; });
+  // Agrupa termos por contrato; encerrado = nenhum termo vigente no grupo
+  var _grp = {};
+  base.forEach(function(d){ var k=(d['CONTRATO']||'').trim(); if(k){if(!_grp[k])_grp[k]=[];_grp[k].push(d);} });
+  var encCount = Object.keys(_grp).filter(function(k){ return _grp[k].every(function(d){ return d._st!=='VIGENTE'; }); }).length;
   var mensal = vig.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0);
   var func = vig.reduce(function(s,d){ return s+(d['FUNCIONÁRIOS VIGENTES']||0); }, 0);
   var v30 = vig.filter(function(d){ return d._dias !== null && d._dias <= 30; }).length;
@@ -1048,7 +1051,7 @@ function buildDashboard() {
   var kpis = [
     {l:'Contratos Vigentes', v:vig.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
     {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true},
-    {l:'Contratos Encerrados', v:enc.length, s:'histórico'+labelAno, c:'red', btnEnc:true},
+    {l:'Contratos Encerrados', v:encCount, s:'histórico'+labelAno, c:'red', btnEnc:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber'},
     {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true},
@@ -1786,16 +1789,24 @@ function showKpiLista(tipo) {
     rows = lista.map(function(d){ return kpiCard(d, 'var(--accent)'); }).join('');
 
   } else if (tipo === 'encerrados') {
-    var all = base.filter(function(d){ return d._st === 'ENCERRADO'; });
-    all.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
-    var seen = {};
-    var lista = all.filter(function(d){
-      var key = (d['CONTRATO']||'').trim();
-      if (seen[key]) return false;
-      seen[key] = true; return true;
+    // Agrupa por contrato; exibe apenas os contratos sem nenhum termo vigente
+    var grpEnc = {};
+    base.forEach(function(d){
+      var k = (d['CONTRATO']||'').trim();
+      if (!k) return;
+      if (!grpEnc[k]) grpEnc[k] = [];
+      grpEnc[k].push(d);
     });
+    var keysEnc = Object.keys(grpEnc).filter(function(k){
+      return grpEnc[k].every(function(d){ return d._st !== 'VIGENTE'; });
+    }).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+    // Para cada contrato totalmente encerrado, exibe o primeiro termo (tipo CONTRATO)
+    var lista = keysEnc.map(function(k){
+      var terms = grpEnc[k];
+      return terms.find(function(d){ return /^CONTRATO/i.test(d['TERMO ATUAL']||''); }) || terms[0];
+    }).filter(Boolean);
     titulo = currentYearFilter ? 'Contratos Encerrados em ' + currentYearFilter + ' (' + lista.length + ')' : 'Contratos Encerrados (' + lista.length + ')';
-    subtitulo = 'Clique em um contrato para ver os detalhes';
+    subtitulo = 'Contratos sem nenhum termo vigente — clique para ver detalhes';
     rows = lista.map(function(d){ return kpiCard(d, 'var(--red)'); }).join('');
 
   } else if (tipo === 'empresas') {
