@@ -1737,19 +1737,53 @@ function showKpiLista(tipo) {
   if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
   var titulo, subtitulo, rows;
 
+  function kpiCard(d, accentColor) {
+    var idx = DADOS.indexOf(d);
+    var anual = calcAnual(d);
+    function fi(label, val) {
+      return '<div style="display:flex;flex-direction:column;gap:2px;min-width:0">'
+        +'<span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">'+label+'</span>'
+        +'<span style="font-size:11px;color:var(--text);word-break:break-word">'+(val||'—')+'</span>'
+        +'</div>';
+    }
+    return '<div onclick="openModal('+idx+')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:filter .12s" onmouseenter="this.style.filter=\'brightness(1.08)\'" onmouseleave="this.style.filter=\'\'">'
+      // cabeçalho
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+      +'<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:14px;color:'+accentColor+'">'+( d['CONTRATO']||'—')+'</span>'
+      +'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
+      +'<span class="badge '+(d._st==='VIGENTE'?'bg':'br')+'">'+d._st+'</span>'
+      +'</div>'
+      // grid de campos
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px 14px">'
+      +fi('Responsável', d['RESPONSÁVEL NO FATURAMENTO'])
+      +fi('Tipo', d['TIPO'])
+      +fi('Subtipo', d['SUBTIPO'])
+      +fi('Termo Atual', d['TERMO ATUAL'])
+      +fi('Início', fmtDate(d['INÍCIO DO CONTRATO']))
+      +fi('Término', fmtDate(d['TÉRMINO DA VIGÊNCIA']))
+      +fi('Total Mensal', d['TOTAL MENSAL']!=null ? fmtBR(d['TOTAL MENSAL']) : null)
+      +fi('Total do Período', anual!=null ? fmtBR(anual) : null)
+      +fi('Nº Funcionários', d['N° FUNCIONÁRIO']!=null ? d['N° FUNCIONÁRIO'] : null)
+      +fi('Nº Unidades', d['N° DE UNIDADES']!=null ? d['N° DE UNIDADES'] : null)
+      +fi('Qtd. Itens', d['QTD ITEM']!=null ? d['QTD ITEM'] : null)
+      +fi('N° IMR', d['N° IMR'])
+      +fi('Tipo Contratação', d['TIPO DE CONTRATAÇÃO'])
+      +fi('N° Contratação', d['N° CONTRATAÇÃO'])
+      +fi('Proc. Pagamento', d['PROCESSO PAGAMENTO'])
+      +fi('Proc. Contratação', d['PROCESSO CONTRATAÇÃO'])
+      +fi('Proc. Conta Vinculada', d['PROCESSO CONTA VINCULADA'])
+      +fi('ID Contratos.gov', d['ID CONTRATOS_GOV'])
+      +(d['OBJETO'] ? '<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:2px"><span style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Objeto</span><span style="font-size:11px;color:var(--text)">'+d['OBJETO']+'</span></div>' : '')
+      +'</div>'
+      +'</div>';
+  }
+
   if (tipo === 'vigentes') {
     var lista = base.filter(function(d){ return d._st === 'VIGENTE'; });
     lista.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
     titulo = currentYearFilter ? 'Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')' : 'Contratos Vigentes (' + lista.length + ')';
     subtitulo = 'Clique em um contrato para ver os detalhes';
-    rows = lista.map(function(d){
-      var idx = DADOS.indexOf(d);
-      return '<div onclick="openModal('+idx+')" style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;padding-left:6px;padding-right:6px;transition:background .12s" onmouseenter="this.style.background=\'var(--surface2)\'" onmouseleave="this.style.background=\'\'">'
-        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--accent);min-width:90px;font-size:12px">'+(d['CONTRATO']||'—')+'</span>'
-        + '<span style="font-size:13px;color:var(--text);flex:1">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
-        + '<span style="font-size:11px;color:var(--text-muted);white-space:nowrap">'+((d['RESPONSÁVEL NO FATURAMENTO']||''))+'</span>'
-        + '</div>';
-    }).join('');
+    rows = lista.map(function(d){ return kpiCard(d, 'var(--accent)'); }).join('');
 
   } else if (tipo === 'encerrados') {
     var all = base.filter(function(d){ return d._st === 'ENCERRADO'; });
@@ -1762,14 +1796,7 @@ function showKpiLista(tipo) {
     });
     titulo = currentYearFilter ? 'Contratos Encerrados em ' + currentYearFilter + ' (' + lista.length + ')' : 'Contratos Encerrados (' + lista.length + ')';
     subtitulo = 'Clique em um contrato para ver os detalhes';
-    rows = lista.map(function(d){
-      var idx = DADOS.indexOf(d);
-      return '<div onclick="openModal('+idx+')" style="display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;border-radius:6px;padding-left:6px;padding-right:6px;transition:background .12s" onmouseenter="this.style.background=\'var(--surface2)\'" onmouseleave="this.style.background=\'\'">'
-        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--red);min-width:90px;font-size:12px">'+(d['CONTRATO']||'—')+'</span>'
-        + '<span style="font-size:13px;color:var(--text);flex:1">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
-        + '<span style="font-size:11px;color:var(--text-muted);white-space:nowrap">'+((d['RESPONSÁVEL NO FATURAMENTO']||''))+'</span>'
-        + '</div>';
-    }).join('');
+    rows = lista.map(function(d){ return kpiCard(d, 'var(--red)'); }).join('');
 
   } else if (tipo === 'empresas') {
     var empMap = {};
