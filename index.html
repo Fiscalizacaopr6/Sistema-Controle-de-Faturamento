@@ -2802,13 +2802,17 @@ function renderImrTable() {
   var start = (imrPage - 1) * imrPer;
   var slice = imrFiltered.slice(start, start + imrPer);
   var rows = slice.map(function(r) {
+    var hasLink = !!r.link;
+    var rowClick = hasLink ? 'onclick="window.open(\''+r.link+'\',\'_blank\')" style="cursor:pointer"' : '';
     var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="openEditImrModal(\''+r.id+'\')">Editar</button>'
-        +' <button class="btn-usr-del" onclick="confirmDeleteImr(\''+r.id+'\')">Excluir</button>'
+      ? '<button class="btn-usr-edit" onclick="event.stopPropagation();openEditImrModal(\''+r.id+'\')">Editar</button>'
+        +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteImr(\''+r.id+'\')">Excluir</button>'
       : '';
-    return '<tr>'
+    return '<tr '+rowClick+'>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
       +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
+      +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
+      +'<td style="font-size:11px;color:'+(hasLink?'var(--accent)':'var(--muted)')+'">'+(hasLink?'🔗 Abrir':'—')+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -2816,7 +2820,7 @@ function renderImrTable() {
   wrap.innerHTML = '<div class="table-wrap">'
     +'<div class="table-info"><span>'+imrFiltered.length+' registro(s)</span><span>Página '+imrPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
-    +'<thead><tr><th>Contrato</th><th>Empresa</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
+    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Link</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +pag+'</div>';
@@ -2847,12 +2851,14 @@ function imrFormHtml(r) {
     +'<div class="ef"><label>Contrato *</label><input id="ef-imr-contrato" list="imr-contrato-list" value="'+esc(r.contrato||'')+'" placeholder="Ex: 01/24">'
     +'<datalist id="imr-contrato-list">'+contratoOpts.map(function(c){ return '<option value="'+esc(c)+'">'; }).join('')+'</datalist></div>'
     +'<div class="ef full"><label>Empresa *</label><input id="ef-imr-empresa" value="'+esc(r.empresa||'')+'"></div>'
+    +'<div class="ef full"><label>Unidade</label><input id="ef-imr-unidade" value="'+esc(r.unidade||'')+'"></div>'
+    +'<div class="ef full"><label>Link IMR</label><input id="ef-imr-link" type="url" style="text-transform:none" value="'+esc(r.link||'')+'" placeholder="https://..."></div>'
     +'</div>';
 }
 
 function readImrForm() {
   function v(id){ return document.getElementById(id).value.trim(); }
-  return { contrato: v('ef-imr-contrato'), empresa: v('ef-imr-empresa') };
+  return { contrato: v('ef-imr-contrato'), empresa: v('ef-imr-empresa'), unidade: v('ef-imr-unidade'), link: v('ef-imr-link') };
 }
 
 function openNewImrModal() {
