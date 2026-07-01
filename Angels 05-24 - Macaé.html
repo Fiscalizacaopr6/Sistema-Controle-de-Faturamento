@@ -1,0 +1,1010 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMR – Vigilância e Portaria V2 (com Creche)</title>
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
+
+/* ── PAGE ── */
+.page{background:#fff;width:1200px;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+/* ── HEADER ── */
+.header-wrap{border:2px solid #1f3864;}
+.header-top{display:flex;align-items:stretch;}
+.header-logo{width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;padding:6px;background:#f5f5f5;}
+.header-logo span{font-size:9px;color:#777;text-align:center;line-height:1.3;}
+.header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+.header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
+.header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
+.header-badge{width:80px;border-left:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:14px;letter-spacing:2px;}
+.header-update{background:#fffde7;font-size:10px;color:#777;padding:2px 10px;border-top:1px solid #ddd;text-align:center;font-style:italic;}
+
+/* ── INFO GRID ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #1f3864;border-top:none;}
+.info-cell{display:flex;align-items:center;padding:4px 8px;gap:6px;border-bottom:1px solid #bbb;border-right:1px solid #bbb;}
+.info-cell:nth-child(2n){border-right:none;}
+.info-cell.full{grid-column:1/-1;border-right:none;}
+.info-cell label{font-weight:bold;white-space:nowrap;color:#1f3864;min-width:155px;}
+.info-cell input{flex:1;border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:#f0f7ff;padding:2px 4px;border-radius:2px;}
+.info-note{grid-column:1/-1;font-size:10px;font-style:italic;color:#c00;padding:4px 10px;border-bottom:none;border-right:none;background:#fff9f9;}
+
+/* ── SECTION TITLE BAR ── */
+.sec-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:12px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.sec-title span{flex:1;}
+
+/* ── EVALUATION TABLE ── */
+.eval-table{width:100%;border-collapse:collapse;}
+.eval-table th,.eval-table td{border:1px solid #999;padding:3px 6px;vertical-align:middle;}
+.eval-table thead th{background:#2e74b5;color:#fff;text-align:center;font-size:11px;}
+.eval-table th.name-col{text-align:left;width:36%;}
+.grp-header-row td{background:#d6e4f7;color:#1f3864;font-weight:bold;font-size:11px;padding:5px 8px;}
+.total-row td{background:#dce6f1;font-weight:bold;color:#1f3864;}
+.admin-row td{background:#fff8e1;font-style:italic;}
+.nota-final-row td{background:#1f3864;color:#fff;font-weight:bold;font-size:12px;}
+.calc-cell{background:#e8f5e9;text-align:center;font-weight:bold;}
+
+select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;background:#fffde7;border-radius:2px;cursor:pointer;text-align:center;}
+.status-ok{color:#2e7d32;font-size:10px;font-weight:bold;}
+.status-err{color:#c62828;font-size:10px;font-weight:bold;}
+.jus-warn{color:#c00;font-size:10px;font-style:italic;font-weight:bold;padding:2px 4px;}
+.conceito-badge{display:inline-block;background:#1f3864;color:#fff;font-size:18px;font-weight:bold;border-radius:50%;width:34px;height:34px;line-height:34px;text-align:center;margin-left:8px;}
+
+/* ── POSTOS TABLE ── */
+.postos-scroll{overflow-x:auto;}
+.postos-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.postos-tbl th{background:#1f3864;color:#fff;border:1px solid #555;padding:4px 3px;text-align:center;vertical-align:middle;font-size:10px;}
+.postos-tbl th.sub{background:#2e74b5;}
+.postos-tbl td{border:1px solid #bbb;padding:2px 3px;vertical-align:middle;}
+.postos-tbl td.num{background:#e3e8f0;font-weight:bold;color:#1f3864;text-align:center;}
+.postos-tbl td.calc{background:#e8f5e9;text-align:center;font-size:10px;font-weight:bold;}
+.postos-tbl .totrow td{background:#dce6f1;font-weight:bold;font-size:10px;text-align:right;}
+.postos-tbl input.pi{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;outline:none;background:transparent;font-family:Arial;padding:1px 2px;}
+.postos-tbl input.pi.name{text-align:left;}
+.postos-tbl input.pi.center{text-align:center;}
+.postos-tbl input.pi:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.add-btn{margin:4px 0;font-size:10px;padding:3px 10px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;}
+.add-btn:hover{background:#2e74b5;}
+
+/* ── LOCK BUTTONS ── */
+.lock-btn{font-size:10px;padding:2px 8px;border:1.5px solid;border-radius:3px;cursor:pointer;font-family:Arial;font-weight:bold;white-space:nowrap;}
+.lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
+.lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
+.lock-btn:hover{opacity:.8;}
+.field-lock-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:1px 3px;line-height:1;vertical-align:middle;}
+.field-lock-btn:hover{opacity:.7;}
+
+/* ── INSTRUMENTO DE COBRANÇA ── */
+.ic-wrap{border:2px solid #556b2f;border-radius:4px;margin-top:8px;}
+.ic-hdr{background:#556b2f;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.ic-table{width:100%;border-collapse:collapse;font-size:10px;}
+.ic-table th{background:#6b8e23;color:#fff;border:1px solid #556b2f;padding:4px 6px;text-align:center;font-size:10px;}
+.ic-table td{border:1px solid #b5cc7a;padding:3px 6px;text-align:center;background:#f9fce8;font-size:10px;}
+.ic-table td.ic-posto{text-align:left;background:#f3f7e0;}
+.ic-table td.ic-calc{background:#e8f0c8;font-weight:bold;text-align:center;}
+.ic-table .tot-row td{background:#d4e4a0;font-weight:bold;}
+
+/* ── FINANCIAL SECTION ── */
+.fin-table{width:100%;border-collapse:collapse;}
+.fin-table th,.fin-table td{border:1px solid #bbb;padding:4px 8px;vertical-align:middle;}
+.fin-table th{background:#2e74b5;color:#fff;font-size:11px;text-align:left;}
+.fin-table td.lbl{background:#dce6f1;font-weight:bold;color:#1f3864;width:55%;}
+.fin-table td.val{background:#fffde7;text-align:right;}
+.fin-table td.res{background:#e8f5e9;font-weight:bold;text-align:right;color:#1b5e20;}
+.fin-table td.red{background:#ffebee;font-weight:bold;text-align:right;color:#b71c1c;}
+.fin-table input.fi{width:100%;border:none;border-bottom:1.5px solid #2e74b5;font-size:11px;text-align:right;outline:none;background:transparent;font-family:Arial;}
+
+/* ── CRECHE SECTION ── */
+.creche-wrap{border:2px solid #f57f17;border-radius:4px;}
+.creche-hdr{background:#f57f17;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.creche-table{width:100%;border-collapse:collapse;}
+.creche-table td{border:1px solid #ffe0b2;padding:4px 6px;vertical-align:middle;font-size:11px;}
+.creche-table td.lbl{background:#fff8e1;font-weight:bold;color:#e65100;}
+.creche-table td.val{background:#fffde7;text-align:right;}
+.creche-table td.val-row{background:#fffde7;text-align:right;display:flex;align-items:center;gap:4px;justify-content:flex-end;padding:4px 6px;}
+.creche-table td.res{background:#e8f5e9;font-weight:bold;text-align:right;color:#1b5e20;}
+.creche-table td.red{background:#ffebee;font-weight:bold;text-align:right;color:#b71c1c;}
+.creche-table input.ci{border:none;border-bottom:1.5px solid #f57f17;font-size:11px;text-align:right;outline:none;background:transparent;font-family:Arial;width:calc(100% - 26px);}
+.creche-table input.ci:disabled{background:#f5f5f5;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.creche-warn{font-size:10px;color:#b71c1c;font-weight:bold;padding:4px 8px;background:#ffebee;display:none;}
+
+/* ── FAIXA TABLE ── */
+.faixa-table{width:100%;border-collapse:collapse;}
+.faixa-table th,.faixa-table td{border:1px solid #999;padding:4px 10px;text-align:center;font-size:11px;}
+.faixa-table th{background:#2e74b5;color:#fff;}
+.faixa-table tr.hl td{background:#fff9c4;font-weight:bold;color:#1f3864;}
+
+/* ── JUSTIFICATIVAS ── */
+.justif-box{border:1.5px solid #1f3864;margin-top:12px;}
+.justif-box .jh{background:#1f3864;color:#fff;font-weight:bold;padding:5px 10px;font-size:11px;}
+.justif-box textarea{width:100%;height:76px;max-height:76px;font-size:11px;border:none;padding:8px;font-family:Arial;resize:none;outline:none;overflow-y:auto;overflow-x:hidden;display:block;}
+
+/* ── APPROVAL ── */
+.approval-row{display:flex;gap:10px;margin-top:8px;}
+.approval-cell{flex:1;border:1.5px solid #1f3864;padding:6px 10px;}
+.approval-cell label{font-weight:bold;color:#1f3864;display:block;margin-bottom:2px;font-size:11px;}
+.approval-cell input{width:100%;border:none;border-bottom:1.5px solid #999;font-size:11px;font-family:Arial;outline:none;padding:2px 0;}
+
+/* ── BUTTONS ── */
+.btn-bar{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+.btn{padding:7px 20px;font-size:12px;border:none;border-radius:4px;cursor:pointer;font-family:Arial;font-weight:bold;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-print{background:#1f3864;color:#fff;}
+.btn-reset{background:#b71c1c;color:#fff;}
+.btn-export{background:#1b5e20;color:#fff;}
+
+/* ── PRINT ── */
+@media print{
+  body{background:#fff;}
+  .page{box-shadow:none;margin:0;width:100%;padding:8px;}
+  .btn-bar,.add-btn,.lock-btn,.field-lock-btn{display:none!important;}
+  select.nota-sel{appearance:none;border:none;background:transparent;}
+  input{border-bottom:1px solid #aaa!important;background:transparent!important;}
+  input:disabled{background:#f0f0f0!important;}
+  .creche-warn{display:block!important;}
+  .justif-box textarea{height:auto!important;max-height:none!important;overflow:visible!important;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ CABEÇALHO ══ -->
+<div class="header-wrap">
+  <div class="header-top">
+    <div class="header-logo" style="width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;"><span style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;font-family:Arial,sans-serif;">UFRJ</span></div>
+    <div class="header-title">
+      <div class="org">PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6</div>
+      <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO DOS SERVIÇOS DE VIGILÂNCIA E PORTARIA</div>
+    </div>
+    <div class="header-badge">IMR</div>
+  </div>
+  <div class="header-update"><input type="text" id="headerUpdate" value="Atualizado conforme Valor Unitário Contratado inicial" style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;"></div>
+</div>
+
+<!-- ══ IDENTIFICAÇÃO ══ -->
+<div class="info-grid">
+  <div class="info-cell">
+    <label>CONTRATO Nº:</label>
+    <input type="text" id="contrato" placeholder="Número do contrato">
+  </div>
+  <div class="info-cell">
+    <label>UNIDADE:</label>
+    <input type="text" id="unidade" placeholder="Nome da unidade">
+  </div>
+  <div class="info-cell full">
+    <label>CONTRATADA:</label>
+    <input type="text" id="contratada" placeholder="Nome da empresa contratada">
+  </div>
+  <div class="info-cell full">
+    <label>FISCAL OPERACIONAL:</label>
+    <input type="text" id="fiscal" placeholder="Nome do fiscal operacional">
+  </div>
+  <div class="info-cell full">
+    <label>AVALIAÇÃO REFERENTE AO PERÍODO:</label>
+    <input type="text" id="periodo" placeholder="Ex: Janeiro/2026">
+  </div>
+  <div class="info-note">
+    ⚠ Para notas 0 e 1, o campo Justificativas (abaixo) deve ser preenchido obrigatoriamente.
+  </div>
+</div>
+
+<!-- ══ AVALIAÇÃO ══ -->
+<div class="sec-title"><span>AVALIAÇÃO DE DESEMPENHO</span></div>
+<table class="eval-table">
+  <thead>
+    <tr>
+      <th class="name-col">Critério de Avaliação</th>
+      <th style="width:65px">PESO (a)</th>
+      <th style="width:80px">NOTA (b)<br><small style="font-weight:normal">(0, 1 ou 3)</small></th>
+      <th style="width:80px">SUBTOTAL<br>(c = a × b)</th>
+      <th style="width:90px">Status</th>
+      <th>Aviso de Justificativa</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- GRUPO 1 -->
+    <tr><td colspan="6" class="grp-header-row">▶ GRUPO 1 – DESEMPENHO PROFISSIONAL</td></tr>
+    <tr id="row_g1_1">
+      <td>Cumprimento das Atividades</td>
+      <td style="text-align:center">0,40</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g1_1" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g1_1">1,20</td>
+      <td id="st_g1_1" style="text-align:center"></td>
+      <td id="jw_g1_1"></td>
+    </tr>
+    <tr id="row_g1_2">
+      <td>Qualificação / Atendimento ao Público / Postura</td>
+      <td style="text-align:center">0,35</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g1_2" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g1_2">1,05</td>
+      <td id="st_g1_2" style="text-align:center"></td>
+      <td id="jw_g1_2"></td>
+    </tr>
+    <tr id="row_g1_3">
+      <td>Uniformes e Identificação</td>
+      <td style="text-align:center">0,25</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g1_3" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g1_3">0,75</td>
+      <td id="st_g1_3" style="text-align:center"></td>
+      <td id="jw_g1_3"></td>
+    </tr>
+    <tr class="total-row">
+      <td>TOTAL GRUPO 1</td><td style="text-align:center">1,00</td><td></td>
+      <td class="calc-cell" id="tot_g1">3,00</td><td colspan="2"></td>
+    </tr>
+
+    <!-- GRUPO 2 -->
+    <tr><td colspan="6" class="grp-header-row">▶ GRUPO 2 – DESEMPENHO DAS ATIVIDADES</td></tr>
+    <tr id="row_g2_1">
+      <td>Especificação Técnica dos Serviços</td>
+      <td style="text-align:center">0,40</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g2_1" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g2_1">1,20</td>
+      <td id="st_g2_1" style="text-align:center"></td>
+      <td id="jw_g2_1"></td>
+    </tr>
+    <tr id="row_g2_2">
+      <td>Equipamentos e Acessórios</td>
+      <td style="text-align:center">0,20</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g2_2" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g2_2">0,60</td>
+      <td id="st_g2_2" style="text-align:center"></td>
+      <td id="jw_g2_2"></td>
+    </tr>
+    <tr id="row_g2_3">
+      <td>Atendimento às Ocorrências</td>
+      <td style="text-align:center">0,40</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g2_3" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g2_3">1,20</td>
+      <td id="st_g2_3" style="text-align:center"></td>
+      <td id="jw_g2_3"></td>
+    </tr>
+    <tr class="total-row">
+      <td>TOTAL GRUPO 2</td><td style="text-align:center">1,00</td><td></td>
+      <td class="calc-cell" id="tot_g2">3,00</td><td colspan="2"></td>
+    </tr>
+
+    <!-- GRUPO 3 -->
+    <tr><td colspan="6" class="grp-header-row">▶ GRUPO 3 – GERENCIAMENTO</td></tr>
+    <tr id="row_g3_1">
+      <td>Periodicidade da Supervisão</td>
+      <td style="text-align:center">0,20</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_1" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_1">0,60</td>
+      <td id="st_g3_1" style="text-align:center"></td>
+      <td id="jw_g3_1"></td>
+    </tr>
+    <tr id="row_g3_2">
+      <td>Gerenciamento das Atividades Operacionais</td>
+      <td style="text-align:center">0,30</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_2" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_2">0,90</td>
+      <td id="st_g3_2" style="text-align:center"></td>
+      <td id="jw_g3_2"></td>
+    </tr>
+    <tr id="row_g3_3">
+      <td>Atendimento às Solicitações</td>
+      <td style="text-align:center">0,25</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_3" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_3">0,75</td>
+      <td id="st_g3_3" style="text-align:center"></td>
+      <td id="jw_g3_3"></td>
+    </tr>
+    <tr id="row_g3_4" class="admin-row">
+      <td>Salários, Benefícios e Obrigações Trabalhistas&nbsp;<em>(¹ Fiscal Adm.)</em></td>
+      <td style="text-align:center">0,25</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_4" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_4">0,75</td>
+      <td id="st_g3_4" style="text-align:center"></td>
+      <td id="jw_g3_4"></td>
+    </tr>
+    <tr class="total-row">
+      <td>TOTAL GRUPO 3</td><td style="text-align:center">1,00</td><td></td>
+      <td class="calc-cell" id="tot_g3">3,00</td><td colspan="2"></td>
+    </tr>
+
+    <!-- NOTA FINAL -->
+    <tr class="nota-final-row">
+      <td colspan="3" style="font-size:11px;">
+        NOTA FINAL (somatório dos Grupos 1, 2 e 3)
+        <small style="font-weight:normal;font-size:10px">&nbsp;(¹) Preenchido pelo Fiscal Administrativo</small>
+      </td>
+      <td style="text-align:right;font-size:16px;" id="notaFinalVal">9,00</td>
+      <td colspan="2" style="text-align:center;">
+        Conceito:&nbsp;<span class="conceito-badge" id="conceitoBadge">A</span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ══ POSTOS DE TRABALHO ══ -->
+<div class="sec-title" style="margin-top:14px;">
+  <span>POSTOS DE TRABALHO</span>
+  <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()" title="Travar Contrato, Contratada, Unidade, Postos e Creche">🔓 Travar Formulário</button>
+  <button class="lock-btn locked" id="btnUnlock" onclick="unlockAll()" title="Desbloquear todos os campos travados" style="display:none;">🔒 Desbloquear</button>
+</div>
+<div class="postos-scroll">
+  <table class="postos-tbl" id="postosTable">
+    <thead>
+      <tr>
+        <th style="width:50px">Item</th>
+        <th style="width:260px">POSTO</th>
+        <th style="width:65px">Qtde<br>Contratada</th>
+        <th style="width:85px">Valor Unit.<br>Contratado (R$)</th>
+        <th class="sub" style="width:65px">Horas<br>Contratadas</th>
+        <th style="width:65px">Sem<br>Cobertura (h)</th>
+        <th style="width:75px">Valor da Hora<br>Contratada (R$)</th>
+        <th style="width:95px">Valor do Item<br>após Descontos (R$)</th>
+      </tr>
+    </thead>
+    <tbody id="postosBody"></tbody>
+  </table>
+  <button class="add-btn" id="btnAddPosto" onclick="addPostoRow()">+ Adicionar Posto</button>
+</div>
+
+<!-- ══ INSTRUMENTO DE COBRANÇA ══ -->
+<div class="ic-wrap">
+  <div class="ic-hdr">📋 INSTRUMENTO DE COBRANÇA</div>
+  <table class="ic-table" id="icTable">
+    <thead>
+      <tr>
+        <th style="width:80px">Item</th>
+        <th>Posto</th>
+        <th style="width:110px">Qtde Faturada</th>
+        <th style="width:140px">Valor Unit. Faturado (R$)</th>
+      </tr>
+    </thead>
+    <tbody id="icBody">
+      <tr><td colspan="4" style="text-align:center;color:#999;padding:8px;">Adicione postos acima para gerar o instrumento de cobrança.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ RESUMO FINANCEIRO ══ -->
+<div class="sec-title" style="margin-top:14px;"><span>RESUMO FINANCEIRO</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;">
+
+  <!-- Esquerda: Cálculo + Faixa -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+    <table class="fin-table">
+      <thead><tr><th colspan="2">CÁLCULO DO PAGAMENTO</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="lbl">Contratado Mensal – Total (R$)<br><small style="font-weight:normal">(Σ Qtde × Valor Unitário de todos os postos)</small></td>
+          <td class="res" id="contratadoMensal">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="lbl">Nota Atribuída pelo Avaliador (Conceito)</td>
+          <td class="res" id="notaFatDisplay">A</td>
+        </tr>
+        <tr>
+          <td class="lbl">% do Faturamento a ser Liberado</td>
+          <td class="res" id="pctFat">100%</td>
+        </tr>
+        <tr>
+          <td class="lbl" style="background:#ffcdd2;">Valor Glosado por QUALIDADE (R$)</td>
+          <td class="red" id="vlrGlosado">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="lbl">Número de Dias Trabalhados no Mês</td>
+          <td class="val"><input type="number" class="fi" id="diasTrab" value="30" min="1" max="30" oninput="recalcAll()" style="text-align:center;font-size:13px;font-weight:bold;"></td>
+        </tr>
+        <tr>
+          <td class="lbl" style="background:#c8e6c9;font-size:12px;font-weight:bold;">Valor Aprovado para Pagamento (R$)</td>
+          <td class="res" id="vlrAprovado" style="background:#c8e6c9;font-size:14px;color:#1b5e20;">R$ 0,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div>
+      <div class="sec-title" style="margin-top:0;"><span>FAIXA DE AJUSTE DE PAGAMENTO</span></div>
+      <table class="faixa-table">
+        <thead>
+          <tr>
+            <th>Conceito</th>
+            <th>% do Faturamento a ser Pago</th>
+            <th>Nota Média Mensal Apurada</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="frow_A"><td><strong>A</strong></td><td>100%</td><td>Entre 9,00 e 8,10</td></tr>
+          <tr id="frow_B"><td><strong>B</strong></td><td>95%</td><td>Entre 8,09 e 7,65</td></tr>
+          <tr id="frow_C"><td><strong>C</strong></td><td>90%</td><td>Entre 7,64 e 6,75</td></tr>
+          <tr id="frow_D"><td><strong>D</strong></td><td>85%</td><td>Entre 6,74 e 5,85</td></tr>
+          <tr id="frow_E"><td><strong>E</strong></td><td>80%</td><td>Entre 5,84 e 5,40</td></tr>
+          <tr id="frow_F"><td><strong>F</strong></td><td>75%</td><td>Abaixo de 5,40</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Direita: Creche -->
+  <div style="width:360px;">
+    <div class="creche-wrap">
+      <div class="creche-hdr">🏫 REEMBOLSO DE CRECHE</div>
+      <table class="creche-table">
+        <tbody>
+          <tr>
+            <td class="lbl">Valor Reembolso Creche Retido (R$)</td>
+            <td class="val">
+              <input type="number" class="ci" id="crecheRetido" value="0" step="0.01" min="0" oninput="recalcAll()" style="width:100%;text-align:right;">
+            </td>
+          </tr>
+          <tr>
+            <td class="lbl">Reembolsos Aprovados (quantidade)</td>
+            <td class="val"><input type="number" class="ci" id="crecheAprovados" value="0" step="1" min="0" oninput="recalcAll()" style="width:100%;"></td>
+          </tr>
+          <tr>
+            <td class="lbl">Valor Reembolso + BDI (R$) <em>por colaborador</em></td>
+            <td class="val">
+              <input type="number" class="ci" id="crechemBDI" value="0" step="0.01" min="0" oninput="recalcAll()" style="width:100%;text-align:right;">
+            </td>
+          </tr>
+          <tr>
+            <td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Reembolso+BDI)</small></td>
+            <td class="res" id="crecheTotalReemb">R$ 0,00</td>
+          </tr>
+          <tr>
+            <td class="lbl">Saldo de Reembolso (R$)<br><small style="font-weight:normal">(Retido – Total Reembolsos)</small></td>
+            <td class="res" id="crecheSaldo">R$ 0,00</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="creche-warn" id="crecheWarn">
+        ⚠ ATENÇÃO: Saldo negativo — será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ASSINATURAS ══ -->
+<div class="sec-title" style="margin-top:14px;"><span>APROVAÇÃO E ASSINATURAS</span></div>
+<div class="approval-row">
+  <div class="approval-cell">
+    <label>Fiscal Operacional</label>
+    <input type="text" id="assFiscalOp" placeholder="Nome completo">
+    <input type="text" id="assFiscalOpMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
+  </div>
+  <div class="approval-cell">
+    <label>Fiscal Administrativo <em style="font-weight:normal;font-size:10px">(¹)</em></label>
+    <input type="text" id="assFiscalAdm" placeholder="Nome completo">
+    <input type="text" id="assFiscalAdmMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
+  </div>
+  <div class="approval-cell">
+    <label>Representante da Contratada</label>
+    <input type="text" id="assContratada" placeholder="Nome completo">
+    <input type="text" id="assContratadaCargo" placeholder="Cargo" style="margin-top:4px;font-size:10px;">
+  </div>
+  <div class="approval-cell" style="flex:0 0 160px;">
+    <label>Data</label>
+    <input type="date" id="dataAprov" readonly style="background:#f0f0f0;color:#333;cursor:default;border-bottom:1px solid #bbb;">
+  </div>
+</div>
+
+<!-- ══ JUSTIFICATIVAS ══ -->
+<div class="justif-box">
+  <div class="jh">📝 JUSTIFICATIVAS (obrigatório para notas 0 e 1)</div>
+  <textarea id="justifGeral" placeholder="Registre aqui as justificativas para as notas 0 e 1 atribuídas. Para cada critério informe: nome do critério, nota atribuída e fundamentação."></textarea>
+</div>
+
+<!-- ══ BOTÕES ══ -->
+<div class="btn-bar">
+  <button class="btn btn-reset" id="btnLimpar" onclick="resetForm()">🗑 Limpar Tudo</button>
+  <button class="btn btn-export" onclick="exportCSV()">📥 Exportar CSV</button>
+  <button class="btn" id="btnExportLocked" onclick="exportLocked()" style="background:#1f3864;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:11px;cursor:pointer;" title="Gera um novo arquivo HTML com os dados do contrato embutidos e travados desde a abertura">🔒 Exportar Versão Travada</button>
+  <button class="btn btn-print" onclick="window.print()">📄 Salvar PDF</button>
+</div>
+<p style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;">
+  (¹) Campos do Grupo 3 – Salários/Benefícios e Nota Final preenchidos pelo Fiscal Administrativo. |
+  Formulário gerado a partir do Modelo IMR Vigilância Definitivo V2 Com CRECHE – PR6.
+</p>
+</div><!-- /page -->
+
+<script>
+'use strict';
+
+// ─── CONFIGURAÇÃO DE VERSÃO EXPORTADA ────────────────────────────
+const INIT_LOCKED=false;/*§LOCK§*/
+const INIT_PWD='';/*§PWD§*/
+const INIT_DATA=null;/*§DATA§*/
+// ─────────────────────────────────────────────────────────────────
+
+// ─── CONSTANTES ──────────────────────────────────────────────────
+const PESOS = {
+  g1_1:0.40, g1_2:0.35, g1_3:0.25,
+  g2_1:0.40, g2_2:0.20, g2_3:0.40,
+  g3_1:0.20, g3_2:0.30, g3_3:0.25, g3_4:0.25
+};
+const GROUPS = {
+  1:['g1_1','g1_2','g1_3'],
+  2:['g2_1','g2_2','g2_3'],
+  3:['g3_1','g3_2','g3_3','g3_4']
+};
+const PCT_MAP = {A:1.00,B:0.95,C:0.90,D:0.85,E:0.80,F:0.75};
+
+// ─── FORMATOS ────────────────────────────────────────────────────
+const BR  = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const BR0 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+const BRcur = v => 'R$ '+BR.format(v);
+function floor2(v){ return Math.floor(v*100)/100; }
+function pn(id){ return parseFloat(document.getElementById(id)?.value)||0; }
+function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+
+// ─── AVALIAÇÃO ───────────────────────────────────────────────────
+function getConceito(nota){
+  if(nota>=8.10) return 'A'; if(nota>=7.65) return 'B';
+  if(nota>=6.75) return 'C'; if(nota>=5.85) return 'D';
+  if(nota>=5.40) return 'E'; return 'F';
+}
+
+function recalcEval(){
+  let notaFinal = 0;
+  Object.entries(GROUPS).forEach(([g,items])=>{
+    let gTotal=0;
+    items.forEach(id=>{
+      const row = document.getElementById('row_'+id);
+      const sel = row?.querySelector('select.nota-sel');
+      const nota = parseFloat(sel?.value??'3');
+      const peso = PESOS[id];
+      const sub  = nota * peso;
+
+      setTxt('sub_'+id, BR.format(sub));
+
+      // status
+      const stEl = document.getElementById('st_'+id);
+      if(stEl){
+        if(nota===2||nota>3){ stEl.className='status-err'; stEl.textContent='⛔ Inválida'; }
+        else{ stEl.className='status-ok'; stEl.textContent='✓ Ok'; }
+      }
+
+      // justif warning (not editable – static message)
+      const jwEl = document.getElementById('jw_'+id);
+      if(jwEl){
+        if(nota===0||nota===1){
+          jwEl.innerHTML = `<span class="jus-warn">⚠ Favor inserir justificativa da nota ${nota} no campo justificativa</span>`;
+          if(row) row.style.background='#fff8f0';
+        } else {
+          jwEl.innerHTML='';
+          if(row) row.style.background='';
+        }
+      }
+
+      gTotal += sub;
+    });
+    setTxt('tot_g'+g, BR.format(gTotal));
+    notaFinal += gTotal;
+  });
+
+  setTxt('notaFinalVal', BR.format(notaFinal));
+  const conceito = getConceito(notaFinal);
+  const badge = document.getElementById('conceitoBadge');
+  if(badge) badge.textContent = conceito;
+
+  ['A','B','C','D','E','F'].forEach(c=>{
+    document.getElementById('frow_'+c)?.classList.toggle('hl', c===conceito);
+  });
+  setTxt('notaFatDisplay', conceito);
+  setTxt('pctFat', (PCT_MAP[conceito]*100).toFixed(0)+'%');
+  return conceito;
+}
+
+// ─── TRAVA UNIFICADA ─────────────────────────────────────────────
+let globalLocked = false;
+let globalPwd = '';
+
+function lockAll(){
+  const pwd = prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
+  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
+  globalPwd = pwd;
+  globalLocked = true;
+  applyGlobalLock();
+  document.getElementById('btnLock').style.display='none';
+  document.getElementById('btnUnlock').style.display='inline-block';
+  document.getElementById('btnAddPosto').disabled=true;
+  document.getElementById('btnAddPosto').style.opacity='0.4';
+  alert('✅ Formulário travado com sucesso!');
+}
+
+function unlockAll(){
+  const pwd = prompt('Digite a senha para desbloquear:');
+  if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
+  globalLocked=false; globalPwd='';
+  applyGlobalLock();
+  document.getElementById('btnLock').style.display='inline-block';
+  document.getElementById('btnUnlock').style.display='none';
+  document.getElementById('btnAddPosto').disabled=false;
+  document.getElementById('btnAddPosto').style.opacity='1';
+}
+
+function applyGlobalLock(){
+  // Cabeçalho editável
+  ['contrato','contratada','unidade','headerUpdate'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=globalLocked; el.style.background=globalLocked?'transparent':''; }
+  });
+  // Campos dos postos de trabalho
+  for(let i=1;i<=postoCount;i++){
+    const tr=document.getElementById('posto_'+i); if(!tr) continue;
+    const iEl=tr.querySelector('.pi-item');
+    const qEl=tr.querySelector('.pi-qtde');
+    const vEl=tr.querySelector('.pi-vlr');
+    [iEl,qEl,vEl].forEach(el=>{ if(el) el.disabled=globalLocked; });
+  }
+  // Campos de reembolso de creche
+  ['crecheRetido','crechemBDI'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.disabled=globalLocked;
+  });
+  // Botões visíveis só quando desbloqueado
+  ['btnLimpar','btnExportLocked'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=globalLocked?'none':'inline-block';
+  });
+}
+
+// ─── POSTOS – ROWS ───────────────────────────────────────────────
+let postoCount=0;
+
+function addPostoRow(itemVal='',postoNome='',qtde='',vlrUnit='',semCob=''){
+  if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
+  postoCount++;
+  const i=postoCount;
+  const tbody=document.getElementById('postosBody');
+  const tr=document.createElement('tr');
+  tr.id='posto_'+i;
+  tr.innerHTML=`
+    <td class="num"><input type="text" class="pi center pi-item" value="${itemVal||i}" oninput="recalcAll()" style="width:54px;text-align:center;"></td>
+    <td><input type="text" class="pi name" value="${postoNome}" placeholder="Nome do posto" oninput="recalcAll()"></td>
+    <td><input type="number" class="pi pi-qtde" value="${qtde}" placeholder="0" min="0" step="1" oninput="recalcAll()" style="text-align:center;"></td>
+    <td><input type="number" class="pi pi-vlr" value="${vlrUnit}" placeholder="0,00" step="0.01" min="0" oninput="recalcAll()" style="text-align:center;"></td>
+    <td class="calc" id="p${i}_contr">–</td>
+    <td><input type="number" class="pi" value="${semCob}" placeholder="0" step="1" min="0" oninput="recalcAll()" style="text-align:center;"></td>
+    <td class="calc" id="p${i}_vhora">–</td>
+    <td class="calc" id="p${i}_vdesc">–</td>
+  `;
+  tbody.appendChild(tr);
+  if(globalLocked){ // re-apply lock to new row's lockable fields
+    const iEl=tr.querySelector('.pi-item');
+    const qEl=tr.querySelector('.pi-qtde');
+    const vEl=tr.querySelector('.pi-vlr');
+    [iEl,qEl,vEl].forEach(el=>{ if(el) el.disabled=true; });
+  }
+  recalcAll();
+}
+
+// ─── POSTOS – CALC ───────────────────────────────────────────────
+function recalcPostos(conceito){
+  const pct = PCT_MAP[conceito]??1.00;
+  const dias = Math.max(1, pn('diasTrab'));
+  let somaDesc=0, somaMensal=0;
+  const icRows=[];
+
+  for(let i=1;i<=postoCount;i++){
+    const tr=document.getElementById('posto_'+i); if(!tr) continue;
+    const inputs=tr.querySelectorAll('input');
+    // inputs order: item(text), posto(text), qtde(num), vlrUnit(num), semCob(num)
+    const qtde    = parseFloat(inputs[2].value)||0;
+    const vlrUnit = parseFloat(inputs[3].value)||0;
+    const semCob  = parseFloat(inputs[4].value)||0;
+    const itemLbl = inputs[0].value||String(i);
+    const postoNome = inputs[1].value||'–';
+
+    const contratadas = qtde*220;
+    const vhora = qtde>0 ? floor2(vlrUnit/220) : 0;
+    const mensal = qtde*vlrUnit;
+    const descFalta = vhora*semCob;
+    let vdesc=0;
+    if(qtde>0&&vlrUnit>0){
+      vdesc=floor2((mensal-descFalta)/30*dias*pct);
+      if(vdesc<0) vdesc=0;
+    }
+    const vfat = qtde>0 ? floor2(vdesc/qtde) : 0;
+
+    document.getElementById('p'+i+'_contr').textContent = BR0.format(contratadas);
+    document.getElementById('p'+i+'_vhora').textContent = BRcur(vhora);
+    document.getElementById('p'+i+'_vdesc').textContent = BRcur(vdesc);
+
+    somaDesc   += vdesc;
+    somaMensal += floor2(qtde*vlrUnit);
+    icRows.push({itemLbl, postoNome, qtde, vfat});
+  }
+
+  setTxt('totValorDesc', BRcur(somaDesc));
+  renderIC(icRows);
+  return {somaDesc, somaMensal};
+}
+
+// ─── INSTRUMENTO DE COBRANÇA ─────────────────────────────────────
+function renderIC(rows){
+  const tbody=document.getElementById('icBody');
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999;padding:8px;">Adicione postos acima para gerar o instrumento de cobrança.</td></tr>';
+    return;
+  }
+  let html='';
+  rows.forEach(r=>{
+    html+=`<tr>
+      <td style="text-align:center;font-weight:bold;">${r.itemLbl}</td>
+      <td class="ic-posto">${r.postoNome||'–'}</td>
+      <td class="ic-calc">${BR0.format(r.qtde)}</td>
+      <td class="ic-calc">${BRcur(r.vfat)}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+// ─── CRECHE – CALC ───────────────────────────────────────────────
+function recalcCreche(){
+  const retido    = pn('crecheRetido');
+  const aprovados = pn('crecheAprovados');
+  const bdi       = pn('crechemBDI');
+  const total     = floor2(aprovados*bdi);
+  const saldo     = floor2(retido-total);
+
+  setTxt('crecheTotalReemb', BRcur(total));
+  const saldoEl=document.getElementById('crecheSaldo');
+  if(saldoEl){
+    saldoEl.textContent=BRcur(saldo);
+    saldoEl.style.color=saldo<0?'#b71c1c':'#1b5e20';
+  }
+  const warnEl=document.getElementById('crecheWarn');
+  if(warnEl) warnEl.style.display=saldo<0?'block':'none';
+  return total;
+}
+
+// ─── FINANCEIRO ──────────────────────────────────────────────────
+function recalcFin(conceito,somaDesc,somaMensal,totalReemb){
+  const pct=PCT_MAP[conceito]??1.00;
+  const glosado=floor2(somaMensal-somaMensal*pct);
+  setTxt('contratadoMensal', BRcur(somaMensal));
+  setTxt('vlrGlosado', BRcur(glosado));
+  const aprovado=floor2(somaDesc+totalReemb);
+  const apEl=document.getElementById('vlrAprovado');
+  if(apEl){
+    apEl.textContent=BRcur(Math.max(0,aprovado));
+    apEl.style.color=aprovado<0?'#b71c1c':'#1b5e20';
+  }
+}
+
+// ─── MASTER RECALC ───────────────────────────────────────────────
+function recalcAll(){
+  const conceito          = recalcEval();
+  const totalReemb        = recalcCreche();
+  const {somaDesc,somaMensal} = recalcPostos(conceito);
+  recalcFin(conceito, somaDesc, somaMensal, totalReemb);
+}
+
+// ─── RESET ───────────────────────────────────────────────────────
+function resetForm(){
+  if(!confirm('Deseja limpar todos os dados preenchidos?')) return;
+  // desbloquear tudo
+  globalLocked=false; globalPwd='';
+  document.getElementById('btnLock').style.display='inline-block';
+  document.getElementById('btnUnlock').style.display='none';
+  document.getElementById('btnAddPosto').disabled=false;
+  document.getElementById('btnAddPosto').style.opacity='1';
+  applyGlobalLock();
+
+  document.querySelectorAll('input[type=text],input[type=number]').forEach(el=>{
+    if(el.id==='diasTrab') el.value='30'; else el.value='';
+  });
+  document.querySelectorAll('select.nota-sel').forEach(s=>s.value='3');
+  document.getElementById('justifGeral').value='';
+  document.getElementById('crecheRetido').value='0';
+  document.getElementById('crecheAprovados').value='0';
+  document.getElementById('crechemBDI').value='0';
+  // reset date
+  document.getElementById('dataAprov').value = todayISO();
+  // reset postos
+  document.getElementById('postosBody').innerHTML='';
+  postoCount=0;
+  addPostoRow();
+  recalcAll();
+}
+
+// ─── EXPORT LOCKED ───────────────────────────────────────────────
+function exportLocked(){
+  const pwd = prompt('Defina uma senha para a versão travada (mín. 4 caracteres):\n\nQuem precisar editar os campos travados precisará desta senha.');
+  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
+
+  const data = {
+    contrato:        document.getElementById('contrato').value,
+    contratada:      document.getElementById('contratada').value,
+    unidade:         document.getElementById('unidade').value,
+    headerUpdate:    document.getElementById('headerUpdate').value,
+    crecheRetido:    document.getElementById('crecheRetido').value,
+    crechemBDI:      document.getElementById('crechemBDI').value,
+    crecheAprovados: document.getElementById('crecheAprovados').value,
+    postos: []
+  };
+  for(let i=1;i<=postoCount;i++){
+    const tr=document.getElementById('posto_'+i); if(!tr) continue;
+    const inp=tr.querySelectorAll('input');
+    data.postos.push({item:inp[0].value, posto:inp[1].value, qtde:inp[2].value, vlrUnit:inp[3].value, semCob:inp[4].value});
+  }
+
+  const safePwd  = pwd.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeData = JSON.stringify(data);
+
+  // Parse o DOM atual num documento separado para limpar conteúdo dinâmico
+  // antes de exportar — evita duplicação quando o JS rodar de novo na abertura
+  const parser = new DOMParser();
+  const exportDoc = parser.parseFromString(document.documentElement.outerHTML, 'text/html');
+
+  // Limpar tabelas geradas dinamicamente pelo JS
+  ['postosBody','icBody'].forEach(id=>{
+    const el=exportDoc.getElementById(id);
+    if(el) el.innerHTML='';
+  });
+
+  // Limpar valores calculados exibidos que serão recalculados ao abrir
+  ['contratadoMensal','vlrGlosado','vlrAprovado','notaFatDisplay','pctFat',
+   'crecheTotalReemb','crecheSaldo','notaFinalVal','conceitoBadge'].forEach(id=>{
+    const el=exportDoc.getElementById(id); if(el) el.textContent='';
+  });
+  exportDoc.querySelectorAll('[id^="p"][id$="_vdesc"],[id^="p"][id$="_mensal"],[id^="p"][id$="_contr"]')
+    .forEach(el=>el.textContent='');
+
+  let html = '<!DOCTYPE html>\n' + exportDoc.documentElement.outerHTML;
+  html = html.replace("const INIT_LOCKED=false;/*§LOCK§*/", "const INIT_LOCKED=true;/*§LOCK§*/");
+  html = html.replace("const INIT_PWD='';/*§PWD§*/",        `const INIT_PWD='${safePwd}';/*§PWD§*/`);
+  html = html.replace("const INIT_DATA=null;/*§DATA§*/",    `const INIT_DATA=${safeData};/*§DATA§*/`);
+
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='IMR_Vigilancia_V2_travado.html';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('✅ Arquivo "IMR_Vigilancia_V2_travado.html" exportado!\n\nFaça o upload deste arquivo no GitHub (renomeando para index.html) para substituir o formulário online.');
+}
+
+// ─── EXPORT CSV ──────────────────────────────────────────────────
+function exportCSV(){
+  const l=[];
+  const v=id=>document.getElementById(id)?.value||'';
+  l.push('IMR VIGILÂNCIA E PORTARIA – V2 COM CRECHE');
+  l.push('');
+  l.push('Contrato;'+v('contrato'));
+  l.push('Unidade;'+v('unidade'));
+  l.push('Contratada;'+v('contratada'));
+  l.push('Fiscal Operacional;'+v('fiscal'));
+  l.push('Período;'+v('periodo'));
+  l.push('Data;'+v('dataAprov'));
+  l.push('');
+  l.push('AVALIAÇÃO DE DESEMPENHO');
+  l.push('Grupo;Critério;Peso;Nota;Subtotal');
+  const crit=[
+    ['1','Cumprimento das Atividades','g1_1'],
+    ['1','Qualificação/Atendimento/Postura','g1_2'],
+    ['1','Uniformes e Identificação','g1_3'],
+    ['2','Especificação Técnica dos Serviços','g2_1'],
+    ['2','Equipamentos e Acessórios','g2_2'],
+    ['2','Atendimento às Ocorrências','g2_3'],
+    ['3','Periodicidade da Supervisão','g3_1'],
+    ['3','Gerenciamento das Atividades','g3_2'],
+    ['3','Atendimento às Solicitações','g3_3'],
+    ['3','Salários/Benefícios/Obrig.Trab.','g3_4'],
+  ];
+  crit.forEach(([g,n,id])=>{
+    const nota=document.querySelector(`#row_${id} select`)?.value||'';
+    l.push(`${g};${n};${PESOS[id]};${nota};${document.getElementById('sub_'+id)?.textContent||''}`);
+  });
+  l.push('');
+  l.push('Nota Final;'+document.getElementById('notaFinalVal')?.textContent);
+  l.push('Conceito;'+document.getElementById('conceitoBadge')?.textContent);
+  l.push('');
+  l.push('POSTOS');
+  l.push('Item;Posto;Qtde;ValorUnit;HorasContrat;SemCob;ValorHora;ValorAposDesc');
+  for(let i=1;i<=postoCount;i++){
+    const tr=document.getElementById('posto_'+i); if(!tr) continue;
+    const inp=tr.querySelectorAll('input');
+    l.push(`${inp[0].value};${inp[1].value};${inp[2].value};${inp[3].value};`+
+      `${document.getElementById('p'+i+'_contr')?.textContent};${inp[4].value};`+
+      `${document.getElementById('p'+i+'_vhora')?.textContent};`+
+      `${document.getElementById('p'+i+'_vdesc')?.textContent}`);
+  }
+  l.push('');
+  l.push('RESUMO FINANCEIRO');
+  l.push('Contratado Mensal;'+document.getElementById('contratadoMensal')?.textContent);
+  l.push('Conceito;'+document.getElementById('notaFatDisplay')?.textContent);
+  l.push('% Faturamento;'+document.getElementById('pctFat')?.textContent);
+  l.push('Valor Glosado Qualidade;'+document.getElementById('vlrGlosado')?.textContent);
+  l.push('Dias Trabalhados;'+v('diasTrab'));
+  l.push('Valor Aprovado;'+document.getElementById('vlrAprovado')?.textContent);
+  l.push('');
+  l.push('REEMBOLSO CRECHE');
+  l.push('Valor Retido;'+v('crecheRetido'));
+  l.push('Reembolsos Aprovados;'+v('crecheAprovados'));
+  l.push('Valor Reembolso+BDI;'+v('crechemBDI'));
+  l.push('Total Reembolsos;'+document.getElementById('crecheTotalReemb')?.textContent);
+  l.push('Saldo de Reembolso;'+document.getElementById('crecheSaldo')?.textContent);
+
+  const blob=new Blob(['﻿'+l.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='IMR_V2_'+(v('periodo')||'export').replace(/[\/\\]/g,'_')+'.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+function todayISO(){
+  return new Date().toISOString().split('T')[0];
+}
+
+// Set today's date automatically
+document.getElementById('dataAprov').value = todayISO();
+
+// Seed initial rows
+addPostoRow();
+recalcAll();
+
+// Se for versão exportada travada, aplicar dados e travar automaticamente
+if(INIT_LOCKED && INIT_DATA){
+  document.getElementById('contrato').value      = INIT_DATA.contrato||'';
+  document.getElementById('contratada').value    = INIT_DATA.contratada||'';
+  document.getElementById('unidade').value       = INIT_DATA.unidade||'';
+  document.getElementById('headerUpdate').value  = INIT_DATA.headerUpdate||'';
+  document.getElementById('postosBody').innerHTML=''; postoCount=0;
+  (INIT_DATA.postos||[]).forEach(p=>addPostoRow(p.item,p.posto,p.qtde,p.vlrUnit,p.semCob));
+  document.getElementById('crecheRetido').value    = INIT_DATA.crecheRetido||'0';
+  document.getElementById('crechemBDI').value      = INIT_DATA.crechemBDI||'0';
+  document.getElementById('crecheAprovados').value = INIT_DATA.crecheAprovados||'0';
+  globalPwd=INIT_PWD; globalLocked=true;
+  applyGlobalLock();
+  document.getElementById('btnLock').style.display='none';
+  document.getElementById('btnUnlock').style.display='inline-block';
+  document.getElementById('btnAddPosto').disabled=true;
+  document.getElementById('btnAddPosto').style.opacity='0.4';
+  recalcAll();
+}
+</script>
+</body>
+</html>
