@@ -2812,7 +2812,7 @@ function renderImrTable() {
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
       +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
       +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
-      +'<td style="font-size:11px">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span> <button onclick="event.stopPropagation();navigator.clipboard.writeText(\''+r.link.replace(/'/g,"\\'")+'\'}).then(function(){var b=event.target;var t=b.textContent;b.textContent=\'✓\';setTimeout(function(){b.textContent=t;},1200);})" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
+      +'<td style="font-size:11px;white-space:nowrap">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span>&nbsp;<button onclick="event.stopPropagation();copyImrLink(this,\''+r.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -2903,6 +2903,30 @@ function saveEditImr(id) {
   saveImrToStorage();
   closeMo();
   buildImrTable();
+}
+
+function copyImrLink(btn, link) {
+  function done() {
+    var orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    setTimeout(function(){ btn.textContent = orig; }, 1500);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(done).catch(function(){
+      fallbackCopy(link); done();
+    });
+  } else {
+    fallbackCopy(link); done();
+  }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 function confirmDeleteImr(id) {
