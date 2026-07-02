@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IMR – Vigilância e Portaria V2 (com Creche)</title>
+<title>IMR – Vigilância e Portaria V2 (60 Períodos)</title>
 <style>
 /* ── RESET ── */
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -11,6 +11,19 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 
 /* ── PAGE ── */
 .page{background:#fff;width:1200px;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+/* ── TAB BAR ── */
+.tab-nav{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.tab-nav button{font-size:11px;padding:4px 12px;border:none;border-radius:3px;background:#2e74b5;color:#fff;cursor:pointer;font-family:Arial;font-weight:bold;}
+.tab-nav button:hover{opacity:.85;}
+.tab-info{font-size:12px;font-weight:bold;color:#1f3864;}
+.tab-hint{font-size:10px;color:#777;font-style:italic;margin-left:auto;}
+.tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#1f3864;border-radius:4px;margin-bottom:10px;}
+.tab-btn{flex:0 0 auto;min-width:74px;padding:4px 8px;font-size:10px;border:1px solid #2e74b5;background:#2e74b5;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.25;}
+.tab-btn.active{background:#fff;color:#1f3864;font-weight:bold;border-color:#fff;}
+.tab-btn b{font-size:11px;}
+.tab-btn small{display:block;font-size:11px;font-weight:bold;opacity:.95;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
+.tab-btn:hover{opacity:.92;}
 
 /* ── HEADER ── */
 .header-wrap{border:2px solid #1f3864;}
@@ -30,7 +43,9 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .info-cell.full{grid-column:1/-1;border-right:none;}
 .info-cell label{font-weight:bold;white-space:nowrap;color:#1f3864;min-width:155px;}
 .info-cell input{flex:1;border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:#f0f7ff;padding:2px 4px;border-radius:2px;}
+.info-cell input:disabled{background:#f0f0f0;color:#555;cursor:not-allowed;}
 .info-note{grid-column:1/-1;font-size:10px;font-style:italic;color:#c00;padding:4px 10px;border-bottom:none;border-right:none;background:#fff9f9;}
+.periodo-tag{font-size:9px;color:#2e7d32;font-weight:bold;margin-left:6px;}
 
 /* ── SECTION TITLE BAR ── */
 .sec-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:12px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
@@ -66,6 +81,9 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 .postos-tbl input.pi.name{text-align:left;}
 .postos-tbl input.pi.center{text-align:center;}
 .postos-tbl input.pi:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.rm-btn{background:#b71c1c;color:#fff;border:none;border-radius:3px;width:20px;height:20px;font-size:11px;line-height:1;cursor:pointer;}
+.rm-btn:hover{opacity:.8;}
+.rm-btn:disabled{background:#ccc;cursor:not-allowed;}
 .add-btn{margin:4px 0;font-size:10px;padding:3px 10px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;}
 .add-btn:hover{background:#2e74b5;}
 
@@ -140,7 +158,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 @media print{
   body{background:#fff;}
   .page{box-shadow:none;margin:0;width:100%;padding:8px;}
-  .btn-bar,.add-btn,.lock-btn,.field-lock-btn{display:none!important;}
+  .btn-bar,.add-btn,.lock-btn,.field-lock-btn,.tabbar,.tab-nav,.rm-btn{display:none!important;}
   select.nota-sel{appearance:none;border:none;background:transparent;}
   input{border-bottom:1px solid #aaa!important;background:transparent!important;}
   input:disabled{background:#f0f0f0!important;}
@@ -152,6 +170,15 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <body>
 <div class="page">
 
+<!-- ══ BARRA DE ABAS (PERÍODOS) ══ -->
+<div class="tab-nav">
+  <button onclick="prevPeriod()">◀ Anterior</button>
+  <span class="tab-info" id="tabInfo">Período 1 de 60</span>
+  <button onclick="nextPeriod()">Próximo ▶</button>
+  <span class="tab-hint">Cada aba = 1 período. Digite o período inicial na 1ª aba; os demais preenchem automaticamente.</span>
+</div>
+<div class="tabbar" id="tabbar"></div>
+
 <!-- ══ CABEÇALHO ══ -->
 <div class="header-wrap">
   <div class="header-top">
@@ -162,7 +189,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
     </div>
     <div class="header-badge">IMR</div>
   </div>
-  <div class="header-update"><input type="text" id="headerUpdate" value="Atualizado conforme Valor Unitário Contratado inicial" style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;"></div>
+  <div class="header-update"><input type="text" id="headerUpdate" value="Atualizado conforme Valor Unitário Contratado inicial" oninput="recalcAll();propagateHeaderUpdate()" style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;"></div>
 </div>
 
 <!-- ══ IDENTIFICAÇÃO ══ -->
@@ -185,10 +212,11 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
   </div>
   <div class="info-cell full">
     <label>AVALIAÇÃO REFERENTE AO PERÍODO:</label>
-    <input type="text" id="periodo" placeholder="Ex: Janeiro/2026">
+    <input type="text" id="periodo" placeholder="Ex: Maio/2024 ou 05/2024" oninput="recalcAll();propagatePeriodo();renderTabs()">
+    <span class="periodo-tag" id="periodoTag"></span>
   </div>
   <div class="info-note">
-    ⚠ Para notas 0 e 1, o campo Justificativas (abaixo) deve ser preenchido obrigatoriamente.
+    ⚠ Para notas 0 e 1, o campo Justificativas (abaixo) deve ser preenchido obrigatoriamente. &nbsp;|&nbsp; Contrato, Unidade e Contratada são compartilhados por todas as abas.
   </div>
 </div>
 
@@ -365,21 +393,22 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <!-- ══ POSTOS DE TRABALHO ══ -->
 <div class="sec-title" style="margin-top:14px;">
   <span>POSTOS DE TRABALHO</span>
-  <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()" title="Travar Contrato, Contratada, Unidade, Postos e Creche">🔓 Travar Formulário</button>
-  <button class="lock-btn locked" id="btnUnlock" onclick="unlockAll()" title="Desbloquear todos os campos travados" style="display:none;">🔒 Desbloquear</button>
+  <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()" title="Travar Contrato, Contratada, Unidade, Postos e Creche em TODAS as abas">🔓 Travar Formulário</button>
+  <button class="lock-btn locked" id="btnUnlock" onclick="unlockAll()" title="Desbloquear todos os campos travados em TODAS as abas" style="display:none;">🔒 Desbloquear</button>
 </div>
 <div class="postos-scroll">
   <table class="postos-tbl" id="postosTable">
     <thead>
       <tr>
         <th style="width:50px">Item</th>
-        <th style="width:260px">POSTO</th>
+        <th style="width:240px">POSTO</th>
         <th style="width:65px">Qtde<br>Contratada</th>
         <th style="width:85px">Valor Unit.<br>Contratado (R$)</th>
         <th class="sub" style="width:65px">Horas<br>Contratadas</th>
         <th style="width:65px">Sem<br>Cobertura (h)</th>
         <th style="width:75px">Valor da Hora<br>Contratada (R$)</th>
         <th style="width:95px">Valor do Item<br>após Descontos (R$)</th>
+        <th style="width:34px"></th>
       </tr>
     </thead>
     <tbody id="postosBody"></tbody>
@@ -536,12 +565,12 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <div class="btn-bar">
   <button class="btn btn-reset" id="btnLimpar" onclick="resetForm()">🗑 Limpar Tudo</button>
   <button class="btn btn-export" onclick="exportCSV()">📥 Exportar CSV</button>
-  <button class="btn" id="btnExportLocked" onclick="exportLocked()" style="background:#1f3864;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:11px;cursor:pointer;" title="Gera um novo arquivo HTML com os dados do contrato embutidos e travados desde a abertura">🔒 Exportar Versão Travada</button>
-  <button class="btn btn-print" onclick="window.print()">📄 Salvar PDF</button>
+  <button class="btn" id="btnExportLocked" onclick="exportLocked()" style="background:#1f3864;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:11px;cursor:pointer;" title="Gera um novo arquivo HTML com os dados de todas as abas embutidos e travados desde a abertura">🔒 Exportar Versão Travada</button>
+  <button class="btn btn-print" onclick="window.print()">📄 Salvar PDF (aba atual)</button>
 </div>
 <p style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;">
   (¹) Campos do Grupo 3 – Salários/Benefícios e Nota Final preenchidos pelo Fiscal Administrativo. |
-  Formulário gerado a partir do Modelo IMR Vigilância Definitivo V2 Com CRECHE – PR6.
+  Formulário gerado a partir do Modelo IMR Vigilância Definitivo V2 Com CRECHE – PR6. | Versão 60 períodos.
 </p>
 </div><!-- /page -->
 
@@ -555,6 +584,7 @@ const INIT_DATA=null;/*§DATA§*/
 // ─────────────────────────────────────────────────────────────────
 
 // ─── CONSTANTES ──────────────────────────────────────────────────
+const NUM_PERIODS = 60;
 const PESOS = {
   g1_1:0.40, g1_2:0.35, g1_3:0.25,
   g2_1:0.40, g2_2:0.20, g2_3:0.40,
@@ -565,15 +595,164 @@ const GROUPS = {
   2:['g2_1','g2_2','g2_3'],
   3:['g3_1','g3_2','g3_3','g3_4']
 };
+const ALL_IDS = Object.values(GROUPS).reduce((a,b)=>a.concat(b),[]);
 const PCT_MAP = {A:1.00,B:0.95,C:0.90,D:0.85,E:0.80,F:0.75};
+const ASS_IDS = ['assFiscalOp','assFiscalOpMat','assFiscalAdm','assFiscalAdmMat','assContratada','assContratadaCargo'];
+
+const MESES     = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MESES_CAP = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 // ─── FORMATOS ────────────────────────────────────────────────────
 const BR  = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const BR0 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
 const BRcur = v => 'R$ '+BR.format(v);
 function floor2(v){ return Math.floor(v*100)/100; }
-function pn(id){ return parseFloat(document.getElementById(id)?.value)||0; }
 function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+function val(id){ const el=document.getElementById(id); return el?el.value:''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=(v==null?'':v); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function todayISO(){ return new Date().toISOString().split('T')[0]; }
+
+// ─── ESTADO GLOBAL ───────────────────────────────────────────────
+let periods = [];          // 60 estados (um por período)
+let currentPeriod = 0;
+let postoCount = 0;
+let globalLocked = false;
+let globalPwd = '';
+
+function defaultState(){
+  const notas={}; ALL_IDS.forEach(id=>notas[id]='3');
+  const s={
+    periodo:'', headerUpdate:'Atualizado conforme Valor Unitário Contratado inicial',
+    notas, postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}],
+    diasTrab:'30', crecheRetido:'0', crecheAprovados:'0', crechemBDI:'0',
+    justif:'', dataAprov: todayISO()
+  };
+  ASS_IDS.forEach(id=>s[id]='');
+  return s;
+}
+
+// ─── PARSE / FORMATO DE PERÍODO ──────────────────────────────────
+function detectPeriodFormat(str){
+  str=(str||'').trim();
+  if(!str) return null;
+  const lower=str.toLowerCase();
+  // Mês por nome  (ex.: "Maio/2024", "Maio de 2024", "Janeiro 2026")
+  for(let i=0;i<12;i++){
+    if(lower.startsWith(MESES[i])){
+      const rest=str.slice(MESES[i].length);
+      const ym=rest.match(/\d{4}|\d{2}/);
+      if(ym){
+        let y=parseInt(ym[0],10); if(y<100) y+=2000;
+        const sep=(rest.slice(0,ym.index).match(/^[\s\/\-\.de]*/)||[''])[0];
+        return {type:'named', month:i, year:y, sep:sep||' '};
+      }
+    }
+  }
+  // Numérico  (ex.: "05/2024", "5-2024", "05/24", "05.24")
+  const m=str.match(/^(\d{1,2})\s*([\/\-\.])\s*(\d{2,4})$/);
+  if(m){
+    let y=parseInt(m[3],10); const twoDigit=m[3].length<=2; if(y<100) y+=2000;
+    return {type:'numeric', month:parseInt(m[1],10)-1, year:y, sep:m[2], pad:m[1].length>=2, twoDigit};
+  }
+  return null;
+}
+function formatPeriod(base, offset){
+  const total = base.month + offset;
+  const year  = base.year + Math.floor(total/12);
+  const month = ((total%12)+12)%12;
+  if(base.type==='named'){
+    return MESES_CAP[month] + base.sep + year;
+  }
+  let mm=String(month+1); if(base.pad) mm=mm.padStart(2,'0');
+  const yy=base.twoDigit ? String(year%100).padStart(2,'0') : String(year);
+  return mm + base.sep + yy;
+}
+
+// ─── SNAPSHOT / APPLY (DOM ↔ modelo) ─────────────────────────────
+function snapshotDOM(){
+  const notas={};
+  ALL_IDS.forEach(id=>{ const sel=document.querySelector('select.nota-sel[data-id="'+id+'"]'); notas[id]=sel?sel.value:'3'; });
+  const postos=[];
+  for(let i=1;i<=postoCount;i++){
+    const tr=document.getElementById('posto_'+i); if(!tr) continue;
+    const inp=tr.querySelectorAll('input');
+    postos.push({item:inp[0].value, posto:inp[1].value, qtde:inp[2].value, vlrUnit:inp[3].value, semCob:inp[4].value});
+  }
+  const s={
+    periodo:val('periodo'), headerUpdate:val('headerUpdate'), notas, postos,
+    diasTrab:val('diasTrab'), crecheRetido:val('crecheRetido'),
+    crecheAprovados:val('crecheAprovados'), crechemBDI:val('crechemBDI'),
+    justif:val('justifGeral'), dataAprov:val('dataAprov')
+  };
+  ASS_IDS.forEach(id=>s[id]=val(id));
+  return s;
+}
+function applyPeriodToDOM(s){
+  setVal('periodo', s.periodo);
+  setVal('headerUpdate', s.headerUpdate);
+  ALL_IDS.forEach(id=>{ const sel=document.querySelector('select.nota-sel[data-id="'+id+'"]'); if(sel) sel.value=(s.notas&&s.notas[id])||'3'; });
+  renderPostos((s.postos&&s.postos.length)?s.postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}]);
+  setVal('diasTrab', s.diasTrab||'30');
+  setVal('crecheRetido', s.crecheRetido||'0');
+  setVal('crecheAprovados', s.crecheAprovados||'0');
+  setVal('crechemBDI', s.crechemBDI||'0');
+  setVal('justifGeral', s.justif||'');
+  ASS_IDS.forEach(id=>setVal(id, s[id]||''));
+  setVal('dataAprov', s.dataAprov||todayISO());
+}
+
+// ─── ABAS ────────────────────────────────────────────────────────
+function renderTabs(){
+  const bar=document.getElementById('tabbar'); if(!bar) return;
+  let h='';
+  for(let n=0;n<NUM_PERIODS;n++){
+    const label=(periods[n]&&periods[n].periodo)?periods[n].periodo:('Período '+(n+1));
+    h+='<button class="tab-btn'+(n===currentPeriod?' active':'')+'" onclick="switchPeriod('+n+')" title="'+esc(label)+'"><b>'+(n+1)+'</b><small>'+esc(label)+'</small></button>';
+  }
+  bar.innerHTML=h;
+  setTxt('tabInfo','Período '+(currentPeriod+1)+' de '+NUM_PERIODS);
+  const per=periods[currentPeriod];
+  setTxt('periodoTag', (per&&per.periodo)?('▶ Aba '+(currentPeriod+1)):'' );
+  const act=bar.querySelector('.tab-btn.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
+}
+function switchPeriod(n){
+  if(n<0||n>=NUM_PERIODS||n===currentPeriod){ if(n===currentPeriod) return; }
+  if(n<0||n>=NUM_PERIODS) return;
+  periods[currentPeriod]=snapshotDOM();
+  currentPeriod=n;
+  applyPeriodToDOM(periods[n]);
+  applyGlobalLock();
+  renderTabs();
+  recalcAll();
+}
+function prevPeriod(){ switchPeriod(currentPeriod-1); }
+function nextPeriod(){ switchPeriod(currentPeriod+1); }
+
+// ─── PROPAGAÇÃO PARA AS ABAS SEGUINTES ───────────────────────────
+function propagateHeaderUpdate(){
+  const v=val('headerUpdate');
+  for(let k=currentPeriod;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].headerUpdate=v; }
+  renderTabs();
+}
+function propagatePeriodo(){
+  const base=detectPeriodFormat(val('periodo'));
+  if(!base) return;
+  for(let k=currentPeriod+1;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].periodo=formatPeriod(base,k-currentPeriod); }
+}
+function propagatePostos(){
+  // Estrutura + Qtde + Valor Unitário cascateiam para frente.
+  // "Sem Cobertura (h)" é de cada período e é preservado por linha.
+  const cur=(periods[currentPeriod]&&periods[currentPeriod].postos)||[];
+  for(let k=currentPeriod+1;k<NUM_PERIODS;k++){
+    if(!periods[k]) continue;
+    const prev=periods[k].postos||[];
+    periods[k].postos=cur.map((p,idx)=>({
+      item:p.item, posto:p.posto, qtde:p.qtde, vlrUnit:p.vlrUnit,
+      semCob: prev[idx]?prev[idx].semCob:''
+    }));
+  }
+}
 
 // ─── AVALIAÇÃO ───────────────────────────────────────────────────
 function getConceito(nota){
@@ -582,427 +761,345 @@ function getConceito(nota){
   if(nota>=5.40) return 'E'; return 'F';
 }
 
-function recalcEval(){
-  let notaFinal = 0;
+// ─── CÁLCULO PURO (a partir de um estado) ────────────────────────
+function computeDerived(s){
+  let notaFinal=0; const subs={}, groupTotals={};
   Object.entries(GROUPS).forEach(([g,items])=>{
-    let gTotal=0;
+    let gt=0;
     items.forEach(id=>{
-      const row = document.getElementById('row_'+id);
-      const sel = row?.querySelector('select.nota-sel');
-      const nota = parseFloat(sel?.value??'3');
-      const peso = PESOS[id];
-      const sub  = nota * peso;
+      const nota=parseFloat((s.notas&&s.notas[id])??'3');
+      const sub=nota*PESOS[id]; subs[id]=sub; gt+=sub;
+    });
+    groupTotals[g]=gt; notaFinal+=gt;
+  });
+  const conceito=getConceito(notaFinal);
+  const pct=PCT_MAP[conceito]??1.00;
+  const dias=Math.max(1, parseFloat(s.diasTrab)||0);
 
-      setTxt('sub_'+id, BR.format(sub));
+  let somaDesc=0, somaMensal=0; const postoCalc=[];
+  (s.postos||[]).forEach(p=>{
+    const qtde=parseFloat(p.qtde)||0, vlrUnit=parseFloat(p.vlrUnit)||0, semCob=parseFloat(p.semCob)||0;
+    const contratadas=qtde*220;
+    const vhora=qtde>0?floor2(vlrUnit/220):0;
+    const mensal=qtde*vlrUnit;
+    const descFalta=vhora*semCob;
+    let vdesc=0;
+    if(qtde>0&&vlrUnit>0){ vdesc=floor2((mensal-descFalta)/30*dias*pct); if(vdesc<0) vdesc=0; }
+    const vfat=qtde>0?floor2(vdesc/qtde):0;
+    somaDesc+=vdesc; somaMensal+=floor2(qtde*vlrUnit);
+    postoCalc.push({item:p.item, posto:p.posto, qtde, contratadas, vhora, vdesc, vfat});
+  });
+  const glosado=floor2(somaMensal-somaMensal*pct);
 
-      // status
-      const stEl = document.getElementById('st_'+id);
+  const retido=parseFloat(s.crecheRetido)||0, aprov=parseFloat(s.crecheAprovados)||0, bdi=parseFloat(s.crechemBDI)||0;
+  const crecheTotal=floor2(aprov*bdi);
+  const crecheSaldo=floor2(retido-crecheTotal);
+  const aprovado=floor2(somaDesc+crecheTotal);
+
+  return {notaFinal,conceito,pct,subs,groupTotals,somaDesc,somaMensal,glosado,postoCalc,crecheTotal,crecheSaldo,aprovado};
+}
+
+// ─── PINTURA DO DOM ──────────────────────────────────────────────
+function paintEval(s,d){
+  Object.entries(GROUPS).forEach(([g,items])=>{
+    items.forEach(id=>{
+      const nota=parseFloat((s.notas&&s.notas[id])??'3');
+      setTxt('sub_'+id, BR.format(d.subs[id]));
+      const stEl=document.getElementById('st_'+id);
       if(stEl){
         if(nota===2||nota>3){ stEl.className='status-err'; stEl.textContent='⛔ Inválida'; }
         else{ stEl.className='status-ok'; stEl.textContent='✓ Ok'; }
       }
-
-      // justif warning (not editable – static message)
-      const jwEl = document.getElementById('jw_'+id);
+      const jwEl=document.getElementById('jw_'+id);
+      const row=document.getElementById('row_'+id);
       if(jwEl){
         if(nota===0||nota===1){
-          jwEl.innerHTML = `<span class="jus-warn">⚠ Favor inserir justificativa da nota ${nota} no campo justificativa</span>`;
+          jwEl.innerHTML='<span class="jus-warn">⚠ Favor inserir justificativa da nota '+nota+' no campo justificativa</span>';
           if(row) row.style.background='#fff8f0';
-        } else {
-          jwEl.innerHTML='';
-          if(row) row.style.background='';
-        }
+        }else{ jwEl.innerHTML=''; if(row) row.style.background=''; }
       }
-
-      gTotal += sub;
     });
-    setTxt('tot_g'+g, BR.format(gTotal));
-    notaFinal += gTotal;
+    setTxt('tot_g'+g, BR.format(d.groupTotals[g]));
   });
-
-  setTxt('notaFinalVal', BR.format(notaFinal));
-  const conceito = getConceito(notaFinal);
-  const badge = document.getElementById('conceitoBadge');
-  if(badge) badge.textContent = conceito;
-
-  ['A','B','C','D','E','F'].forEach(c=>{
-    document.getElementById('frow_'+c)?.classList.toggle('hl', c===conceito);
-  });
-  setTxt('notaFatDisplay', conceito);
-  setTxt('pctFat', (PCT_MAP[conceito]*100).toFixed(0)+'%');
-  return conceito;
+  setTxt('notaFinalVal', BR.format(d.notaFinal));
+  const badge=document.getElementById('conceitoBadge'); if(badge) badge.textContent=d.conceito;
+  ['A','B','C','D','E','F'].forEach(c=>{ const r=document.getElementById('frow_'+c); if(r) r.classList.toggle('hl', c===d.conceito); });
+  setTxt('notaFatDisplay', d.conceito);
+  setTxt('pctFat', (d.pct*100).toFixed(0)+'%');
 }
-
-// ─── TRAVA UNIFICADA ─────────────────────────────────────────────
-let globalLocked = false;
-let globalPwd = '';
-
-function lockAll(){
-  const pwd = prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
-  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
-  globalPwd = pwd;
-  globalLocked = true;
-  applyGlobalLock();
-  document.getElementById('btnLock').style.display='none';
-  document.getElementById('btnUnlock').style.display='inline-block';
-  document.getElementById('btnAddPosto').disabled=true;
-  document.getElementById('btnAddPosto').style.opacity='0.4';
-  alert('✅ Formulário travado com sucesso!');
-}
-
-function unlockAll(){
-  const pwd = prompt('Digite a senha para desbloquear:');
-  if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
-  globalLocked=false; globalPwd='';
-  applyGlobalLock();
-  document.getElementById('btnLock').style.display='inline-block';
-  document.getElementById('btnUnlock').style.display='none';
-  document.getElementById('btnAddPosto').disabled=false;
-  document.getElementById('btnAddPosto').style.opacity='1';
-}
-
-function applyGlobalLock(){
-  // Cabeçalho editável
-  ['contrato','contratada','unidade','headerUpdate'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){ el.disabled=globalLocked; el.style.background=globalLocked?'transparent':''; }
-  });
-  // Campos dos postos de trabalho
+function paintPostos(d){
   for(let i=1;i<=postoCount;i++){
-    const tr=document.getElementById('posto_'+i); if(!tr) continue;
-    const iEl=tr.querySelector('.pi-item');
-    const qEl=tr.querySelector('.pi-qtde');
-    const vEl=tr.querySelector('.pi-vlr');
-    [iEl,qEl,vEl].forEach(el=>{ if(el) el.disabled=globalLocked; });
+    const c=d.postoCalc[i-1]; if(!c) continue;
+    setTxt('p'+i+'_contr', BR0.format(c.contratadas));
+    setTxt('p'+i+'_vhora', BRcur(c.vhora));
+    setTxt('p'+i+'_vdesc', BRcur(c.vdesc));
   }
-  // Campos de reembolso de creche
-  ['crecheRetido','crechemBDI'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.disabled=globalLocked;
-  });
-  // Botões visíveis só quando desbloqueado
-  ['btnLimpar','btnExportLocked'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display=globalLocked?'none':'inline-block';
-  });
+  renderIC(d.postoCalc.map(c=>({itemLbl:c.item||'–', postoNome:c.posto||'–', qtde:c.qtde, vfat:c.vfat})));
 }
-
-// ─── POSTOS – ROWS ───────────────────────────────────────────────
-let postoCount=0;
-
-function addPostoRow(itemVal='',postoNome='',qtde='',vlrUnit='',semCob=''){
-  if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
-  postoCount++;
-  const i=postoCount;
-  const tbody=document.getElementById('postosBody');
-  const tr=document.createElement('tr');
-  tr.id='posto_'+i;
-  tr.innerHTML=`
-    <td class="num"><input type="text" class="pi center pi-item" value="${itemVal||i}" oninput="recalcAll()" style="width:54px;text-align:center;"></td>
-    <td><input type="text" class="pi name" value="${postoNome}" placeholder="Nome do posto" oninput="recalcAll()"></td>
-    <td><input type="number" class="pi pi-qtde" value="${qtde}" placeholder="0" min="0" step="1" oninput="recalcAll()" style="text-align:center;"></td>
-    <td><input type="number" class="pi pi-vlr" value="${vlrUnit}" placeholder="0,00" step="0.01" min="0" oninput="recalcAll()" style="text-align:center;"></td>
-    <td class="calc" id="p${i}_contr">–</td>
-    <td><input type="number" class="pi" value="${semCob}" placeholder="0" step="1" min="0" oninput="recalcAll()" style="text-align:center;"></td>
-    <td class="calc" id="p${i}_vhora">–</td>
-    <td class="calc" id="p${i}_vdesc">–</td>
-  `;
-  tbody.appendChild(tr);
-  if(globalLocked){ // re-apply lock to new row's lockable fields
-    const iEl=tr.querySelector('.pi-item');
-    const qEl=tr.querySelector('.pi-qtde');
-    const vEl=tr.querySelector('.pi-vlr');
-    [iEl,qEl,vEl].forEach(el=>{ if(el) el.disabled=true; });
-  }
-  recalcAll();
+function paintFin(d){
+  setTxt('contratadoMensal', BRcur(d.somaMensal));
+  setTxt('vlrGlosado', BRcur(d.glosado));
+  const apEl=document.getElementById('vlrAprovado');
+  if(apEl){ apEl.textContent=BRcur(Math.max(0,d.aprovado)); apEl.style.color=d.aprovado<0?'#b71c1c':'#1b5e20'; }
 }
-
-// ─── POSTOS – CALC ───────────────────────────────────────────────
-function recalcPostos(conceito){
-  const pct = PCT_MAP[conceito]??1.00;
-  const dias = Math.max(1, pn('diasTrab'));
-  let somaDesc=0, somaMensal=0;
-  const icRows=[];
-
-  for(let i=1;i<=postoCount;i++){
-    const tr=document.getElementById('posto_'+i); if(!tr) continue;
-    const inputs=tr.querySelectorAll('input');
-    // inputs order: item(text), posto(text), qtde(num), vlrUnit(num), semCob(num)
-    const qtde    = parseFloat(inputs[2].value)||0;
-    const vlrUnit = parseFloat(inputs[3].value)||0;
-    const semCob  = parseFloat(inputs[4].value)||0;
-    const itemLbl = inputs[0].value||String(i);
-    const postoNome = inputs[1].value||'–';
-
-    const contratadas = qtde*220;
-    const vhora = qtde>0 ? floor2(vlrUnit/220) : 0;
-    const mensal = qtde*vlrUnit;
-    const descFalta = vhora*semCob;
-    let vdesc=0;
-    if(qtde>0&&vlrUnit>0){
-      vdesc=floor2((mensal-descFalta)/30*dias*pct);
-      if(vdesc<0) vdesc=0;
-    }
-    const vfat = qtde>0 ? floor2(vdesc/qtde) : 0;
-
-    document.getElementById('p'+i+'_contr').textContent = BR0.format(contratadas);
-    document.getElementById('p'+i+'_vhora').textContent = BRcur(vhora);
-    document.getElementById('p'+i+'_vdesc').textContent = BRcur(vdesc);
-
-    somaDesc   += vdesc;
-    somaMensal += floor2(qtde*vlrUnit);
-    icRows.push({itemLbl, postoNome, qtde, vfat});
-  }
-
-  setTxt('totValorDesc', BRcur(somaDesc));
-  renderIC(icRows);
-  return {somaDesc, somaMensal};
+function paintCreche(d){
+  setTxt('crecheTotalReemb', BRcur(d.crecheTotal));
+  const saldoEl=document.getElementById('crecheSaldo');
+  if(saldoEl){ saldoEl.textContent=BRcur(d.crecheSaldo); saldoEl.style.color=d.crecheSaldo<0?'#b71c1c':'#1b5e20'; }
+  const warnEl=document.getElementById('crecheWarn'); if(warnEl) warnEl.style.display=d.crecheSaldo<0?'block':'none';
 }
-
-// ─── INSTRUMENTO DE COBRANÇA ─────────────────────────────────────
 function renderIC(rows){
-  const tbody=document.getElementById('icBody');
+  const tbody=document.getElementById('icBody'); if(!tbody) return;
   if(!rows.length){
     tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999;padding:8px;">Adicione postos acima para gerar o instrumento de cobrança.</td></tr>';
     return;
   }
   let html='';
   rows.forEach(r=>{
-    html+=`<tr>
-      <td style="text-align:center;font-weight:bold;">${r.itemLbl}</td>
-      <td class="ic-posto">${r.postoNome||'–'}</td>
-      <td class="ic-calc">${BR0.format(r.qtde)}</td>
-      <td class="ic-calc">${BRcur(r.vfat)}</td>
-    </tr>`;
+    html+='<tr><td style="text-align:center;font-weight:bold;">'+esc(r.itemLbl)+'</td>'+
+      '<td class="ic-posto">'+esc(r.postoNome||'–')+'</td>'+
+      '<td class="ic-calc">'+BR0.format(r.qtde)+'</td>'+
+      '<td class="ic-calc">'+BRcur(r.vfat)+'</td></tr>';
   });
   tbody.innerHTML=html;
 }
 
-// ─── CRECHE – CALC ───────────────────────────────────────────────
-function recalcCreche(){
-  const retido    = pn('crecheRetido');
-  const aprovados = pn('crecheAprovados');
-  const bdi       = pn('crechemBDI');
-  const total     = floor2(aprovados*bdi);
-  const saldo     = floor2(retido-total);
-
-  setTxt('crecheTotalReemb', BRcur(total));
-  const saldoEl=document.getElementById('crecheSaldo');
-  if(saldoEl){
-    saldoEl.textContent=BRcur(saldo);
-    saldoEl.style.color=saldo<0?'#b71c1c':'#1b5e20';
-  }
-  const warnEl=document.getElementById('crecheWarn');
-  if(warnEl) warnEl.style.display=saldo<0?'block':'none';
-  return total;
-}
-
-// ─── FINANCEIRO ──────────────────────────────────────────────────
-function recalcFin(conceito,somaDesc,somaMensal,totalReemb){
-  const pct=PCT_MAP[conceito]??1.00;
-  const glosado=floor2(somaMensal-somaMensal*pct);
-  setTxt('contratadoMensal', BRcur(somaMensal));
-  setTxt('vlrGlosado', BRcur(glosado));
-  const aprovado=floor2(somaDesc+totalReemb);
-  const apEl=document.getElementById('vlrAprovado');
-  if(apEl){
-    apEl.textContent=BRcur(Math.max(0,aprovado));
-    apEl.style.color=aprovado<0?'#b71c1c':'#1b5e20';
-  }
-}
-
-// ─── MASTER RECALC ───────────────────────────────────────────────
+// ─── RECALC MESTRE ───────────────────────────────────────────────
 function recalcAll(){
-  const conceito          = recalcEval();
-  const totalReemb        = recalcCreche();
-  const {somaDesc,somaMensal} = recalcPostos(conceito);
-  recalcFin(conceito, somaDesc, somaMensal, totalReemb);
+  if(!periods.length) return;
+  const s=snapshotDOM();
+  periods[currentPeriod]=s;
+  const d=computeDerived(s);
+  paintEval(s,d); paintPostos(d); paintFin(d); paintCreche(d);
+}
+
+// ─── POSTOS – LINHAS ─────────────────────────────────────────────
+function renderPostos(list){
+  const tbody=document.getElementById('postosBody');
+  tbody.innerHTML=''; postoCount=0;
+  list.forEach(p=>appendPostoRow(p));
+}
+function appendPostoRow(p){
+  postoCount++; const i=postoCount;
+  const tbody=document.getElementById('postosBody');
+  const tr=document.createElement('tr'); tr.id='posto_'+i;
+  const oc='oninput="recalcAll();propagatePostos();renderTabs()"';
+  tr.innerHTML=
+    '<td class="num"><input type="text" class="pi center pi-item" value="'+esc(p.item||i)+'" '+oc+' style="width:44px;text-align:center;"></td>'+
+    '<td><input type="text" class="pi name pi-nome" value="'+esc(p.posto)+'" placeholder="Nome do posto" '+oc+'></td>'+
+    '<td><input type="number" class="pi pi-qtde" value="'+esc(p.qtde)+'" placeholder="0" min="0" step="1" '+oc+' style="text-align:center;"></td>'+
+    '<td><input type="number" class="pi pi-vlr" value="'+esc(p.vlrUnit)+'" placeholder="0,00" step="0.01" min="0" '+oc+' style="text-align:center;"></td>'+
+    '<td class="calc" id="p'+i+'_contr">–</td>'+
+    '<td><input type="number" class="pi pi-semcob" value="'+esc(p.semCob)+'" placeholder="0" step="1" min="0" oninput="recalcAll();propagatePostos()" style="text-align:center;"></td>'+
+    '<td class="calc" id="p'+i+'_vhora">–</td>'+
+    '<td class="calc" id="p'+i+'_vdesc">–</td>'+
+    '<td style="text-align:center;"><button class="rm-btn" onclick="removePostoRow('+i+')" title="Remover posto">✕</button></td>';
+  tbody.appendChild(tr);
+  if(globalLocked){
+    tr.querySelectorAll('.pi-item,.pi-nome,.pi-qtde,.pi-vlr').forEach(el=>el.disabled=true);
+    const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=true; rb.style.opacity=.4; }
+  }
+}
+function addPostoRow(){
+  if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
+  appendPostoRow({item:'',posto:'',qtde:'',vlrUnit:'',semCob:''});
+  recalcAll();          // grava linha nova no estado atual
+  propagatePostos();    // replica para as abas seguintes
+  renderTabs();
+}
+function removePostoRow(i){
+  if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
+  const tr=document.getElementById('posto_'+i); if(tr) tr.remove();
+  const remaining=snapshotDOM().postos;
+  renderPostos(remaining.length?remaining:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}]);
+  applyGlobalLock();
+  recalcAll();
+  propagatePostos();
+  renderTabs();
+}
+
+// ─── TRAVA UNIFICADA (vale para TODAS as abas) ───────────────────
+function toggleLockBtns(){
+  document.getElementById('btnLock').style.display   = globalLocked?'none':'inline-block';
+  document.getElementById('btnUnlock').style.display = globalLocked?'inline-block':'none';
+}
+function lockAll(){
+  const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
+  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
+  globalPwd=pwd; globalLocked=true;
+  applyGlobalLock(); toggleLockBtns();
+  alert('✅ Formulário travado com sucesso em TODAS as abas!');
+}
+function unlockAll(){
+  const pwd=prompt('Digite a senha para desbloquear:');
+  if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
+  globalLocked=false; globalPwd='';
+  applyGlobalLock(); toggleLockBtns();
+  alert('🔓 Formulário desbloqueado em TODAS as abas.');
+}
+function applyGlobalLock(){
+  // Cabeçalho compartilhado + editável
+  ['contrato','contratada','unidade','headerUpdate'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=globalLocked; el.style.background=globalLocked?'transparent':''; }
+  });
+  // Postos (baseline do contrato) — "Sem Cobertura" continua editável
+  document.querySelectorAll('#postosBody tr').forEach(tr=>{
+    tr.querySelectorAll('.pi-item,.pi-nome,.pi-qtde,.pi-vlr').forEach(el=>el.disabled=globalLocked);
+    const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=globalLocked; rb.style.opacity=globalLocked?.4:1; }
+  });
+  // Creche
+  ['crecheRetido','crechemBDI'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
+  // Botões
+  const addb=document.getElementById('btnAddPosto');
+  if(addb){ addb.disabled=globalLocked; addb.style.opacity=globalLocked?.4:1; }
+  ['btnLimpar','btnExportLocked'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=globalLocked?'none':'inline-block'; });
 }
 
 // ─── RESET ───────────────────────────────────────────────────────
 function resetForm(){
-  if(!confirm('Deseja limpar todos os dados preenchidos?')) return;
-  // desbloquear tudo
-  globalLocked=false; globalPwd='';
-  document.getElementById('btnLock').style.display='inline-block';
-  document.getElementById('btnUnlock').style.display='none';
-  document.getElementById('btnAddPosto').disabled=false;
-  document.getElementById('btnAddPosto').style.opacity='1';
+  if(!confirm('Deseja limpar todos os dados de TODAS as 60 abas?')) return;
+  globalLocked=false; globalPwd=''; toggleLockBtns();
+  ['contrato','contratada','unidade','fiscal'].forEach(id=>setVal(id,''));
+  periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
+  currentPeriod=0;
+  applyPeriodToDOM(periods[0]);
   applyGlobalLock();
-
-  document.querySelectorAll('input[type=text],input[type=number]').forEach(el=>{
-    if(el.id==='diasTrab') el.value='30'; else el.value='';
-  });
-  document.querySelectorAll('select.nota-sel').forEach(s=>s.value='3');
-  document.getElementById('justifGeral').value='';
-  document.getElementById('crecheRetido').value='0';
-  document.getElementById('crecheAprovados').value='0';
-  document.getElementById('crechemBDI').value='0';
-  // reset date
-  document.getElementById('dataAprov').value = todayISO();
-  // reset postos
-  document.getElementById('postosBody').innerHTML='';
-  postoCount=0;
-  addPostoRow();
+  renderTabs();
   recalcAll();
 }
 
 // ─── EXPORT LOCKED ───────────────────────────────────────────────
 function exportLocked(){
-  const pwd = prompt('Defina uma senha para a versão travada (mín. 4 caracteres):\n\nQuem precisar editar os campos travados precisará desta senha.');
+  const pwd=prompt('Defina uma senha para a versão travada (mín. 4 caracteres):\n\nQuem precisar editar os campos travados precisará desta senha.');
   if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
 
-  const data = {
-    contrato:        document.getElementById('contrato').value,
-    contratada:      document.getElementById('contratada').value,
-    unidade:         document.getElementById('unidade').value,
-    headerUpdate:    document.getElementById('headerUpdate').value,
-    crecheRetido:    document.getElementById('crecheRetido').value,
-    crechemBDI:      document.getElementById('crechemBDI').value,
-    crecheAprovados: document.getElementById('crecheAprovados').value,
-    postos: []
+  periods[currentPeriod]=snapshotDOM();
+  const data={
+    global:{ contrato:val('contrato'), contratada:val('contratada'), unidade:val('unidade'), fiscal:val('fiscal') },
+    currentPeriod:0,
+    periods:periods
   };
-  for(let i=1;i<=postoCount;i++){
-    const tr=document.getElementById('posto_'+i); if(!tr) continue;
-    const inp=tr.querySelectorAll('input');
-    data.postos.push({item:inp[0].value, posto:inp[1].value, qtde:inp[2].value, vlrUnit:inp[3].value, semCob:inp[4].value});
-  }
 
   const safePwd  = pwd.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const safeData = JSON.stringify(data);
 
-  // Parse o DOM atual num documento separado para limpar conteúdo dinâmico
-  // antes de exportar — evita duplicação quando o JS rodar de novo na abertura
-  const parser = new DOMParser();
-  const exportDoc = parser.parseFromString(document.documentElement.outerHTML, 'text/html');
+  const parser=new DOMParser();
+  const exportDoc=parser.parseFromString(document.documentElement.outerHTML,'text/html');
 
-  // Limpar tabelas geradas dinamicamente pelo JS
-  ['postosBody','icBody'].forEach(id=>{
-    const el=exportDoc.getElementById(id);
-    if(el) el.innerHTML='';
-  });
-
-  // Limpar valores calculados exibidos que serão recalculados ao abrir
+  ['postosBody','icBody','tabbar'].forEach(id=>{ const el=exportDoc.getElementById(id); if(el) el.innerHTML=''; });
   ['contratadoMensal','vlrGlosado','vlrAprovado','notaFatDisplay','pctFat',
    'crecheTotalReemb','crecheSaldo','notaFinalVal','conceitoBadge'].forEach(id=>{
     const el=exportDoc.getElementById(id); if(el) el.textContent='';
   });
-  exportDoc.querySelectorAll('[id^="p"][id$="_vdesc"],[id^="p"][id$="_mensal"],[id^="p"][id$="_contr"]')
-    .forEach(el=>el.textContent='');
+  exportDoc.querySelectorAll('[id^="p"][id$="_vdesc"],[id^="p"][id$="_vhora"],[id^="p"][id$="_contr"]').forEach(el=>el.textContent='');
 
-  let html = '<!DOCTYPE html>\n' + exportDoc.documentElement.outerHTML;
-  html = html.replace("const INIT_LOCKED=false;/*§LOCK§*/", "const INIT_LOCKED=true;/*§LOCK§*/");
-  html = html.replace("const INIT_PWD='';/*§PWD§*/",        `const INIT_PWD='${safePwd}';/*§PWD§*/`);
-  html = html.replace("const INIT_DATA=null;/*§DATA§*/",    `const INIT_DATA=${safeData};/*§DATA§*/`);
+  let html='<!DOCTYPE html>\n'+exportDoc.documentElement.outerHTML;
+  html=html.replace("const INIT_LOCKED=false;/*§LOCK§*/", "const INIT_LOCKED=true;/*§LOCK§*/");
+  html=html.replace("const INIT_PWD='';/*§PWD§*/",        "const INIT_PWD='"+safePwd+"';/*§PWD§*/");
+  html=html.replace("const INIT_DATA=null;/*§DATA§*/",    "const INIT_DATA="+safeData+";/*§DATA§*/");
 
-  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href=url; a.download='IMR_Vigilancia_V2_travado.html';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='IMR_Vigilancia_V2_60periodos_travado.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  alert('✅ Arquivo "IMR_Vigilancia_V2_travado.html" exportado!\n\nFaça o upload deste arquivo no GitHub (renomeando para index.html) para substituir o formulário online.');
+  alert('✅ Arquivo "IMR_Vigilancia_V2_60periodos_travado.html" exportado com as 60 abas travadas!');
 }
 
-// ─── EXPORT CSV ──────────────────────────────────────────────────
+// ─── EXPORT CSV (todas as abas) ──────────────────────────────────
 function exportCSV(){
+  periods[currentPeriod]=snapshotDOM();
   const l=[];
-  const v=id=>document.getElementById(id)?.value||'';
-  l.push('IMR VIGILÂNCIA E PORTARIA – V2 COM CRECHE');
+  l.push('IMR VIGILÂNCIA E PORTARIA – V2 COM CRECHE (60 PERÍODOS)');
   l.push('');
-  l.push('Contrato;'+v('contrato'));
-  l.push('Unidade;'+v('unidade'));
-  l.push('Contratada;'+v('contratada'));
-  l.push('Fiscal Operacional;'+v('fiscal'));
-  l.push('Período;'+v('periodo'));
-  l.push('Data;'+v('dataAprov'));
+  l.push('Contrato;'+val('contrato'));
+  l.push('Unidade;'+val('unidade'));
+  l.push('Contratada;'+val('contratada'));
+  l.push('Fiscal Operacional;'+val('fiscal'));
   l.push('');
-  l.push('AVALIAÇÃO DE DESEMPENHO');
-  l.push('Grupo;Critério;Peso;Nota;Subtotal');
-  const crit=[
-    ['1','Cumprimento das Atividades','g1_1'],
-    ['1','Qualificação/Atendimento/Postura','g1_2'],
-    ['1','Uniformes e Identificação','g1_3'],
-    ['2','Especificação Técnica dos Serviços','g2_1'],
-    ['2','Equipamentos e Acessórios','g2_2'],
-    ['2','Atendimento às Ocorrências','g2_3'],
-    ['3','Periodicidade da Supervisão','g3_1'],
-    ['3','Gerenciamento das Atividades','g3_2'],
-    ['3','Atendimento às Solicitações','g3_3'],
-    ['3','Salários/Benefícios/Obrig.Trab.','g3_4'],
-  ];
-  crit.forEach(([g,n,id])=>{
-    const nota=document.querySelector(`#row_${id} select`)?.value||'';
-    l.push(`${g};${n};${PESOS[id]};${nota};${document.getElementById('sub_'+id)?.textContent||''}`);
+
+  const critNomes={
+    g1_1:'Cumprimento das Atividades', g1_2:'Qualificação/Atendimento/Postura', g1_3:'Uniformes e Identificação',
+    g2_1:'Especificação Técnica dos Serviços', g2_2:'Equipamentos e Acessórios', g2_3:'Atendimento às Ocorrências',
+    g3_1:'Periodicidade da Supervisão', g3_2:'Gerenciamento das Atividades', g3_3:'Atendimento às Solicitações',
+    g3_4:'Salários/Benefícios/Obrig.Trab.'
+  };
+
+  periods.forEach((s,idx)=>{
+    const d=computeDerived(s);
+    l.push('==================================================');
+    l.push('PERÍODO '+(idx+1)+';'+(s.periodo||''));
+    l.push('Data;'+(s.dataAprov||''));
+    l.push('');
+    l.push('AVALIAÇÃO DE DESEMPENHO');
+    l.push('Critério;Peso;Nota;Subtotal');
+    ALL_IDS.forEach(id=>{
+      l.push(critNomes[id]+';'+PESOS[id]+';'+((s.notas&&s.notas[id])||'')+';'+BR.format(d.subs[id]));
+    });
+    l.push('Nota Final;'+BR.format(d.notaFinal));
+    l.push('Conceito;'+d.conceito);
+    l.push('');
+    l.push('POSTOS');
+    l.push('Item;Posto;Qtde;ValorUnit;HorasContrat;SemCob;ValorHora;ValorAposDesc');
+    (s.postos||[]).forEach((p,pi)=>{
+      const c=d.postoCalc[pi];
+      l.push(p.item+';'+p.posto+';'+p.qtde+';'+p.vlrUnit+';'+
+        (c?BR0.format(c.contratadas):'')+';'+p.semCob+';'+
+        (c?BRcur(c.vhora):'')+';'+(c?BRcur(c.vdesc):''));
+    });
+    l.push('');
+    l.push('RESUMO FINANCEIRO');
+    l.push('Contratado Mensal;'+BRcur(d.somaMensal));
+    l.push('% Faturamento;'+(d.pct*100).toFixed(0)+'%');
+    l.push('Valor Glosado Qualidade;'+BRcur(d.glosado));
+    l.push('Dias Trabalhados;'+s.diasTrab);
+    l.push('Valor Aprovado;'+BRcur(Math.max(0,d.aprovado)));
+    l.push('');
+    l.push('REEMBOLSO CRECHE');
+    l.push('Valor Retido;'+s.crecheRetido);
+    l.push('Reembolsos Aprovados;'+s.crecheAprovados);
+    l.push('Valor Reembolso+BDI;'+s.crechemBDI);
+    l.push('Total Reembolsos;'+BRcur(d.crecheTotal));
+    l.push('Saldo de Reembolso;'+BRcur(d.crecheSaldo));
+    l.push('Justificativas;'+(s.justif||'').replace(/[\r\n]+/g,' '));
+    l.push('');
   });
-  l.push('');
-  l.push('Nota Final;'+document.getElementById('notaFinalVal')?.textContent);
-  l.push('Conceito;'+document.getElementById('conceitoBadge')?.textContent);
-  l.push('');
-  l.push('POSTOS');
-  l.push('Item;Posto;Qtde;ValorUnit;HorasContrat;SemCob;ValorHora;ValorAposDesc');
-  for(let i=1;i<=postoCount;i++){
-    const tr=document.getElementById('posto_'+i); if(!tr) continue;
-    const inp=tr.querySelectorAll('input');
-    l.push(`${inp[0].value};${inp[1].value};${inp[2].value};${inp[3].value};`+
-      `${document.getElementById('p'+i+'_contr')?.textContent};${inp[4].value};`+
-      `${document.getElementById('p'+i+'_vhora')?.textContent};`+
-      `${document.getElementById('p'+i+'_vdesc')?.textContent}`);
-  }
-  l.push('');
-  l.push('RESUMO FINANCEIRO');
-  l.push('Contratado Mensal;'+document.getElementById('contratadoMensal')?.textContent);
-  l.push('Conceito;'+document.getElementById('notaFatDisplay')?.textContent);
-  l.push('% Faturamento;'+document.getElementById('pctFat')?.textContent);
-  l.push('Valor Glosado Qualidade;'+document.getElementById('vlrGlosado')?.textContent);
-  l.push('Dias Trabalhados;'+v('diasTrab'));
-  l.push('Valor Aprovado;'+document.getElementById('vlrAprovado')?.textContent);
-  l.push('');
-  l.push('REEMBOLSO CRECHE');
-  l.push('Valor Retido;'+v('crecheRetido'));
-  l.push('Reembolsos Aprovados;'+v('crecheAprovados'));
-  l.push('Valor Reembolso+BDI;'+v('crechemBDI'));
-  l.push('Total Reembolsos;'+document.getElementById('crecheTotalReemb')?.textContent);
-  l.push('Saldo de Reembolso;'+document.getElementById('crecheSaldo')?.textContent);
 
   const blob=new Blob(['﻿'+l.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='IMR_V2_'+(v('periodo')||'export').replace(/[\/\\]/g,'_')+'.csv';
+  a.download='IMR_V2_60periodos.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
 // ─── INIT ────────────────────────────────────────────────────────
-function todayISO(){
-  return new Date().toISOString().split('T')[0];
-}
-
-// Set today's date automatically
 document.getElementById('dataAprov').value = todayISO();
 
-// Seed initial rows
-addPostoRow();
+periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
+currentPeriod=0;
+applyPeriodToDOM(periods[0]);
+renderTabs();
 recalcAll();
 
 // Se for versão exportada travada, aplicar dados e travar automaticamente
 if(INIT_LOCKED && INIT_DATA){
-  document.getElementById('contrato').value      = INIT_DATA.contrato||'';
-  document.getElementById('contratada').value    = INIT_DATA.contratada||'';
-  document.getElementById('unidade').value       = INIT_DATA.unidade||'';
-  document.getElementById('headerUpdate').value  = INIT_DATA.headerUpdate||'';
-  document.getElementById('postosBody').innerHTML=''; postoCount=0;
-  (INIT_DATA.postos||[]).forEach(p=>addPostoRow(p.item,p.posto,p.qtde,p.vlrUnit,p.semCob));
-  document.getElementById('crecheRetido').value    = INIT_DATA.crecheRetido||'0';
-  document.getElementById('crechemBDI').value      = INIT_DATA.crechemBDI||'0';
-  document.getElementById('crecheAprovados').value = INIT_DATA.crecheAprovados||'0';
+  const g=INIT_DATA.global||{};
+  setVal('contrato',  g.contrato||'');
+  setVal('contratada',g.contratada||'');
+  setVal('unidade',   g.unidade||'');
+  setVal('fiscal',    g.fiscal||'');
+  if(Array.isArray(INIT_DATA.periods) && INIT_DATA.periods.length){
+    periods=[];
+    for(let i=0;i<NUM_PERIODS;i++) periods.push(INIT_DATA.periods[i]||defaultState());
+  }
+  currentPeriod=0;
+  applyPeriodToDOM(periods[0]);
   globalPwd=INIT_PWD; globalLocked=true;
-  applyGlobalLock();
-  document.getElementById('btnLock').style.display='none';
-  document.getElementById('btnUnlock').style.display='inline-block';
-  document.getElementById('btnAddPosto').disabled=true;
-  document.getElementById('btnAddPosto').style.opacity='0.4';
+  applyGlobalLock(); toggleLockBtns();
+  renderTabs();
   recalcAll();
 }
 </script>
