@@ -177,6 +177,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
   <span class="tab-info" id="tabInfo">Período 1 de 60</span>
   <button onclick="nextPeriod()">Próximo ▶</button>
   <span class="tab-hint">Cada aba = 1 período. Digite o período inicial na 1ª aba; os demais preenchem automaticamente.</span>
+  <span id="saveStatus" style="font-size:10px;color:#2e7d32;font-weight:bold;white-space:nowrap;">💾 Salvamento automático ativo</span>
 </div>
 <div class="tabbar" id="tabbar"></div>
 
@@ -620,6 +621,8 @@ let currentPeriod = 0;
 let postoCount = 0;
 let globalLocked = false;
 let globalPwd = '';
+let saveTimer = null;
+const STORAGE_KEY = 'IMR60_' + (location.pathname || 'form');
 
 function defaultState(){
   const notas={}; ALL_IDS.forEach(id=>notas[id]='3');
@@ -726,6 +729,7 @@ function switchPeriod(n){
   applyGlobalLock();
   renderTabs();
   recalcAll();
+  saveState();
 }
 function prevPeriod(){ switchPeriod(currentPeriod-1); }
 function nextPeriod(){ switchPeriod(currentPeriod+1); }
@@ -907,6 +911,7 @@ function addPostoRow(){
   recalcAll();          // grava linha nova no estado atual
   propagatePostos();    // replica para as abas seguintes
   renderTabs();
+  saveState();
 }
 function removePostoRow(i){
   if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
@@ -917,6 +922,7 @@ function removePostoRow(i){
   recalcAll();
   propagatePostos();
   renderTabs();
+  saveState();
 }
 
 // ─── TRAVA UNIFICADA (vale para TODAS as abas) ───────────────────
@@ -928,14 +934,14 @@ function lockAll(){
   const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
   if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
   globalPwd=pwd; globalLocked=true;
-  applyGlobalLock(); toggleLockBtns();
+  applyGlobalLock(); toggleLockBtns(); saveState();
   alert('✅ Formulário travado com sucesso em TODAS as abas!');
 }
 function unlockAll(){
   const pwd=prompt('Digite a senha para desbloquear:');
   if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
   globalLocked=false; globalPwd='';
-  applyGlobalLock(); toggleLockBtns();
+  applyGlobalLock(); toggleLockBtns(); saveState();
   alert('🔓 Formulário desbloqueado em TODAS as abas.');
 }
 function applyGlobalLock(){
@@ -968,6 +974,7 @@ function resetForm(){
   applyGlobalLock();
   renderTabs();
   recalcAll();
+  saveState();
 }
 
 // ─── EXPORT LOCKED ───────────────────────────────────────────────
@@ -1076,33 +1083,79 @@ function exportCSV(){
   URL.revokeObjectURL(a.href);
 }
 
-// ─── INIT ────────────────────────────────────────────────────────
-document.getElementById('dataAprov').value = todayISO();
-
-periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
-currentPeriod=0;
-applyPeriodToDOM(periods[0]);
-renderTabs();
-recalcAll();
-
-// Se for versão exportada travada, aplicar dados e travar automaticamente
-if(INIT_LOCKED && INIT_DATA){
-  const g=INIT_DATA.global||{};
+// ─── PERSISTÊNCIA (salva automaticamente TODAS as edições no navegador) ───
+function collectData(){
+  periods[currentPeriod]=snapshotDOM();
+  return {
+    v:1,
+    global:{ contrato:val('contrato'), contratada:val('contratada'), unidade:val('unidade'), fiscal:val('fiscal') },
+    periods:periods, currentPeriod:currentPeriod,
+    locked:globalLocked, pwd:globalPwd
+  };
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+    const st=document.getElementById('saveStatus');
+    if(st){ const t=new Date(); st.textContent='💾 Salvo automaticamente '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); }
+  }catch(e){ /* localStorage indisponível */ }
+}
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveState,400); }
+function loadState(){
+  try{ const raw=localStorage.getItem(STORAGE_KEY); return raw?JSON.parse(raw):null; }catch(e){ return null; }
+}
+function normalizePeriod(p){
+  const d=defaultState();
+  if(!p||typeof p!=='object') return d;
+  d.periodo=p.periodo||'';
+  d.headerUpdate=(p.headerUpdate!=null)?p.headerUpdate:d.headerUpdate;
+  d.notas=Object.assign({}, d.notas, p.notas||{});
+  d.postos=(Array.isArray(p.postos)&&p.postos.length)
+    ? p.postos.map(x=>({item:(x&&x.item!=null?x.item:''), posto:(x&&x.posto)||'', qtde:(x&&x.qtde)||'', vlrUnit:(x&&x.vlrUnit)||'', semCob:(x&&x.semCob)||''}))
+    : d.postos;
+  ['diasTrab','crecheRetido','crecheAprovados','crechemBDI','justif','dataAprov'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
+  ASS_IDS.forEach(id=>{ if(p[id]!=null) d[id]=p[id]; });
+  return d;
+}
+function applyData(data){
+  if(!data) return;
+  const g=data.global||{};
   setVal('contrato',  g.contrato||'');
   setVal('contratada',g.contratada||'');
   setVal('unidade',   g.unidade||'');
   setVal('fiscal',    g.fiscal||'');
-  if(Array.isArray(INIT_DATA.periods) && INIT_DATA.periods.length){
-    periods=[];
-    for(let i=0;i<NUM_PERIODS;i++) periods.push(INIT_DATA.periods[i]||defaultState());
-  }
-  currentPeriod=0;
-  applyPeriodToDOM(periods[0]);
-  globalPwd=INIT_PWD; globalLocked=true;
-  applyGlobalLock(); toggleLockBtns();
-  renderTabs();
-  recalcAll();
+  periods=[];
+  const src=Array.isArray(data.periods)?data.periods:[];
+  for(let i=0;i<NUM_PERIODS;i++) periods.push(normalizePeriod(src[i]));
+  currentPeriod=Math.min(Math.max(0, data.currentPeriod|0), NUM_PERIODS-1);
+  globalLocked=!!data.locked; globalPwd=data.pwd||'';
 }
+
+// ─── INIT ────────────────────────────────────────────────────────
+document.getElementById('dataAprov').value = todayISO();
+
+// 1) Base padrão
+periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
+currentPeriod=0; globalLocked=false; globalPwd='';
+
+// 2) Base da versão exportada travada (se este for um arquivo exportado)
+if(INIT_LOCKED && INIT_DATA){
+  applyData(Object.assign({ locked:true, pwd:INIT_PWD }, INIT_DATA));
+}
+
+// 3) Edições salvas automaticamente no navegador — têm prioridade
+const saved = loadState();
+if(saved){ applyData(saved); }
+
+applyPeriodToDOM(periods[currentPeriod]);
+applyGlobalLock(); toggleLockBtns();
+renderTabs();
+recalcAll();
+
+// Salva automaticamente qualquer edição (notas, assinaturas, justificativa,
+// cabeçalho, identificação, postos, creche, dias — em qualquer aba)
+document.addEventListener('input', function(){ if(periods.length){ periods[currentPeriod]=snapshotDOM(); scheduleSave(); } });
+document.addEventListener('change', function(){ if(periods.length){ periods[currentPeriod]=snapshotDOM(); scheduleSave(); } });
 </script>
 </body>
 </html>
