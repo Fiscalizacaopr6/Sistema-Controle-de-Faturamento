@@ -178,6 +178,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
   <button onclick="nextPeriod()">Próximo ▶</button>
   <span class="tab-hint">Cada aba = 1 período. Digite o período inicial na 1ª aba; os demais preenchem automaticamente.</span>
   <span id="saveStatus" style="font-size:10px;color:#2e7d32;font-weight:bold;white-space:nowrap;">💾 Salvamento automático ativo</span>
+  <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
 </div>
 <div class="tabbar" id="tabbar"></div>
 
@@ -576,6 +577,10 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 </p>
 </div><!-- /page -->
 
+<!-- SDK do Firebase (sincronização entre computadores) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
 <script>
 'use strict';
 
@@ -623,6 +628,71 @@ let globalLocked = false;
 let globalPwd = '';
 let saveTimer = null;
 const STORAGE_KEY = 'IMR60_' + (location.pathname || 'form');
+
+// ═══ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═════════════════
+// Identificador deste contrato dentro do banco (único por formulário):
+const FORM_ID = 'angels-05-24-macae';
+// COLE AQUI a configuração do seu projeto Firebase (Configurações do
+// projeto ▸ Seus apps ▸ Configuração do SDK). Enquanto estiver com
+// "COLE_AQUI", a nuvem fica desligada e vale só o salvamento local.
+const firebaseConfig = {
+  apiKey:            "COLE_AQUI",
+  authDomain:        "COLE_AQUI",
+  projectId:         "COLE_AQUI",
+  storageBucket:     "COLE_AQUI",
+  messagingSenderId: "COLE_AQUI",
+  appId:             "COLE_AQUI"
+};
+let cloudDb=null, cloudDocRef=null, cloudReady=false;
+let applyingRemote=false, remotePending=null, cloudSaveTimer=null;
+
+function cloudEnabled(){
+  return (typeof firebase!=='undefined') && firebaseConfig.projectId && !/COLE_AQUI/.test(firebaseConfig.projectId);
+}
+function setCloudStatus(t){ const el=document.getElementById('cloudStatus'); if(el) el.textContent=t; }
+function initCloud(){
+  if(!cloudEnabled()){ setCloudStatus(''); return; }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    cloudDb=firebase.firestore();
+    cloudDocRef=cloudDb.collection('imr_forms').doc(FORM_ID);
+    cloudReady=true;
+    setCloudStatus('☁ Conectando…');
+    cloudDocRef.onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;   // ignora eco da própria gravação
+      if(!snap.exists){ pushCloud(); return; }      // 1ª vez: cria o documento
+      const data=snap.data();
+      if(!data||!data.payload) return;
+      let payload; try{ payload=JSON.parse(data.payload); }catch(e){ return; }
+      applyRemote(payload);
+    }, function(err){ setCloudStatus('⚠ Nuvem indisponível (usando cópia local)'); });
+  }catch(e){ cloudReady=false; setCloudStatus('⚠ Falha ao conectar à nuvem'); }
+}
+function applyRemote(payload){
+  const a=document.activeElement;
+  const editing = a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
+  if(editing){ remotePending=payload; return; } // não atropela quem está digitando
+  const keepTab=currentPeriod;                   // cada usuário mantém sua própria aba
+  applyingRemote=true;
+  applyData(payload);
+  currentPeriod=Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
+  applyPeriodToDOM(periods[currentPeriod]);
+  applyGlobalLock(); toggleLockBtns();
+  renderTabs(); recalcAll();
+  saveState();
+  applyingRemote=false;
+  setCloudStatus('☁ Atualizado de outro computador');
+}
+function pushCloud(){
+  if(!cloudReady||!cloudDocRef) return;
+  try{
+    cloudDocRef.set({ payload: JSON.stringify(collectData()), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setCloudStatus('☁ Salvo na nuvem');
+  }catch(e){ setCloudStatus('⚠ Erro ao salvar na nuvem'); }
+}
+function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
+// Grava local + nuvem (usado nas edições e ações que alteram dados compartilhados)
+function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
 
 function defaultState(){
   const notas={}; ALL_IDS.forEach(id=>notas[id]='3');
@@ -911,7 +981,7 @@ function addPostoRow(){
   recalcAll();          // grava linha nova no estado atual
   propagatePostos();    // replica para as abas seguintes
   renderTabs();
-  saveState();
+  persist();
 }
 function removePostoRow(i){
   if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
@@ -922,7 +992,7 @@ function removePostoRow(i){
   recalcAll();
   propagatePostos();
   renderTabs();
-  saveState();
+  persist();
 }
 
 // ─── TRAVA UNIFICADA (vale para TODAS as abas) ───────────────────
@@ -934,14 +1004,14 @@ function lockAll(){
   const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
   if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
   globalPwd=pwd; globalLocked=true;
-  applyGlobalLock(); toggleLockBtns(); saveState();
+  applyGlobalLock(); toggleLockBtns(); persist();
   alert('✅ Formulário travado com sucesso em TODAS as abas!');
 }
 function unlockAll(){
   const pwd=prompt('Digite a senha para desbloquear:');
   if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
   globalLocked=false; globalPwd='';
-  applyGlobalLock(); toggleLockBtns(); saveState();
+  applyGlobalLock(); toggleLockBtns(); persist();
   alert('🔓 Formulário desbloqueado em TODAS as abas.');
 }
 function applyGlobalLock(){
@@ -974,7 +1044,7 @@ function resetForm(){
   applyGlobalLock();
   renderTabs();
   recalcAll();
-  saveState();
+  persist();
 }
 
 // ─── EXPORT LOCKED ───────────────────────────────────────────────
@@ -1154,8 +1224,14 @@ recalcAll();
 
 // Salva automaticamente qualquer edição (notas, assinaturas, justificativa,
 // cabeçalho, identificação, postos, creche, dias — em qualquer aba)
-document.addEventListener('input', function(){ if(periods.length){ periods[currentPeriod]=snapshotDOM(); scheduleSave(); } });
-document.addEventListener('change', function(){ if(periods.length){ periods[currentPeriod]=snapshotDOM(); scheduleSave(); } });
+// no navegador (localStorage) e na nuvem (Firebase), se configurada.
+document.addEventListener('input', function(){ if(applyingRemote||!periods.length) return; periods[currentPeriod]=snapshotDOM(); persist(); });
+document.addEventListener('change', function(){ if(applyingRemote||!periods.length) return; periods[currentPeriod]=snapshotDOM(); persist(); });
+// Ao sair do campo, aplica uma atualização remota que ficou pendente enquanto digitava
+document.addEventListener('focusout', function(){ const p=remotePending; if(p){ remotePending=null; setTimeout(function(){ applyRemote(p); }, 80); } });
+
+// Inicia a sincronização na nuvem (só age se firebaseConfig estiver preenchida)
+initCloud();
 </script>
 </body>
 </html>
