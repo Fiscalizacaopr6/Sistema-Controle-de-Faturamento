@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMR Angels - 04-24 - HESFA</title>
+<meta property="og:title" content="IMR Angels - 05-24 - Macaé">
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
+
+/* ── PAGE ── */
+.page{background:#fff;width:1200px;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+/* ── TAB BAR ── */
+.tab-nav{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.tab-nav button{font-size:11px;padding:4px 12px;border:none;border-radius:3px;background:#2e74b5;color:#fff;cursor:pointer;font-family:Arial;font-weight:bold;}
+.tab-nav button:hover{opacity:.85;}
+.tab-info{font-size:12px;font-weight:bold;color:#1f3864;}
+.tab-hint{font-size:10px;color:#777;font-style:italic;margin-left:auto;}
+.tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#1f3864;border-radius:4px;margin-bottom:10px;}
+.tab-btn{flex:0 0 auto;min-width:74px;padding:4px 8px;font-size:10px;border:1px solid #2e74b5;background:#2e74b5;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.25;}
+.tab-btn.active{background:#fff;color:#1f3864;font-weight:bold;border-color:#fff;}
+.tab-btn b{font-size:11px;}
+.tab-btn small{display:block;font-size:11px;font-weight:bold;opacity:.95;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
+.tab-btn:hover{opacity:.92;}
+
+/* ── HEADER ── */
+.header-wrap{border:2px solid #1f3864;}
+.header-top{display:flex;align-items:stretch;}
+.header-logo{width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;padding:6px;background:#f5f5f5;}
+.header-logo span{font-size:9px;color:#777;text-align:center;line-height:1.3;}
+.header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+.header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
+.header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
+.header-badge{width:80px;border-left:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:14px;letter-spacing:2px;}
+.header-update{background:#fffde7;font-size:10px;color:#777;padding:2px 10px;border-top:1px solid #ddd;text-align:center;font-style:italic;}
+
+/* ── INFO GRID ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #1f3864;border-top:none;}
+.info-cell{display:flex;align-items:center;padding:4px 8px;gap:6px;border-bottom:1px solid #bbb;border-right:1px solid #bbb;}
+.info-cell:nth-child(2n){border-right:none;}
+.info-cell.full{grid-column:1/-1;border-right:none;}
+.info-cell label{font-weight:bold;white-space:nowrap;color:#1f3864;min-width:155px;}
+.info-cell input{flex:1;border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:#f0f7ff;padding:2px 4px;border-radius:2px;}
+.info-cell input:disabled{background:#f0f0f0;color:#555;cursor:not-allowed;}
+.info-note{grid-column:1/-1;font-size:10px;font-style:italic;color:#c00;padding:4px 10px;border-bottom:none;border-right:none;background:#fff9f9;}
+.periodo-tag{font-size:9px;color:#2e7d32;font-weight:bold;margin-left:6px;}
+
+/* ── SECTION TITLE BAR ── */
+.sec-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:12px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.sec-title span{flex:1;}
+
+/* ── EVALUATION TABLE ── */
+.eval-table{width:100%;border-collapse:collapse;}
+.eval-table th,.eval-table td{border:1px solid #999;padding:3px 6px;vertical-align:middle;}
+.eval-table thead th{background:#2e74b5;color:#fff;text-align:center;font-size:11px;}
+.eval-table th.name-col{text-align:left;width:36%;}
+.grp-header-row td{background:#d6e4f7;color:#1f3864;font-weight:bold;font-size:11px;padding:5px 8px;}
+.total-row td{background:#dce6f1;font-weight:bold;color:#1f3864;}
+.admin-row td{background:#fff8e1;font-style:italic;}
+.nota-final-row td{background:#1f3864;color:#fff;font-weight:bold;font-size:12px;}
+.calc-cell{background:#e8f5e9;text-align:center;font-weight:bold;}
+
+select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;background:#fffde7;border-radius:2px;cursor:pointer;text-align:center;}
+.status-ok{color:#2e7d32;font-size:10px;font-weight:bold;}
+.status-err{color:#c62828;font-size:10px;font-weight:bold;}
+.jus-warn{color:#c00;font-size:10px;font-style:italic;font-weight:bold;padding:2px 4px;}
+.conceito-badge{display:inline-block;background:#1f3864;color:#fff;font-size:18px;font-weight:bold;border-radius:50%;width:34px;height:34px;line-height:34px;text-align:center;margin-left:8px;}
+
+/* ── POSTOS TABLE ── */
+.postos-scroll{overflow-x:auto;}
+.postos-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.postos-tbl th{background:#1f3864;color:#fff;border:1px solid #555;padding:4px 3px;text-align:center;vertical-align:middle;font-size:10px;}
+.postos-tbl th.sub{background:#2e74b5;}
+.postos-tbl td{border:1px solid #bbb;padding:2px 3px;vertical-align:middle;}
+.postos-tbl td.num{background:#e3e8f0;font-weight:bold;color:#1f3864;text-align:center;}
+.postos-tbl td.calc{background:#e8f5e9;text-align:center;font-size:10px;font-weight:bold;}
+.postos-tbl .totrow td{background:#dce6f1;font-weight:bold;font-size:10px;text-align:right;}
+.postos-tbl input.pi{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;outline:none;background:transparent;font-family:Arial;padding:1px 2px;}
+.postos-tbl input.pi.name{text-align:left;}
+.postos-tbl input.pi.center{text-align:center;}
+.postos-tbl input.pi:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.rm-btn{background:#b71c1c;color:#fff;border:none;border-radius:3px;width:20px;height:20px;font-size:11px;line-height:1;cursor:pointer;}
+.rm-btn:hover{opacity:.8;}
+.rm-btn:disabled{background:#ccc;cursor:not-allowed;}
+.add-btn{margin:4px 0;font-size:10px;padding:3px 10px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;}
+.add-btn:hover{background:#2e74b5;}
+
+/* ── LOCK BUTTONS ── */
+.lock-btn{font-size:10px;padding:2px 8px;border:1.5px solid;border-radius:3px;cursor:pointer;font-family:Arial;font-weight:bold;white-space:nowrap;}
+.lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
+.lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
+.lock-btn:hover{opacity:.8;}
+.field-lock-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:1px 3px;line-height:1;vertical-align:middle;}
+.field-lock-btn:hover{opacity:.7;}
+
+/* ── INSTRUMENTO DE COBRANÇA ── */
+.ic-wrap{border:2px solid #556b2f;border-radius:4px;margin-top:8px;}
+.ic-hdr{background:#556b2f;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.ic-table{width:100%;border-collapse:collapse;font-size:10px;}
+.ic-table th{background:#6b8e23;color:#fff;border:1px solid #556b2f;padding:4px 6px;text-align:center;font-size:10px;}
+.ic-table td{border:1px solid #b5cc7a;padding:3px 6px;text-align:center;background:#f9fce8;font-size:10px;}
+.ic-table td.ic-posto{text-align:left;background:#f3f7e0;}
+.ic-table td.ic-calc{background:#e8f0c8;font-weight:bold;text-align:center;}
+.ic-table .tot-row td{background:#d4e4a0;font-weight:bold;}
+
+/* ── FINANCIAL SECTION ── */
+.fin-table{width:100%;border-collapse:collapse;}
+.fin-table th,.fin-table td{border:1px solid #bbb;padding:4px 8px;vertical-align:middle;}
+.fin-table th{background:#2e74b5;color:#fff;font-size:11px;text-align:left;}
+.fin-table td.lbl{background:#dce6f1;font-weight:bold;color:#1f3864;width:55%;}
+.fin-table td.val{background:#fffde7;text-align:right;}
+.fin-table td.res{background:#e8f5e9;font-weight:bold;text-align:right;color:#1b5e20;}
+.fin-table td.red{background:#ffebee;font-weight:bold;text-align:right;color:#b71c1c;}
+.fin-table input.fi{width:100%;border:none;border-bottom:1.5px solid #2e74b5;font-size:11px;text-align:right;outline:none;background:transparent;font-family:Arial;}
+
+/* ── CRECHE SECTION ── */
+.creche-wrap{border:2px solid #f57f17;border-radius:4px;}
+.creche-hdr{background:#f57f17;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.creche-table{width:100%;border-collapse:collapse;}
+.creche-table td{border:1px solid #ffe0b2;padding:4px 6px;vertical-align:middle;font-size:11px;}
+.creche-table td.lbl{background:#fff8e1;font-weight:bold;color:#e65100;}
+.creche-table td.val{background:#fffde7;text-align:right;}
+.creche-table td.val-row{background:#fffde7;text-align:right;display:flex;align-items:center;gap:4px;justify-content:flex-end;padding:4px 6px;}
+.creche-table td.res{background:#e8f5e9;font-weight:bold;text-align:right;color:#1b5e20;}
+.creche-table td.red{background:#ffebee;font-weight:bold;text-align:right;color:#b71c1c;}
+.creche-table input.ci{border:none;border-bottom:1.5px solid #f57f17;font-size:11px;text-align:right;outline:none;background:transparent;font-family:Arial;width:calc(100% - 26px);}
+.creche-table input.ci:disabled{background:#f5f5f5;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.creche-warn{font-size:10px;color:#b71c1c;font-weight:bold;padding:4px 8px;background:#ffebee;display:none;}
+
+/* ── FAIXA TABLE ── */
+.faixa-table{width:100%;border-collapse:collapse;}
+.faixa-table th,.faixa-table td{border:1px solid #999;padding:4px 10px;text-align:center;font-size:11px;}
+.faixa-table th{background:#2e74b5;color:#fff;}
+.faixa-table tr.hl td{background:#fff9c4;font-weight:bold;color:#1f3864;}
+
+/* ── JUSTIFICATIVAS ── */
+.justif-box{border:1.5px solid #1f3864;margin-top:12px;}
+.justif-box .jh{background:#1f3864;color:#fff;font-weight:bold;padding:5px 10px;font-size:11px;}
+.justif-box textarea{width:100%;height:76px;max-height:76px;font-size:11px;border:none;padding:8px;font-family:Arial;resize:none;outline:none;overflow-y:auto;overflow-x:hidden;display:block;}
+
+/* ── APPROVAL ── */
+.approval-row{display:flex;gap:10px;margin-top:8px;}
+.approval-cell{flex:1;border:1.5px solid #1f3864;padding:6px 10px;}
+.approval-cell label{font-weight:bold;color:#1f3864;display:block;margin-bottom:2px;font-size:11px;}
+.approval-cell input{width:100%;border:none;border-bottom:1.5px solid #999;font-size:11px;font-family:Arial;outline:none;padding:2px 0;}
+
+/* ── BUTTONS ── */
+.btn-bar{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+.btn{padding:7px 20px;font-size:12px;border:none;border-radius:4px;cursor:pointer;font-family:Arial;font-weight:bold;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-print{background:#1f3864;color:#fff;}
+.btn-reset{background:#b71c1c;color:#fff;}
+.btn-export{background:#1b5e20;color:#fff;}
+
+/* ── PRINT ── */
+@media print{
+  body{background:#fff;}
+  .page{box-shadow:none;margin:0;width:100%;padding:8px;}
+  .btn-bar,.add-btn,.lock-btn,.field-lock-btn,.tabbar,.tab-nav,.rm-btn{display:none!important;}
+  select.nota-sel{appearance:none;border:none;background:transparent;}
+  input{border-bottom:1px solid #aaa!important;background:transparent!important;}
+  input:disabled{background:#f0f0f0!important;}
+  .creche-warn{display:block!important;}
+  .justif-box textarea{height:auto!important;max-height:none!important;overflow:visible!important;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══ BARRA DE ABAS (PERÍODOS) ══ -->
+<div class="tab-nav">
+  <button onclick="prevPeriod()">◀ Anterior</button>
+  <span class="tab-info" id="tabInfo">Período 1 de 60</span>
+  <button onclick="nextPeriod()">Próximo ▶</button>
+  <span class="tab-hint">Cada aba = 1 período. Digite o período inicial na 1ª aba; os demais preenchem automaticamente.</span>
+  <span id="saveStatus" style="font-size:10px;color:#2e7d32;font-weight:bold;white-space:nowrap;">💾 Salvamento automático ativo</span>
+  <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
+</div>
+<div class="tabbar" id="tabbar"></div>
+
+<!-- ══ CABEÇALHO ══ -->
+<div class="header-wrap">
+  <div class="header-top">
+    <div class="header-logo" style="width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;"><span style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;font-family:Arial,sans-serif;">UFRJ</span></div>
+    <div class="header-title">
+      <div class="org">PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6</div>
+      <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO DOS SERVIÇOS DE VIGILÂNCIA E PORTARIA</div>
+    </div>
+    <div class="header-badge">IMR</div>
+  </div>
+  <div class="header-update"><input type="text" id="headerUpdate" value="Atualizado conforme Valor Unitário Contratado inicial" oninput="recalcAll();propagateHeaderUpdate()" style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;"></div>
+</div>
+
+<!-- ══ IDENTIFICAÇÃO ══ -->
+<div class="info-grid">
+  <div class="info-cell">
+    <label>CONTRATO Nº:</label>
+    <input type="text" id="contrato" placeholder="Número do contrato">
+  </div>
+  <div class="info-cell">
+    <label>UNIDADE:</label>
+    <input type="text" id="unidade" placeholder="Nome da unidade">
+  </div>
+  <div class="info-cell full">
+    <label>CONTRATADA:</label>
+    <input type="text" id="contratada" placeholder="Nome da empresa contratada">
+  </div>
+  <div class="info-cell full">
+    <label>FISCAL OPERACIONAL:</label>
+    <input type="text" id="fiscal" placeholder="Nome do fiscal operacional">
+  </div>
+  <div class="info-cell full">
+    <label>AVALIAÇÃO REFERENTE AO PERÍODO:</label>
+    <input type="text" id="periodo" placeholder="Ex: Maio/2024 ou 05/2024" oninput="recalcAll();propagatePeriodo();renderTabs()">
+    <span class="periodo-tag" id="periodoTag"></span>
+  </div>
+  <div class="info-note">
+    ⚠ Para notas 0 e 1, o campo Justificativas (abaixo) deve ser preenchido obrigatoriamente. &nbsp;|&nbsp; Contrato, Unidade e Contratada são compartilhados por todas as abas.
+  </div>
+</div>
+
+<!-- ══ AVALIAÇÃO ══ -->
+<div class="sec-title"><span>AVALIAÇÃO DE DESEMPENHO</span></div>
+<table class="eval-table">
+  <thead>
+    <tr>
+      <th class="name-col">Critério de Avaliação</th>
+      <th style="width:65px">PESO (a)</th>
+      <th style="width:80px">NOTA (b)<br><small style="font-weight:normal">(0, 1 ou 3)</small></th>
+      <th style="width:80px">SUBTOTAL<br>(c = a × b)</th>
+      <th style="width:90px">Status</th>
+      <th>Aviso de Justificativa</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- GRUPO 1 -->
+    <tr><td colspan="6" class="grp-header-row">▶ GRUPO 1 – DESEMPENHO PROFISSIONAL</td></tr>
+    <tr id="row_g1_1">
+      <td>Cumprimento das Atividades</td>
+      <td style="text-align:center">0,40</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g1_1" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g1_1">1,20</td>
+      <td id="st_g1_1" style="text-align:center"></td>
+      <td id="jw_g1_1"></td>
+    </tr>
+    <tr id="row_g1_2">
+      <td>Qualificação / Atendimento ao Público / Postura</td>
+      <td style="text-align:center">0,35</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g1_2" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g1_2">1,05</td>
+      <td id="st_g1_2" style="text-align:center"></td>
+      <td id="jw_g1_2"></td>
+    </tr>
+    <tr id="row_g1_3">
+      <td>Uniformes e Identificação</td>
+      <td style="text-align:center">0,25</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g1_3" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g1_3">0,75</td>
+      <td id="st_g1_3" style="text-align:center"></td>
+      <td id="jw_g1_3"></td>
+    </tr>
+    <tr class="total-row">
+      <td>TOTAL GRUPO 1</td><td style="text-align:center">1,00</td><td></td>
+      <td class="calc-cell" id="tot_g1">3,00</td><td colspan="2"></td>
+    </tr>
+
+    <!-- GRUPO 2 -->
+    <tr><td colspan="6" class="grp-header-row">▶ GRUPO 2 – DESEMPENHO DAS ATIVIDADES</td></tr>
+    <tr id="row_g2_1">
+      <td>Especificação Técnica dos Serviços</td>
+      <td style="text-align:center">0,40</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g2_1" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g2_1">1,20</td>
+      <td id="st_g2_1" style="text-align:center"></td>
+      <td id="jw_g2_1"></td>
+    </tr>
+    <tr id="row_g2_2">
+      <td>Equipamentos e Acessórios</td>
+      <td style="text-align:center">0,20</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g2_2" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g2_2">0,60</td>
+      <td id="st_g2_2" style="text-align:center"></td>
+      <td id="jw_g2_2"></td>
+    </tr>
+    <tr id="row_g2_3">
+      <td>Atendimento às Ocorrências</td>
+      <td style="text-align:center">0,40</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g2_3" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g2_3">1,20</td>
+      <td id="st_g2_3" style="text-align:center"></td>
+      <td id="jw_g2_3"></td>
+    </tr>
+    <tr class="total-row">
+      <td>TOTAL GRUPO 2</td><td style="text-align:center">1,00</td><td></td>
+      <td class="calc-cell" id="tot_g2">3,00</td><td colspan="2"></td>
+    </tr>
+
+    <!-- GRUPO 3 -->
+    <tr><td colspan="6" class="grp-header-row">▶ GRUPO 3 – GERENCIAMENTO</td></tr>
+    <tr id="row_g3_1">
+      <td>Periodicidade da Supervisão</td>
+      <td style="text-align:center">0,20</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_1" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_1">0,60</td>
+      <td id="st_g3_1" style="text-align:center"></td>
+      <td id="jw_g3_1"></td>
+    </tr>
+    <tr id="row_g3_2">
+      <td>Gerenciamento das Atividades Operacionais</td>
+      <td style="text-align:center">0,30</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_2" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_2">0,90</td>
+      <td id="st_g3_2" style="text-align:center"></td>
+      <td id="jw_g3_2"></td>
+    </tr>
+    <tr id="row_g3_3">
+      <td>Atendimento às Solicitações</td>
+      <td style="text-align:center">0,25</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_3" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_3">0,75</td>
+      <td id="st_g3_3" style="text-align:center"></td>
+      <td id="jw_g3_3"></td>
+    </tr>
+    <tr id="row_g3_4" class="admin-row">
+      <td>Salários, Benefícios e Obrigações Trabalhistas&nbsp;<em>(¹ Fiscal Adm.)</em></td>
+      <td style="text-align:center">0,25</td>
+      <td style="text-align:center">
+        <select class="nota-sel" data-id="g3_4" onchange="recalcAll()">
+          <option value="0">0</option><option value="1">1</option><option value="3" selected>3</option>
+        </select>
+      </td>
+      <td class="calc-cell" id="sub_g3_4">0,75</td>
+      <td id="st_g3_4" style="text-align:center"></td>
+      <td id="jw_g3_4"></td>
+    </tr>
+    <tr class="total-row">
+      <td>TOTAL GRUPO 3</td><td style="text-align:center">1,00</td><td></td>
+      <td class="calc-cell" id="tot_g3">3,00</td><td colspan="2"></td>
+    </tr>
+
+    <!-- NOTA FINAL -->
+    <tr class="nota-final-row">
+      <td colspan="3" style="font-size:11px;">
+        NOTA FINAL (somatório dos Grupos 1, 2 e 3)
+        <small style="font-weight:normal;font-size:10px">&nbsp;(¹) Preenchido pelo Fiscal Administrativo</small>
+      </td>
+      <td style="text-align:right;font-size:16px;" id="notaFinalVal">9,00</td>
+      <td colspan="2" style="text-align:center;">
+        Conceito:&nbsp;<span class="conceito-badge" id="conceitoBadge">A</span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ══ POSTOS DE TRABALHO ══ -->
+<div class="sec-title" style="margin-top:14px;">
+  <span>POSTOS DE TRABALHO</span>
+  <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()" title="Travar Contrato, Contratada, Unidade, Postos e Creche em TODAS as abas">🔓 Travar Formulário</button>
+  <button class="lock-btn locked" id="btnUnlock" onclick="unlockAll()" title="Desbloquear todos os campos travados em TODAS as abas" style="display:none;">🔒 Desbloquear</button>
+</div>
+<div class="postos-scroll">
+  <table class="postos-tbl" id="postosTable">
+    <thead>
+      <tr>
+        <th style="width:50px">Item</th>
+        <th style="width:240px">POSTO</th>
+        <th style="width:65px">Qtde<br>Contratada</th>
+        <th style="width:85px">Valor Unit.<br>Contratado (R$)</th>
+        <th class="sub" style="width:65px">Horas<br>Contratadas</th>
+        <th style="width:65px">Sem<br>Cobertura (h)</th>
+        <th style="width:75px">Valor da Hora<br>Contratada (R$)</th>
+        <th style="width:95px">Valor do Item<br>após Descontos (R$)</th>
+        <th style="width:34px"></th>
+      </tr>
+    </thead>
+    <tbody id="postosBody"></tbody>
+  </table>
+  <button class="add-btn" id="btnAddPosto" onclick="addPostoRow()">+ Adicionar Posto</button>
+</div>
+
+<!-- ══ INSTRUMENTO DE COBRANÇA ══ -->
+<div class="ic-wrap">
+  <div class="ic-hdr">📋 INSTRUMENTO DE COBRANÇA</div>
+  <table class="ic-table" id="icTable">
+    <thead>
+      <tr>
+        <th style="width:80px">Item</th>
+        <th>Posto</th>
+        <th style="width:110px">Qtde Faturada</th>
+        <th style="width:140px">Valor Unit. Faturado (R$)</th>
+      </tr>
+    </thead>
+    <tbody id="icBody">
+      <tr><td colspan="4" style="text-align:center;color:#999;padding:8px;">Adicione postos acima para gerar o instrumento de cobrança.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ RESUMO FINANCEIRO ══ -->
+<div class="sec-title" style="margin-top:14px;"><span>RESUMO FINANCEIRO</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;">
+
+  <!-- Esquerda: Cálculo + Faixa -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+    <table class="fin-table">
+      <thead><tr><th colspan="2">CÁLCULO DO PAGAMENTO</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="lbl">Contratado Mensal – Total (R$)<br><small style="font-weight:normal">(Σ Qtde × Valor Unitário de todos os postos)</small></td>
+          <td class="res" id="contratadoMensal">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="lbl">Nota Atribuída pelo Avaliador (Conceito)</td>
+          <td class="res" id="notaFatDisplay">A</td>
+        </tr>
+        <tr>
+          <td class="lbl">% do Faturamento a ser Liberado</td>
+          <td class="res" id="pctFat">100%</td>
+        </tr>
+        <tr>
+          <td class="lbl" style="background:#ffcdd2;">Valor Glosado por QUALIDADE (R$)</td>
+          <td class="red" id="vlrGlosado">R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="lbl">Número de Dias Trabalhados no Mês</td>
+          <td class="val"><input type="number" class="fi" id="diasTrab" value="30" min="1" max="30" oninput="recalcAll()" style="text-align:center;font-size:13px;font-weight:bold;"></td>
+        </tr>
+        <tr>
+          <td class="lbl" style="background:#c8e6c9;font-size:12px;font-weight:bold;">Valor Aprovado para Pagamento (R$)</td>
+          <td class="res" id="vlrAprovado" style="background:#c8e6c9;font-size:14px;color:#1b5e20;">R$ 0,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div>
+      <div class="sec-title" style="margin-top:0;"><span>FAIXA DE AJUSTE DE PAGAMENTO</span></div>
+      <table class="faixa-table">
+        <thead>
+          <tr>
+            <th>Conceito</th>
+            <th>% do Faturamento a ser Pago</th>
+            <th>Nota Média Mensal Apurada</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="frow_A"><td><strong>A</strong></td><td>100%</td><td>Entre 9,00 e 8,10</td></tr>
+          <tr id="frow_B"><td><strong>B</strong></td><td>95%</td><td>Entre 8,09 e 7,65</td></tr>
+          <tr id="frow_C"><td><strong>C</strong></td><td>90%</td><td>Entre 7,64 e 6,75</td></tr>
+          <tr id="frow_D"><td><strong>D</strong></td><td>85%</td><td>Entre 6,74 e 5,85</td></tr>
+          <tr id="frow_E"><td><strong>E</strong></td><td>80%</td><td>Entre 5,84 e 5,40</td></tr>
+          <tr id="frow_F"><td><strong>F</strong></td><td>75%</td><td>Abaixo de 5,40</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Direita: Creche -->
+  <div style="width:360px;">
+    <div class="creche-wrap">
+      <div class="creche-hdr">🏫 REEMBOLSO DE CRECHE</div>
+      <table class="creche-table">
+        <tbody>
+          <tr>
+            <td class="lbl">Valor Reembolso Creche Retido (R$)</td>
+            <td class="val">
+              <input type="number" class="ci" id="crecheRetido" value="0" step="0.01" min="0" oninput="recalcAll()" style="width:100%;text-align:right;">
+            </td>
+          </tr>
+          <tr>
+            <td class="lbl">Reembolsos Aprovados (quantidade)</td>
+            <td class="val"><input type="number" class="ci" id="crecheAprovados" value="0" step="1" min="0" oninput="recalcAll()" style="width:100%;"></td>
+          </tr>
+          <tr>
+            <td class="lbl">Valor Reembolso + BDI (R$) <em>por colaborador</em></td>
+            <td class="val">
+              <input type="number" class="ci" id="crechemBDI" value="0" step="0.01" min="0" oninput="recalcAll()" style="width:100%;text-align:right;">
+            </td>
+          </tr>
+          <tr>
+            <td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Reembolso+BDI)</small></td>
+            <td class="res" id="crecheTotalReemb">R$ 0,00</td>
+          </tr>
+          <tr>
+            <td class="lbl">Saldo de Reembolso (R$)<br><small style="font-weight:normal">(Retido – Total Reembolsos)</small></td>
+            <td class="res" id="crecheSaldo">R$ 0,00</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="creche-warn" id="crecheWarn">
+        ⚠ ATENÇÃO: Saldo negativo — será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ASSINATURAS ══ -->
+<div class="sec-title" style="margin-top:14px;"><span>APROVAÇÃO E ASSINATURAS</span></div>
+<div class="approval-row">
+  <div class="approval-cell">
+    <label>Fiscal Operacional</label>
+    <input type="text" id="assFiscalOp" placeholder="Nome completo">
+    <input type="text" id="assFiscalOpMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
+  </div>
+  <div class="approval-cell">
+    <label>Fiscal Administrativo <em style="font-weight:normal;font-size:10px">(¹)</em></label>
+    <input type="text" id="assFiscalAdm" placeholder="Nome completo">
+    <input type="text" id="assFiscalAdmMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
+  </div>
+  <div class="approval-cell">
+    <label>Representante da Contratada</label>
+    <input type="text" id="assContratada" placeholder="Nome completo">
+    <input type="text" id="assContratadaCargo" placeholder="Cargo" style="margin-top:4px;font-size:10px;">
+  </div>
+  <div class="approval-cell" style="flex:0 0 160px;">
+    <label>Data</label>
+    <input type="date" id="dataAprov" readonly style="background:#f0f0f0;color:#333;cursor:default;border-bottom:1px solid #bbb;">
+  </div>
+</div>
+
+<!-- ══ JUSTIFICATIVAS ══ -->
+<div class="justif-box">
+  <div class="jh">📝 JUSTIFICATIVAS (obrigatório para notas 0 e 1)</div>
+  <textarea id="justifGeral" placeholder="Registre aqui as justificativas para as notas 0 e 1 atribuídas. Para cada critério informe: nome do critério, nota atribuída e fundamentação."></textarea>
+</div>
+
+<!-- ══ BOTÕES ══ -->
+<div class="btn-bar">
+  <button class="btn btn-reset" id="btnLimpar" onclick="resetForm()">🗑 Limpar Tudo</button>
+  <button class="btn btn-export" onclick="exportCSV()">📥 Exportar CSV</button>
+  <button class="btn" id="btnExportLocked" onclick="exportLocked()" style="background:#1f3864;color:#fff;border:none;border-radius:4px;padding:6px 14px;font-size:11px;cursor:pointer;" title="Gera um novo arquivo HTML com os dados de todas as abas embutidos e travados desde a abertura">🔒 Exportar Versão Travada</button>
+  <button class="btn btn-print" onclick="window.print()">📄 Salvar PDF (aba atual)</button>
+</div>
+<p style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;">
+  (¹) Campos do Grupo 3 – Salários/Benefícios e Nota Final preenchidos pelo Fiscal Administrativo. |
+  Formulário gerado a partir do Modelo IMR Vigilância Definitivo V2 Com CRECHE – PR6. | Versão 60 períodos.
+</p>
+</div><!-- /page -->
+
+<!-- SDK do Firebase (sincronização entre computadores) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+'use strict';
+
+// ─── CONFIGURAÇÃO DE VERSÃO EXPORTADA ────────────────────────────
+const INIT_LOCKED=false;/*§LOCK§*/
+const INIT_PWD='';/*§PWD§*/
+const INIT_DATA=null;/*§DATA§*/
+// ─────────────────────────────────────────────────────────────────
+
+// ─── CONSTANTES ──────────────────────────────────────────────────
+const NUM_PERIODS = 60;
+const PESOS = {
+  g1_1:0.40, g1_2:0.35, g1_3:0.25,
+  g2_1:0.40, g2_2:0.20, g2_3:0.40,
+  g3_1:0.20, g3_2:0.30, g3_3:0.25, g3_4:0.25
+};
+const GROUPS = {
+  1:['g1_1','g1_2','g1_3'],
+  2:['g2_1','g2_2','g2_3'],
+  3:['g3_1','g3_2','g3_3','g3_4']
+};
+const ALL_IDS = Object.values(GROUPS).reduce((a,b)=>a.concat(b),[]);
+const PCT_MAP = {A:1.00,B:0.95,C:0.90,D:0.85,E:0.80,F:0.75};
+const ASS_IDS = ['assFiscalOp','assFiscalOpMat','assFiscalAdm','assFiscalAdmMat','assContratada','assContratadaCargo'];
+
+const MESES     = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MESES_CAP = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// ─── FORMATOS ────────────────────────────────────────────────────
+const BR  = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const BR0 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+const BRcur = v => 'R$ '+BR.format(v);
+function floor2(v){ return Math.floor(v*100)/100; }
+function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+function val(id){ const el=document.getElementById(id); return el?el.value:''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=(v==null?'':v); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function todayISO(){ return new Date().toISOString().split('T')[0]; }
+
+// ─── ESTADO GLOBAL ───────────────────────────────────────────────
+let periods = [];          // 60 estados (um por período)
+let currentPeriod = 0;
+let postoCount = 0;
+let globalLocked = false;
+let globalPwd = '';
+let saveTimer = null;
+const STORAGE_KEY = 'IMR60_' + (location.pathname || 'form');
+
+// ═══ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═════════════════
+// Identificador deste contrato dentro do banco (único por formulário):
+const FORM_ID = 'angels-04-24-hesfa';
+// COLE AQUI a configuração do seu projeto Firebase (Configurações do
+// projeto ▸ Seus apps ▸ Configuração do SDK). Enquanto estiver com
+// "COLE_AQUI", a nuvem fica desligada e vale só o salvamento local.
+const firebaseConfig = {
+  apiKey:            "AIzaSyBwL87K4sGeVB1bAvqY1a8yv5otKLez8cw",
+  authDomain:        "imr-fiscalizacao.firebaseapp.com",
+  projectId:         "imr-fiscalizacao",
+  storageBucket:     "imr-fiscalizacao.firebasestorage.app",
+  messagingSenderId: "552588739135",
+  appId:             "1:552588739135:web:a43155ae2e7932da57ae8a"
+};
+let cloudDb=null, cloudDocRef=null, cloudReady=false;
+let applyingRemote=false, remotePending=null, cloudSaveTimer=null;
+
+function cloudEnabled(){
+  return (typeof firebase!=='undefined') && firebaseConfig.projectId && !/COLE_AQUI/.test(firebaseConfig.projectId);
+}
+function setCloudStatus(t){ const el=document.getElementById('cloudStatus'); if(el) el.textContent=t; }
+function initCloud(){
+  if(!cloudEnabled()){ setCloudStatus(''); return; }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    cloudDb=firebase.firestore();
+    cloudDocRef=cloudDb.collection('imr_forms').doc(FORM_ID);
+    cloudReady=true;
+    setCloudStatus('☁ Conectando…');
+    cloudDocRef.onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;   // ignora eco da própria gravação
+      if(!snap.exists){ pushCloud(); return; }      // 1ª vez: cria o documento
+      const data=snap.data();
+      if(!data||!data.payload) return;
+      let payload; try{ payload=JSON.parse(data.payload); }catch(e){ return; }
+      applyRemote(payload);
+    }, function(err){ setCloudStatus('⚠ Nuvem indisponível (usando cópia local)'); });
+  }catch(e){ cloudReady=false; setCloudStatus('⚠ Falha ao conectar à nuvem'); }
+}
+function applyRemote(payload){
+  const a=document.activeElement;
+  const editing = a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
+  if(editing){ remotePending=payload; return; } // não atropela quem está digitando
+  const keepTab=currentPeriod;                   // cada usuário mantém sua própria aba
+  applyingRemote=true;
+  applyData(payload);
+  currentPeriod=Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
+  applyPeriodToDOM(periods[currentPeriod]);
+  applyGlobalLock(); toggleLockBtns();
+  renderTabs(); recalcAll();
+  saveState();
+  applyingRemote=false;
+  setCloudStatus('☁ Atualizado de outro computador');
+}
+function pushCloud(){
+  if(!cloudReady||!cloudDocRef) return;
+  try{
+    cloudDocRef.set({ payload: JSON.stringify(collectData()), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setCloudStatus('☁ Salvo na nuvem');
+  }catch(e){ setCloudStatus('⚠ Erro ao salvar na nuvem'); }
+}
+function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
+// Grava local + nuvem (usado nas edições e ações que alteram dados compartilhados)
+function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
+
+function defaultState(){
+  const notas={}; ALL_IDS.forEach(id=>notas[id]='3');
+  const s={
+    periodo:'', headerUpdate:'Atualizado conforme Valor Unitário Contratado inicial',
+    notas, postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}],
+    diasTrab:'30', crecheRetido:'0', crecheAprovados:'0', crechemBDI:'0',
+    justif:'', dataAprov: todayISO()
+  };
+  ASS_IDS.forEach(id=>s[id]='');
+  return s;
+}
+
+// ─── PARSE / FORMATO DE PERÍODO ──────────────────────────────────
+function detectPeriodFormat(str){
+  str=(str||'').trim();
+  if(!str) return null;
+  const lower=str.toLowerCase();
+  // Mês por nome  (ex.: "Maio/2024", "Maio de 2024", "Janeiro 2026")
+  for(let i=0;i<12;i++){
+    if(lower.startsWith(MESES[i])){
+      const rest=str.slice(MESES[i].length);
+      const ym=rest.match(/\d{4}|\d{2}/);
+      if(ym){
+        let y=parseInt(ym[0],10); if(y<100) y+=2000;
+        const sep=(rest.slice(0,ym.index).match(/^[\s\/\-\.de]*/)||[''])[0];
+        return {type:'named', month:i, year:y, sep:sep||' '};
+      }
+    }
+  }
+  // Numérico  (ex.: "05/2024", "5-2024", "05/24", "05.24")
+  const m=str.match(/^(\d{1,2})\s*([\/\-\.])\s*(\d{2,4})$/);
+  if(m){
+    let y=parseInt(m[3],10); const twoDigit=m[3].length<=2; if(y<100) y+=2000;
+    return {type:'numeric', month:parseInt(m[1],10)-1, year:y, sep:m[2], pad:m[1].length>=2, twoDigit};
+  }
+  return null;
+}
+function formatPeriod(base, offset){
+  const total = base.month + offset;
+  const year  = base.year + Math.floor(total/12);
+  const month = ((total%12)+12)%12;
+  if(base.type==='named'){
+    return MESES_CAP[month] + base.sep + year;
+  }
+  let mm=String(month+1); if(base.pad) mm=mm.padStart(2,'0');
+  const yy=base.twoDigit ? String(year%100).padStart(2,'0') : String(year);
+  return mm + base.sep + yy;
+}
+
+// ─── SNAPSHOT / APPLY (DOM ↔ modelo) ─────────────────────────────
+function snapshotDOM(){
+  const notas={};
+  ALL_IDS.forEach(id=>{ const sel=document.querySelector('select.nota-sel[data-id="'+id+'"]'); notas[id]=sel?sel.value:'3'; });
+  const postos=[];
+  for(let i=1;i<=postoCount;i++){
+    const tr=document.getElementById('posto_'+i); if(!tr) continue;
+    const inp=tr.querySelectorAll('input');
+    postos.push({item:inp[0].value, posto:inp[1].value, qtde:inp[2].value, vlrUnit:inp[3].value, semCob:inp[4].value});
+  }
+  const s={
+    periodo:val('periodo'), headerUpdate:val('headerUpdate'), notas, postos,
+    diasTrab:val('diasTrab'), crecheRetido:val('crecheRetido'),
+    crecheAprovados:val('crecheAprovados'), crechemBDI:val('crechemBDI'),
+    justif:val('justifGeral'), dataAprov:val('dataAprov')
+  };
+  ASS_IDS.forEach(id=>s[id]=val(id));
+  return s;
+}
+function applyPeriodToDOM(s){
+  setVal('periodo', s.periodo);
+  setVal('headerUpdate', s.headerUpdate);
+  ALL_IDS.forEach(id=>{ const sel=document.querySelector('select.nota-sel[data-id="'+id+'"]'); if(sel) sel.value=(s.notas&&s.notas[id])||'3'; });
+  renderPostos((s.postos&&s.postos.length)?s.postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}]);
+  setVal('diasTrab', s.diasTrab||'30');
+  setVal('crecheRetido', s.crecheRetido||'0');
+  setVal('crecheAprovados', s.crecheAprovados||'0');
+  setVal('crechemBDI', s.crechemBDI||'0');
+  setVal('justifGeral', s.justif||'');
+  ASS_IDS.forEach(id=>setVal(id, s[id]||''));
+  setVal('dataAprov', s.dataAprov||todayISO());
+}
+
+// ─── ABAS ────────────────────────────────────────────────────────
+function renderTabs(){
+  const bar=document.getElementById('tabbar'); if(!bar) return;
+  let h='';
+  for(let n=0;n<NUM_PERIODS;n++){
+    const label=(periods[n]&&periods[n].periodo)?periods[n].periodo:('Período '+(n+1));
+    h+='<button class="tab-btn'+(n===currentPeriod?' active':'')+'" onclick="switchPeriod('+n+')" title="'+esc(label)+'"><b>'+(n+1)+'</b><small>'+esc(label)+'</small></button>';
+  }
+  bar.innerHTML=h;
+  setTxt('tabInfo','Período '+(currentPeriod+1)+' de '+NUM_PERIODS);
+  const per=periods[currentPeriod];
+  setTxt('periodoTag', (per&&per.periodo)?('▶ Aba '+(currentPeriod+1)):'' );
+  const act=bar.querySelector('.tab-btn.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
+}
+function switchPeriod(n){
+  if(n<0||n>=NUM_PERIODS||n===currentPeriod){ if(n===currentPeriod) return; }
+  if(n<0||n>=NUM_PERIODS) return;
+  periods[currentPeriod]=snapshotDOM();
+  currentPeriod=n;
+  applyPeriodToDOM(periods[n]);
+  applyGlobalLock();
+  renderTabs();
+  recalcAll();
+  saveState();
+}
+function prevPeriod(){ switchPeriod(currentPeriod-1); }
+function nextPeriod(){ switchPeriod(currentPeriod+1); }
+
+// ─── PROPAGAÇÃO PARA AS ABAS SEGUINTES ───────────────────────────
+function propagateHeaderUpdate(){
+  const v=val('headerUpdate');
+  for(let k=currentPeriod;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].headerUpdate=v; }
+  renderTabs();
+}
+function propagatePeriodo(){
+  const base=detectPeriodFormat(val('periodo'));
+  if(!base) return;
+  for(let k=currentPeriod+1;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].periodo=formatPeriod(base,k-currentPeriod); }
+}
+function propagatePostos(){
+  // Estrutura + Qtde + Valor Unitário cascateiam para frente.
+  // "Sem Cobertura (h)" é de cada período e é preservado por linha.
+  const cur=(periods[currentPeriod]&&periods[currentPeriod].postos)||[];
+  for(let k=currentPeriod+1;k<NUM_PERIODS;k++){
+    if(!periods[k]) continue;
+    const prev=periods[k].postos||[];
+    periods[k].postos=cur.map((p,idx)=>({
+      item:p.item, posto:p.posto, qtde:p.qtde, vlrUnit:p.vlrUnit,
+      semCob: prev[idx]?prev[idx].semCob:''
+    }));
+  }
+}
+
+// ─── AVALIAÇÃO ───────────────────────────────────────────────────
+function getConceito(nota){
+  if(nota>=8.10) return 'A'; if(nota>=7.65) return 'B';
+  if(nota>=6.75) return 'C'; if(nota>=5.85) return 'D';
+  if(nota>=5.40) return 'E'; return 'F';
+}
+
+// ─── CÁLCULO PURO (a partir de um estado) ────────────────────────
+function computeDerived(s){
+  let notaFinal=0; const subs={}, groupTotals={};
+  Object.entries(GROUPS).forEach(([g,items])=>{
+    let gt=0;
+    items.forEach(id=>{
+      const nota=parseFloat((s.notas&&s.notas[id])??'3');
+      const sub=nota*PESOS[id]; subs[id]=sub; gt+=sub;
+    });
+    groupTotals[g]=gt; notaFinal+=gt;
+  });
+  const conceito=getConceito(notaFinal);
+  const pct=PCT_MAP[conceito]??1.00;
+  const dias=Math.max(1, parseFloat(s.diasTrab)||0);
+
+  let somaDesc=0, somaMensal=0; const postoCalc=[];
+  (s.postos||[]).forEach(p=>{
+    const qtde=parseFloat(p.qtde)||0, vlrUnit=parseFloat(p.vlrUnit)||0, semCob=parseFloat(p.semCob)||0;
+    const contratadas=qtde*220;
+    const vhora=qtde>0?floor2(vlrUnit/220):0;
+    const mensal=qtde*vlrUnit;
+    const descFalta=vhora*semCob;
+    let vdesc=0;
+    if(qtde>0&&vlrUnit>0){ vdesc=floor2((mensal-descFalta)/30*dias*pct); if(vdesc<0) vdesc=0; }
+    const vfat=qtde>0?floor2(vdesc/qtde):0;
+    somaDesc+=vdesc; somaMensal+=floor2(qtde*vlrUnit);
+    postoCalc.push({item:p.item, posto:p.posto, qtde, contratadas, vhora, vdesc, vfat});
+  });
+  const glosado=floor2(somaMensal-somaMensal*pct);
+
+  const retido=parseFloat(s.crecheRetido)||0, aprov=parseFloat(s.crecheAprovados)||0, bdi=parseFloat(s.crechemBDI)||0;
+  const crecheTotal=floor2(aprov*bdi);
+  const crecheSaldo=floor2(retido-crecheTotal);
+  const aprovado=floor2(somaDesc+crecheTotal);
+
+  return {notaFinal,conceito,pct,subs,groupTotals,somaDesc,somaMensal,glosado,postoCalc,crecheTotal,crecheSaldo,aprovado};
+}
+
+// ─── PINTURA DO DOM ──────────────────────────────────────────────
+function paintEval(s,d){
+  Object.entries(GROUPS).forEach(([g,items])=>{
+    items.forEach(id=>{
+      const nota=parseFloat((s.notas&&s.notas[id])??'3');
+      setTxt('sub_'+id, BR.format(d.subs[id]));
+      const stEl=document.getElementById('st_'+id);
+      if(stEl){
+        if(nota===2||nota>3){ stEl.className='status-err'; stEl.textContent='⛔ Inválida'; }
+        else{ stEl.className='status-ok'; stEl.textContent='✓ Ok'; }
+      }
+      const jwEl=document.getElementById('jw_'+id);
+      const row=document.getElementById('row_'+id);
+      if(jwEl){
+        if(nota===0||nota===1){
+          jwEl.innerHTML='<span class="jus-warn">⚠ Favor inserir justificativa da nota '+nota+' no campo justificativa</span>';
+          if(row) row.style.background='#fff8f0';
+        }else{ jwEl.innerHTML=''; if(row) row.style.background=''; }
+      }
+    });
+    setTxt('tot_g'+g, BR.format(d.groupTotals[g]));
+  });
+  setTxt('notaFinalVal', BR.format(d.notaFinal));
+  const badge=document.getElementById('conceitoBadge'); if(badge) badge.textContent=d.conceito;
+  ['A','B','C','D','E','F'].forEach(c=>{ const r=document.getElementById('frow_'+c); if(r) r.classList.toggle('hl', c===d.conceito); });
+  setTxt('notaFatDisplay', d.conceito);
+  setTxt('pctFat', (d.pct*100).toFixed(0)+'%');
+}
+function paintPostos(d){
+  for(let i=1;i<=postoCount;i++){
+    const c=d.postoCalc[i-1]; if(!c) continue;
+    setTxt('p'+i+'_contr', BR0.format(c.contratadas));
+    setTxt('p'+i+'_vhora', BRcur(c.vhora));
+    setTxt('p'+i+'_vdesc', BRcur(c.vdesc));
+  }
+  renderIC(d.postoCalc.map(c=>({itemLbl:c.item||'–', postoNome:c.posto||'–', qtde:c.qtde, vfat:c.vfat})));
+}
+function paintFin(d){
+  setTxt('contratadoMensal', BRcur(d.somaMensal));
+  setTxt('vlrGlosado', BRcur(d.glosado));
+  const apEl=document.getElementById('vlrAprovado');
+  if(apEl){ apEl.textContent=BRcur(Math.max(0,d.aprovado)); apEl.style.color=d.aprovado<0?'#b71c1c':'#1b5e20'; }
+}
+function paintCreche(d){
+  setTxt('crecheTotalReemb', BRcur(d.crecheTotal));
+  const saldoEl=document.getElementById('crecheSaldo');
+  if(saldoEl){ saldoEl.textContent=BRcur(d.crecheSaldo); saldoEl.style.color=d.crecheSaldo<0?'#b71c1c':'#1b5e20'; }
+  const warnEl=document.getElementById('crecheWarn'); if(warnEl) warnEl.style.display=d.crecheSaldo<0?'block':'none';
+}
+function renderIC(rows){
+  const tbody=document.getElementById('icBody'); if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999;padding:8px;">Adicione postos acima para gerar o instrumento de cobrança.</td></tr>';
+    return;
+  }
+  let html='';
+  rows.forEach(r=>{
+    html+='<tr><td style="text-align:center;font-weight:bold;">'+esc(r.itemLbl)+'</td>'+
+      '<td class="ic-posto">'+esc(r.postoNome||'–')+'</td>'+
+      '<td class="ic-calc">'+BR0.format(r.qtde)+'</td>'+
+      '<td class="ic-calc">'+BRcur(r.vfat)+'</td></tr>';
+  });
+  tbody.innerHTML=html;
+}
+
+// ─── RECALC MESTRE ───────────────────────────────────────────────
+function recalcAll(){
+  if(!periods.length) return;
+  const s=snapshotDOM();
+  periods[currentPeriod]=s;
+  const d=computeDerived(s);
+  paintEval(s,d); paintPostos(d); paintFin(d); paintCreche(d);
+}
+
+// ─── POSTOS – LINHAS ─────────────────────────────────────────────
+function renderPostos(list){
+  const tbody=document.getElementById('postosBody');
+  tbody.innerHTML=''; postoCount=0;
+  list.forEach(p=>appendPostoRow(p));
+}
+function appendPostoRow(p){
+  postoCount++; const i=postoCount;
+  const tbody=document.getElementById('postosBody');
+  const tr=document.createElement('tr'); tr.id='posto_'+i;
+  const oc='oninput="recalcAll();propagatePostos();renderTabs()"';
+  tr.innerHTML=
+    '<td class="num"><input type="text" class="pi center pi-item" value="'+esc(p.item||i)+'" '+oc+' style="width:44px;text-align:center;"></td>'+
+    '<td><input type="text" class="pi name pi-nome" value="'+esc(p.posto)+'" placeholder="Nome do posto" '+oc+'></td>'+
+    '<td><input type="number" class="pi pi-qtde" value="'+esc(p.qtde)+'" placeholder="0" min="0" step="1" '+oc+' style="text-align:center;"></td>'+
+    '<td><input type="number" class="pi pi-vlr" value="'+esc(p.vlrUnit)+'" placeholder="0,00" step="0.01" min="0" '+oc+' style="text-align:center;"></td>'+
+    '<td class="calc" id="p'+i+'_contr">–</td>'+
+    '<td><input type="number" class="pi pi-semcob" value="'+esc(p.semCob)+'" placeholder="0" step="1" min="0" oninput="recalcAll();propagatePostos()" style="text-align:center;"></td>'+
+    '<td class="calc" id="p'+i+'_vhora">–</td>'+
+    '<td class="calc" id="p'+i+'_vdesc">–</td>'+
+    '<td style="text-align:center;"><button class="rm-btn" onclick="removePostoRow('+i+')" title="Remover posto">✕</button></td>';
+  tbody.appendChild(tr);
+  if(globalLocked){
+    tr.querySelectorAll('.pi-item,.pi-nome,.pi-qtde,.pi-vlr').forEach(el=>el.disabled=true);
+    const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=true; rb.style.opacity=.4; }
+  }
+}
+function addPostoRow(){
+  if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
+  appendPostoRow({item:'',posto:'',qtde:'',vlrUnit:'',semCob:''});
+  recalcAll();          // grava linha nova no estado atual
+  propagatePostos();    // replica para as abas seguintes
+  renderTabs();
+  persist();
+}
+function removePostoRow(i){
+  if(globalLocked){ alert('Formulário travado. Desbloqueie primeiro.'); return; }
+  const tr=document.getElementById('posto_'+i); if(tr) tr.remove();
+  const remaining=snapshotDOM().postos;
+  renderPostos(remaining.length?remaining:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}]);
+  applyGlobalLock();
+  recalcAll();
+  propagatePostos();
+  renderTabs();
+  persist();
+}
+
+// ─── TRAVA UNIFICADA (vale para TODAS as abas) ───────────────────
+function toggleLockBtns(){
+  document.getElementById('btnLock').style.display   = globalLocked?'none':'inline-block';
+  document.getElementById('btnUnlock').style.display = globalLocked?'inline-block':'none';
+}
+function lockAll(){
+  const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
+  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
+  globalPwd=pwd; globalLocked=true;
+  applyGlobalLock(); toggleLockBtns(); persist();
+  alert('✅ Formulário travado com sucesso em TODAS as abas!');
+}
+function unlockAll(){
+  const pwd=prompt('Digite a senha para desbloquear:');
+  if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
+  globalLocked=false; globalPwd='';
+  applyGlobalLock(); toggleLockBtns(); persist();
+  alert('🔓 Formulário desbloqueado em TODAS as abas.');
+}
+function applyGlobalLock(){
+  // Cabeçalho compartilhado + editável
+  ['contrato','contratada','unidade','headerUpdate'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.disabled=globalLocked; el.style.background=globalLocked?'transparent':''; }
+  });
+  // Postos (baseline do contrato) — "Sem Cobertura" continua editável
+  document.querySelectorAll('#postosBody tr').forEach(tr=>{
+    tr.querySelectorAll('.pi-item,.pi-nome,.pi-qtde,.pi-vlr').forEach(el=>el.disabled=globalLocked);
+    const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=globalLocked; rb.style.opacity=globalLocked?.4:1; }
+  });
+  // Creche
+  ['crecheRetido','crechemBDI'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
+  // Botões
+  const addb=document.getElementById('btnAddPosto');
+  if(addb){ addb.disabled=globalLocked; addb.style.opacity=globalLocked?.4:1; }
+  ['btnLimpar','btnExportLocked'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=globalLocked?'none':'inline-block'; });
+}
+
+// ─── RESET ───────────────────────────────────────────────────────
+function resetForm(){
+  if(!confirm('Deseja limpar todos os dados de TODAS as 60 abas?')) return;
+  globalLocked=false; globalPwd=''; toggleLockBtns();
+  ['contrato','contratada','unidade','fiscal'].forEach(id=>setVal(id,''));
+  periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
+  currentPeriod=0;
+  applyPeriodToDOM(periods[0]);
+  applyGlobalLock();
+  renderTabs();
+  recalcAll();
+  persist();
+}
+
+// ─── EXPORT LOCKED ───────────────────────────────────────────────
+function exportLocked(){
+  const pwd=prompt('Defina uma senha para a versão travada (mín. 4 caracteres):\n\nQuem precisar editar os campos travados precisará desta senha.');
+  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
+
+  periods[currentPeriod]=snapshotDOM();
+  const data={
+    global:{ contrato:val('contrato'), contratada:val('contratada'), unidade:val('unidade'), fiscal:val('fiscal') },
+    currentPeriod:0,
+    periods:periods
+  };
+
+  const safePwd  = pwd.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeData = JSON.stringify(data);
+
+  const parser=new DOMParser();
+  const exportDoc=parser.parseFromString(document.documentElement.outerHTML,'text/html');
+
+  ['postosBody','icBody','tabbar'].forEach(id=>{ const el=exportDoc.getElementById(id); if(el) el.innerHTML=''; });
+  ['contratadoMensal','vlrGlosado','vlrAprovado','notaFatDisplay','pctFat',
+   'crecheTotalReemb','crecheSaldo','notaFinalVal','conceitoBadge'].forEach(id=>{
+    const el=exportDoc.getElementById(id); if(el) el.textContent='';
+  });
+  exportDoc.querySelectorAll('[id^="p"][id$="_vdesc"],[id^="p"][id$="_vhora"],[id^="p"][id$="_contr"]').forEach(el=>el.textContent='');
+
+  let html='<!DOCTYPE html>\n'+exportDoc.documentElement.outerHTML;
+  html=html.replace("const INIT_LOCKED=false;/*§LOCK§*/", "const INIT_LOCKED=true;/*§LOCK§*/");
+  html=html.replace("const INIT_PWD='';/*§PWD§*/",        "const INIT_PWD='"+safePwd+"';/*§PWD§*/");
+  html=html.replace("const INIT_DATA=null;/*§DATA§*/",    "const INIT_DATA="+safeData+";/*§DATA§*/");
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='IMR_Vigilancia_V2_60periodos_travado.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('✅ Arquivo "IMR_Vigilancia_V2_60periodos_travado.html" exportado com as 60 abas travadas!');
+}
+
+// ─── EXPORT CSV (todas as abas) ──────────────────────────────────
+function exportCSV(){
+  periods[currentPeriod]=snapshotDOM();
+  const l=[];
+  l.push('IMR VIGILÂNCIA E PORTARIA – V2 COM CRECHE (60 PERÍODOS)');
+  l.push('');
+  l.push('Contrato;'+val('contrato'));
+  l.push('Unidade;'+val('unidade'));
+  l.push('Contratada;'+val('contratada'));
+  l.push('Fiscal Operacional;'+val('fiscal'));
+  l.push('');
+
+  const critNomes={
+    g1_1:'Cumprimento das Atividades', g1_2:'Qualificação/Atendimento/Postura', g1_3:'Uniformes e Identificação',
+    g2_1:'Especificação Técnica dos Serviços', g2_2:'Equipamentos e Acessórios', g2_3:'Atendimento às Ocorrências',
+    g3_1:'Periodicidade da Supervisão', g3_2:'Gerenciamento das Atividades', g3_3:'Atendimento às Solicitações',
+    g3_4:'Salários/Benefícios/Obrig.Trab.'
+  };
+
+  periods.forEach((s,idx)=>{
+    const d=computeDerived(s);
+    l.push('==================================================');
+    l.push('PERÍODO '+(idx+1)+';'+(s.periodo||''));
+    l.push('Data;'+(s.dataAprov||''));
+    l.push('');
+    l.push('AVALIAÇÃO DE DESEMPENHO');
+    l.push('Critério;Peso;Nota;Subtotal');
+    ALL_IDS.forEach(id=>{
+      l.push(critNomes[id]+';'+PESOS[id]+';'+((s.notas&&s.notas[id])||'')+';'+BR.format(d.subs[id]));
+    });
+    l.push('Nota Final;'+BR.format(d.notaFinal));
+    l.push('Conceito;'+d.conceito);
+    l.push('');
+    l.push('POSTOS');
+    l.push('Item;Posto;Qtde;ValorUnit;HorasContrat;SemCob;ValorHora;ValorAposDesc');
+    (s.postos||[]).forEach((p,pi)=>{
+      const c=d.postoCalc[pi];
+      l.push(p.item+';'+p.posto+';'+p.qtde+';'+p.vlrUnit+';'+
+        (c?BR0.format(c.contratadas):'')+';'+p.semCob+';'+
+        (c?BRcur(c.vhora):'')+';'+(c?BRcur(c.vdesc):''));
+    });
+    l.push('');
+    l.push('RESUMO FINANCEIRO');
+    l.push('Contratado Mensal;'+BRcur(d.somaMensal));
+    l.push('% Faturamento;'+(d.pct*100).toFixed(0)+'%');
+    l.push('Valor Glosado Qualidade;'+BRcur(d.glosado));
+    l.push('Dias Trabalhados;'+s.diasTrab);
+    l.push('Valor Aprovado;'+BRcur(Math.max(0,d.aprovado)));
+    l.push('');
+    l.push('REEMBOLSO CRECHE');
+    l.push('Valor Retido;'+s.crecheRetido);
+    l.push('Reembolsos Aprovados;'+s.crecheAprovados);
+    l.push('Valor Reembolso+BDI;'+s.crechemBDI);
+    l.push('Total Reembolsos;'+BRcur(d.crecheTotal));
+    l.push('Saldo de Reembolso;'+BRcur(d.crecheSaldo));
+    l.push('Justificativas;'+(s.justif||'').replace(/[\r\n]+/g,' '));
+    l.push('');
+  });
+
+  const blob=new Blob(['﻿'+l.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='IMR_V2_60periodos.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─── PERSISTÊNCIA (salva automaticamente TODAS as edições no navegador) ───
+function collectData(){
+  periods[currentPeriod]=snapshotDOM();
+  return {
+    v:1,
+    global:{ contrato:val('contrato'), contratada:val('contratada'), unidade:val('unidade'), fiscal:val('fiscal') },
+    periods:periods, currentPeriod:currentPeriod,
+    locked:globalLocked, pwd:globalPwd
+  };
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+    const st=document.getElementById('saveStatus');
+    if(st){ const t=new Date(); st.textContent='💾 Salvo automaticamente '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); }
+  }catch(e){ /* localStorage indisponível */ }
+}
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveState,400); }
+function loadState(){
+  try{ const raw=localStorage.getItem(STORAGE_KEY); return raw?JSON.parse(raw):null; }catch(e){ return null; }
+}
+function normalizePeriod(p){
+  const d=defaultState();
+  if(!p||typeof p!=='object') return d;
+  d.periodo=p.periodo||'';
+  d.headerUpdate=(p.headerUpdate!=null)?p.headerUpdate:d.headerUpdate;
+  d.notas=Object.assign({}, d.notas, p.notas||{});
+  d.postos=(Array.isArray(p.postos)&&p.postos.length)
+    ? p.postos.map(x=>({item:(x&&x.item!=null?x.item:''), posto:(x&&x.posto)||'', qtde:(x&&x.qtde)||'', vlrUnit:(x&&x.vlrUnit)||'', semCob:(x&&x.semCob)||''}))
+    : d.postos;
+  ['diasTrab','crecheRetido','crecheAprovados','crechemBDI','justif','dataAprov'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
+  ASS_IDS.forEach(id=>{ if(p[id]!=null) d[id]=p[id]; });
+  return d;
+}
+function applyData(data){
+  if(!data) return;
+  const g=data.global||{};
+  setVal('contrato',  g.contrato||'');
+  setVal('contratada',g.contratada||'');
+  setVal('unidade',   g.unidade||'');
+  setVal('fiscal',    g.fiscal||'');
+  periods=[];
+  const src=Array.isArray(data.periods)?data.periods:[];
+  for(let i=0;i<NUM_PERIODS;i++) periods.push(normalizePeriod(src[i]));
+  currentPeriod=Math.min(Math.max(0, data.currentPeriod|0), NUM_PERIODS-1);
+  globalLocked=!!data.locked; globalPwd=data.pwd||'';
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+document.getElementById('dataAprov').value = todayISO();
+
+// 1) Base padrão
+periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
+currentPeriod=0; globalLocked=false; globalPwd='';
+
+// 2) Base da versão exportada travada (se este for um arquivo exportado)
+if(INIT_LOCKED && INIT_DATA){
+  applyData(Object.assign({ locked:true, pwd:INIT_PWD }, INIT_DATA));
+}
+
+// 3) Edições salvas automaticamente no navegador — têm prioridade
+const saved = loadState();
+if(saved){ applyData(saved); }
+
+applyPeriodToDOM(periods[currentPeriod]);
+applyGlobalLock(); toggleLockBtns();
+renderTabs();
+recalcAll();
+
+// Salva automaticamente qualquer edição (notas, assinaturas, justificativa,
+// cabeçalho, identificação, postos, creche, dias — em qualquer aba)
+// no navegador (localStorage) e na nuvem (Firebase), se configurada.
+document.addEventListener('input', function(){ if(applyingRemote||!periods.length) return; periods[currentPeriod]=snapshotDOM(); persist(); });
+document.addEventListener('change', function(){ if(applyingRemote||!periods.length) return; periods[currentPeriod]=snapshotDOM(); persist(); });
+// Ao sair do campo, aplica uma atualização remota que ficou pendente enquanto digitava
+document.addEventListener('focusout', function(){ const p=remotePending; if(p){ remotePending=null; setTimeout(function(){ applyRemote(p); }, 80); } });
+
+// Inicia a sincronização na nuvem (só age se firebaseConfig estiver preenchida)
+initCloud();
+</script>
+</body>
+</html>
