@@ -158,7 +158,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 /* ── PRINT ── */
 @media print{
   body{background:#fff;}
-  .page{box-shadow:none;margin:0;width:100%;padding:8px;}
+  @page{size:A4 portrait;margin:8mm;} html,body{margin:0!important;} .page{box-shadow:none;margin:0 auto;width:1200px;padding:8px;} .postos-scroll{overflow:visible!important;}
   .btn-bar,.add-btn,.lock-btn,.field-lock-btn,.tabbar,.tab-nav,.rm-btn{display:none!important;}
   select.nota-sel{appearance:none;border:none;background:transparent;}
   input{border-bottom:1px solid #aaa!important;background:transparent!important;}
@@ -1241,6 +1241,11 @@ document.addEventListener('change', function(){ if(applyingRemote||!periods.leng
 document.addEventListener('focusout', function(){ const p=remotePending; if(p){ remotePending=null; setTimeout(function(){ applyRemote(p); }, 80); } });
 
 // Inicia a sincronização na nuvem (só age se firebaseConfig estiver preenchida)
+/* Ajuste de impressao: o PDF sempre cabe em 1 folha A4 (calcula o zoom no beforeprint) */
+function fitToPage(){var pg=document.querySelector('.page');if(!pg)return;pg.style.zoom='';var hid=[];document.querySelectorAll('.tab-nav,.tabbar,.btn-bar').forEach(function(e){hid.push([e,e.style.display]);e.style.display='none';});var ps=document.querySelector('.postos-scroll');var pov=ps?ps.style.overflow:'';if(ps)ps.style.overflow='visible';var MM=96/25.4;var uW=(210-16)*MM*0.99,uH=(297-16)*MM*0.98;var w=pg.scrollWidth||1200,h=pg.scrollHeight||1;var z=Math.min(1,uW/w,uH/h);hid.forEach(function(p){p[0].style.display=p[1];});if(ps)ps.style.overflow=pov;pg.style.zoom=(z>0&&isFinite(z))?z:1;}
+function resetFit(){var pg=document.querySelector('.page');if(pg)pg.style.zoom='';}
+window.addEventListener('beforeprint',fitToPage);
+window.addEventListener('afterprint',resetFit);
 initCloud();
 </script>
 </body>
