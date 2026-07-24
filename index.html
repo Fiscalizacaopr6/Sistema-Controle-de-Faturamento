@@ -394,7 +394,7 @@ tr:last-child td{border-bottom:none}
     <div class="view" id="view-contratos">
       <div class="filters">
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Buscar</span>
-          <input class="si" id="f-q" type="text" placeholder="Contrato, empresa, objeto..." oninput="applyFilters()">
+          <input class="si" id="f-q" type="text" placeholder="Contrato, empresa, responsável..." oninput="applyFilters()">
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Status</span>
           <select class="sel" id="f-st" onchange="applyFilters()">
@@ -1132,7 +1132,7 @@ function applyFilters() {
     if (ti && d['TIPO'] !== ti) return false;
     if (re && d['RESPONSÁVEL NO FATURAMENTO'] !== re) return false;
     if (q) {
-      var hay = [d['CONTRATO'],d['EMPRESA'],d['OBJETO'],d['RESPONSÁVEL NO FATURAMENTO']].join(' ').toLowerCase();
+      var hay = [d['CONTRATO'],d['EMPRESA'],d['RESPONSÁVEL NO FATURAMENTO']].join(' ').toLowerCase();
       if (hay.indexOf(q) === -1) return false;
     }
     return true;
