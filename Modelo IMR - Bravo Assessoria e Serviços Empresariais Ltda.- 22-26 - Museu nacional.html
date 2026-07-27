@@ -551,12 +551,30 @@ let MESES=[];
 
 function parseMesInicio(s){
   if(!s)return{m:0,y:2026};
-  s=s.trim().toUpperCase();
-  // "JAN-26" or "JAN/26"
-  const m1=s.match(/^([A-Z]{3})[-\/](\d{2,4})$/);
+  // Normaliza acentos antes de toUpperCase (ã→a, ç→c, etc.) para compatibilidade
+  s=s.trim()
+    .replace(/[àáâãä]/gi,'a').replace(/[èéêë]/gi,'e').replace(/[ìíîï]/gi,'i')
+    .replace(/[òóôõö]/gi,'o').replace(/[ùúûü]/gi,'u').replace(/[ç]/gi,'c')
+    .toUpperCase();
+  // Mapa nomes completos (sem acento após normalização) → índice _MABR
+  const _NOMES=[
+    ['JANEIRO'],['FEVEREIRO'],['MARCO'],['ABRIL'],['MAIO'],['JUNHO'],
+    ['JULHO'],['AGOSTO'],['SETEMBRO'],['OUTUBRO'],['NOVEMBRO'],['DEZEMBRO']
+  ];
+  for(let i=0;i<_NOMES.length;i++){
+    for(const n of _NOMES[i]){
+      if(s.startsWith(n)){
+        const rest=s.slice(n.length).replace(/^[\s\-\/]+/,'');
+        const ym=rest.match(/^(\d{2,4})$/);
+        if(ym){const y=+ym[1]+(ym[1].length===2?2000:0);return{m:i,y};}
+      }
+    }
+  }
+  // "JAN-26", "JAN/26", "JAN 26"
+  const m1=s.match(/^([A-Z]{3})[\s\-\/](\d{2,4})$/);
   if(m1){const mi=_MABR.indexOf(m1[1]);if(mi>=0){const y=+m1[2]+(m1[2].length===2?2000:0);return{m:mi,y};}}
-  // "01/2026"
-  const m2=s.match(/^(\d{1,2})[-\/](\d{2,4})$/);
+  // "01/2026", "01-2026", "1 2026"
+  const m2=s.match(/^(\d{1,2})[\s\-\/](\d{2,4})$/);
   if(m2){const y=+m2[2]+(m2[2].length===2?2000:0);return{m:(+m2[1]-1+12)%12,y};}
   return{m:0,y:2026};
 }
