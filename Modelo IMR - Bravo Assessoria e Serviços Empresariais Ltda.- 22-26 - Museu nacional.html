@@ -217,7 +217,7 @@ input[type=number]{-moz-appearance:textfield;}
       <div class="org" id="hdr-unidade"></div>
       <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO – BOMBEIRO CIVIL</div>
     </div>
-    <div class="header-badge">IMR<br><span style="font-size:10px;font-weight:normal;">BOMB.</span></div>
+    <div class="header-badge">IMR</div>
   </div>
 </div>
 
@@ -581,6 +581,7 @@ function buildMeses(inicioStr){
 // ─── UTILITIES ────────────────────────────────────────────────
 const fl2=v=>Math.round((+v||0)*100)/100;
 const BRL=v=>'R$ '+fl2(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const parseBRL=s=>{const n=parseFloat((String(s||'')).replace(/[R$\s.]/g,'').replace(',','.'));return isNaN(n)?0:n;};
 const BR2=v=>fl2(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const PCT=v=>(fl2(v)*100).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:1})+'%';
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -743,6 +744,11 @@ function onInicioChange(val){
   db.contrato.inicio=val;
   autosave();
   buildMeses(val);
+  // Reset selects to first period when start date changes
+  ['mat-period','imr-period'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&MESES.length)el.value=MESES[0];
+  });
   renderMat();
   renderIMR();
 }
@@ -767,7 +773,7 @@ function renderPostos(){
       <td><input class="mi" value="${escH(p.posto)}" ${lk} style="width:220px;" oninput="setPostoField(${i},'posto',this.value)"></td>
       <td><input class="mi r" type="number" value="${p.qtd||''}" ${lk} style="width:50px;text-align:center;" onchange="setPostoField(${i},'qtd',+this.value||0)"></td>
       <td><input class="mi r" type="number" value="${p.horasMes||220}" ${lk} style="width:60px;text-align:center;" onchange="setPostoField(${i},'horasMes',+this.value||220)"></td>
-      <td><input class="mi r" type="number" step="0.01" value="${p.hist?.[0]?.valor||''}" ${lk} style="width:100px;text-align:right;" onchange="setPostoInitVal(${i},+this.value||0)"></td>
+      <td><input class="mi r" type="text" value="${BRL(p.hist?.[0]?.valor||0)}" ${lk} style="width:100px;text-align:right;" onblur="setPostoInitVal(${i},parseBRL(this.value));this.value=BRL(parseBRL(this.value))"></td>
       <td style="text-align:center;font-size:10px;color:#555;">${BRL(v)}${p.hist?.length>1?' ('+p.hist.length+' atualiz.)':''}</td>
       <td style="text-align:center;">
         <button class="btn btn-sm btn-red" onclick="openPostoPrecoModal(${i})">📈 Histórico</button>
@@ -930,12 +936,12 @@ function renderMat(uSel){
     h+=`<td class="itm sticky-item" title="${escH(tip)}" style="min-width:200px;"><input class="mi c" value="${escH(it.item||'')}" placeholder="Ex: MENSAL / TRIMESTRAL" style="font-weight:bold;color:#7b0000;" ${lk?'disabled':''} oninput="updMatItem(${u},${it.id},'item',this.value)"></td>`;
     h+=`<td class="prod-cell sticky-prod" style="min-width:260px;"><input class="mi" value="${escH(it.produto)}" placeholder="Nome do produto" ${lk?'disabled':''} oninput="updMatItem(${u},${it.id},'produto',this.value)"></td>`;
     h+=`<td><input class="mi c" value="${escH(it.und)}" placeholder="un" style="width:35px;" ${lk?'disabled':''} oninput="updMatItem(${u},${it.id},'und',this.value)"></td>`;
-    h+=`<td style="text-align:center;"><input class="mi r" type="number" value="${latest||''}" placeholder="0,00" step="0.01" min="0" style="width:62px;text-align:center;" ${(multi||lk)?'disabled title="Use 🔄 Atualizar Preços para alterar"':''} oninput="updMatPreco0(${u},${it.id},+this.value||0)"></td>`;
+    h+=`<td style="text-align:center;"><input class="mi r" type="text" value="${BRL(latest||0)}" placeholder="R$ 0,00" style="width:80px;text-align:right;" ${(multi||lk)?'disabled title="Use 🔄 Atualizar Preços para alterar"':''} onblur="updMatPreco0(${u},${it.id},parseBRL(this.value));this.value=BRL(parseBRL(this.value))"></td>`;
     h+=`<td><input class="mi r" type="number" value="${it.qtd||''}" placeholder="0" step="0.01" min="0" style="text-align:center;" ${lk?'disabled':''} oninput="updMatItem(${u},${it.id},'qtd',+this.value||0)"></td>`;
     MESES.forEach(mes=>{
       const qr=+db.mat[u].lancamentos?.[mes]?.[it.id]||0;
       const inputId=`ci_${mes.replace('-','_')}_${u}_${it.id}`;
-      h+=`<td style="padding:1px;background:#fdf5f5;"><input class="mi r" type="number" step="0.01" min="0" id="${inputId}" value="${qr||''}" style="width:58px;font-size:9px;text-align:center;" ${lk?'disabled':''} oninput="saveMatLanc('${mes}',${u},${it.id},+this.value||0)"></td>`;
+      h+=`<td style="padding:1px;background:#fdf5f5;"><input class="mi r" type="number" step="0.01" min="0" id="${inputId}" value="${qr||''}" style="width:58px;font-size:9px;text-align:center;" oninput="saveMatLanc('${mes}',${u},${it.id},+this.value||0)"></td>`;
     });
     h+=`<td class="calc" id="qt_${u}_${it.id}" title="${escH(tip)}">${BR2(qtdEst)}</td>`;
     h+=`<td class="calc${saldo<0?' neg':''}" id="ms_${u}_${it.id}">${BR2(saldo)}</td>`;
