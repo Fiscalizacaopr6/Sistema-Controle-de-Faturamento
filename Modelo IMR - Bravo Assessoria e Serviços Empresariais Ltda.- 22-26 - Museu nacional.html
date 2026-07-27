@@ -787,7 +787,7 @@ function renderPostos(){
       <td><input class="mi r" type="number" value="${p.qtd||''}" ${lk} style="width:50px;text-align:center;" onchange="setPostoField(${i},'qtd',+this.value||0)"></td>
       <td><input class="mi r" type="number" value="${p.horasMes||220}" ${lk} style="width:60px;text-align:center;" onchange="setPostoField(${i},'horasMes',+this.value||220)"></td>
       <td><input class="mi r" type="text" value="${BRL(p.hist?.[0]?.valor||0)}" ${lk} style="width:100px;text-align:right;" onblur="setPostoInitVal(${i},parseBRL(this.value));this.value=BRL(parseBRL(this.value))"></td>
-      <td style="text-align:center;font-size:10px;color:#555;">${BRL(v)}${p.hist?.length>1?' ('+p.hist.length+' atualiz.)':\''}</td>
+      <td style="text-align:center;font-size:10px;color:#555;">${BRL(v)}${p.hist?.length>1?' ('+p.hist.length+' atualiz.)':''}</td>
       <td style="text-align:center;">
         ${!globalLocked?`<button class="btn btn-sm btn-gray" onclick="removePosto(${i})">✕</button>`:''}
       </td>
