@@ -783,7 +783,7 @@ function renderPostos(){
     const v=getPostoValor(i,MESES[0]||'JAN-26');
     h+=`<tr>
       <td style="text-align:center;"><input class="mi" type="number" value="${escH(p.item)}" ${lk} style="width:40px;text-align:center;" onchange="setPostoField(${i},'item',+this.value||0)"></td>
-      <td><input class="mi" value="${escH(p.posto)}" ${lk} style="width:220px;" oninput="setPostoField(${i},'posto',this.value)"></td>
+      <td><input class="mi" value="${escH(p.posto)}" ${lk} style="width:500px;" oninput="setPostoField(${i},'posto',this.value)"></td>
       <td><input class="mi r" type="number" value="${p.qtd||''}" ${lk} style="width:50px;text-align:center;" onchange="setPostoField(${i},'qtd',+this.value||0)"></td>
       <td><input class="mi r" type="number" value="${p.horasMes||220}" ${lk} style="width:60px;text-align:center;" onchange="setPostoField(${i},'horasMes',+this.value||220)"></td>
       <td><input class="mi r" type="text" value="${BRL(p.hist?.[0]?.valor||0)}" ${lk} style="width:100px;text-align:right;" onblur="setPostoInitVal(${i},parseBRL(this.value));this.value=BRL(parseBRL(this.value))"></td>
