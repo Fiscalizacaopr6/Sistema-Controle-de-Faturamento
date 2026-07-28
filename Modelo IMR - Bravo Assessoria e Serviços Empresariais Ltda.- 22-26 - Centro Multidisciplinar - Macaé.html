@@ -1258,7 +1258,7 @@ function renderIMR(){
           <th>Peso</th><th>Nota (0–3)</th><th>Subtotal</th>
         </tr></thead><tbody>`;
     g.itens.forEach(it=>{
-      const nota=+(d.notas?.[it.id]||0);
+      const nota=+(d.notas?.[it.id]??3);
       const sub=fl2(nota*it.peso);
       h+=`<tr>
         <td>${escH(it.label)}</td>
