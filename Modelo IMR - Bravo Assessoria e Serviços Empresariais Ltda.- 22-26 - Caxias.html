@@ -683,11 +683,11 @@ function getIMRData(period){
 function calcIMR(notas){
   let total=0;
   const grupoTotals=IMR_GRUPOS.map(g=>{
-    const t=g.itens.reduce((s,it)=>s+fl2((+(notas[it.id]||0))*it.peso),0);
+    const t=g.itens.reduce((s,it)=>s+fl2((+(notas[it.id]??3))*it.peso),0);
     total=fl2(total+t);
     return fl2(t);
   });
-  if(Object.keys(notas).length===0)return{grupoTotals,total:0,grade:'-',pct:1};
+  
   let grade='F',pct=0.75;
   if(total>=8.10){grade='A';pct=1.00;}
   else if(total>=7.65){grade='B';pct=0.95;}
