@@ -678,7 +678,7 @@ function getIMRData(period){
     const n={};IMR_GRUPOS.forEach(g=>g.itens.forEach(it=>n[it.id]=3));
     db.imr[period]={notas:n,diasTrabalhados:30,postos:{},creche:{retido:0,aprovados:0,valorBDI:0},ocorrencias:''};
   }
-  if(!db.imr[period].notas||Object.keys(db.imr[period].notas).length===0){
+  if(!db.imr[period].notas||Object.keys(db.imr[period].notas).length===0||Object.values(db.imr[period].notas).every(v=>v===0)){
     const n={};IMR_GRUPOS.forEach(g=>g.itens.forEach(it=>n[it.id]=3));
     db.imr[period].notas=n;
   }
