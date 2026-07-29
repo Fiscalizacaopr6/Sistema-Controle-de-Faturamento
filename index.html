@@ -280,6 +280,32 @@ tr:last-child td{border-bottom:none}
 #doc-table .doc-scroll::-webkit-scrollbar-track{background:var(--surface2);border-radius:6px}
 #doc-table .doc-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:6px;border:2px solid var(--surface2)}
 #doc-table .doc-scroll::-webkit-scrollbar-thumb:hover{background:#60a5fa}
+/* ── Formulário Conta Vinculada Mensal ── */
+.cv-cab{display:grid;grid-template-columns:1fr 220px;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.cv-cab .full{grid-column:1/-1}
+.cv-paineis{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}
+.cv-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.cv-box-destaque{border-color:rgba(16,185,129,.45)}
+.cv-box-t{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.cv-perc-grid,.cv-tot-grid{display:flex;flex-direction:column;gap:5px}
+.cv-lin{display:flex;justify-content:space-between;gap:10px;font-size:11.5px}
+.cv-lin span:last-child{font-family:'DM Mono',monospace;color:var(--text)}
+.cv-lin.total{border-top:1px solid var(--border);padding-top:6px;margin-top:2px;font-weight:700}
+.cv-lin.total span:last-child{color:var(--accent)}
+.cv-depos{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--green)}
+.cv-saldo{font-size:11.5px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace}
+#cv-tbl{width:max-content;min-width:100%}
+#cv-tabela th{padding:8px 8px;font-size:9.5px;letter-spacing:.4px;text-align:center;cursor:default;white-space:normal}
+#cv-tabela td{padding:4px 6px;font-size:11.5px;white-space:nowrap}
+#cv-tabela th.cv-g1{background:rgba(16,185,129,.14);color:var(--green)}
+#cv-tabela th.cv-g2{background:rgba(245,158,11,.14);color:var(--amber)}
+.cv-inp{width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 6px;outline:none;transition:border-color .15s}
+.cv-inp:focus{border-color:var(--accent);background:var(--bg)}
+.cv-calc{font-family:'DM Mono',monospace;text-align:right;white-space:nowrap;color:var(--text)}
+.cv-calc.vazio{color:var(--muted);opacity:.45}
+.cv-erro{color:#f87171;font-weight:700;font-size:10px}
+.cv-del{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:5px;color:#f87171;font-size:11px;padding:3px 7px;cursor:pointer;font-family:'Sora',sans-serif}
+tr.cv-tem-erro td{background:rgba(239,68,68,.07)}
 /* barra de rolagem própria, fixa no rodapé — não depende da barra nativa do sistema */
 #doc-hbar{display:none;position:fixed;bottom:0;left:220px;right:0;height:18px;background:var(--surface2);border-top:1px solid var(--border);z-index:300}
 #doc-hbar-thumb{position:absolute;top:4px;left:0;height:10px;min-width:44px;border-radius:5px;background:var(--accent);cursor:grab}
@@ -651,6 +677,64 @@ select.doc-inp{cursor:pointer}
       </div>
       <div id="ret-table"></div>
     </div>
+    <!-- FORMULÁRIO CONTA VINCULADA MENSAL -->
+    <div class="view" id="view-cvform">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn-doc" onclick="showView('retencao')">← Voltar</button>
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap;flex:1" id="cv-titulo">Conta Vinculada Mensal</h2>
+        <span id="cv-status" style="font-size:11px;color:var(--muted)"></span>
+        <button class="btn-export xlsx" onclick="cvExportarExcel()">⬇ Excel</button>
+      </div>
+
+      <div class="cv-cab">
+        <div class="ef"><label>Contrato</label><input id="cv-contrato" oninput="cvCampoCab()"></div>
+        <div class="ef"><label>Incidência sobre o submódulo 4.1</label><input id="cv-perc" oninput="cvCampoCab()" placeholder="7,39%"></div>
+        <div class="ef full"><label>Objeto</label><textarea id="cv-objeto" rows="2" oninput="cvCampoCab()"></textarea></div>
+      </div>
+
+      <div class="cv-paineis">
+        <div class="cv-box">
+          <div class="cv-box-t">Percentuais incidentes sobre a remuneração — IN 05, Anexo XII</div>
+          <div class="cv-perc-grid" id="cv-percentuais"></div>
+        </div>
+        <div class="cv-box">
+          <div class="cv-box-t">Retenções para depósito</div>
+          <div class="cv-tot-grid" id="cv-tot-retencao"></div>
+        </div>
+        <div class="cv-box">
+          <div class="cv-box-t">Registro de retiradas</div>
+          <div class="cv-tot-grid" id="cv-tot-retirada"></div>
+        </div>
+        <div class="cv-box cv-box-destaque">
+          <div class="cv-box-t">Valor para depósito na conta vinculada</div>
+          <div class="cv-depos" id="cv-deposito">—</div>
+          <div class="cv-saldo" id="cv-saldo">Saldo: —</div>
+        </div>
+      </div>
+
+      <div class="filters" style="padding:10px 14px">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Buscar</span>
+          <input class="si" id="cv-q" type="text" placeholder="Nome, CPF, função..." oninput="cvRender()" style="width:180px">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Tipo</span>
+          <select class="sel" id="cv-f-tipo" onchange="cvRender()"><option value="">Todos</option><option value="Retenção">Retenção</option><option value="Retirada">Retirada</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Mês</span>
+          <select class="sel" id="cv-f-mes" onchange="cvRender()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Ano</span>
+          <select class="sel" id="cv-f-ano" onchange="cvRender()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Unidade</span>
+          <select class="sel" id="cv-f-unidade" onchange="cvRender()"><option value="">Todas</option></select>
+        </div>
+        <button class="btn clear" onclick="cvLimparFiltros()">Limpar</button>
+        <button class="btn-new" id="btn-cv-linha" onclick="cvAddLinha()" style="display:none">+ Adicionar lançamento</button>
+      </div>
+
+      <div id="cv-tabela"></div>
+      <datalist id="cv-dl-unidades"></datalist>
+    </div>
 <!-- USUÁRIOS -->
     <div class="view" id="view-usuarios">
       <div class="view-header">
@@ -925,7 +1009,9 @@ function launchApp(u) {
     setupRealtimeListeners();
     // Restaura a tela em que o usuário estava antes de atualizar
     var lastView = sessionStorage.getItem('ufrj_view');
-    if (lastView && lastView !== 'dashboard') showView(lastView);
+    var cvId = sessionStorage.getItem('ufrj_cvform');
+    if (lastView === 'cvform' && cvId) cvAbrirFormulario(cvId);
+    else if (lastView && lastView !== 'dashboard') showView(lastView);
   });
 }
 
@@ -1023,10 +1109,10 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Retirada Conta Vinculada', retencao:'Retenção Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Retirada Conta Vinculada', retencao:'Retenção Conta Vinculada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   // Conta Vinculada é um grupo: mantém o submenu aberto e o grupo destacado nas duas telas
-  var ehConta = (v === 'contas' || v === 'retencao');
+  var ehConta = (v === 'contas' || v === 'retencao' || v === 'cvform');
   var grupoConta = document.getElementById('nav-conta-grupo');
   if (grupoConta) grupoConta.classList.toggle('active', ehConta);
   if (ehConta) toggleContaMenu(true);
@@ -1038,6 +1124,7 @@ function showView(v) {
   if (v === 'empresas') buildEmpresasTable();
   if (v === 'contas') buildContasTable();
   if (v === 'retencao') buildRetencaoTable();
+  if (v !== 'cvform') sessionStorage.removeItem('ufrj_cvform');
   if (v === 'reajustes') buildReajustesTable();
   if (v === 'fiscais') buildFiscaisCards();
   var m = document.querySelector('.main');
@@ -2979,23 +3066,24 @@ function renderRetencaoTable() {
   var slice = retFiltered.slice(start, start + retPer);
   var rows = slice.map(function(r) {
     var hasLink = !!r.link;
-    var rowClick = hasLink ? 'onclick="window.open(\''+r.link+'\',\'_blank\')" style="cursor:pointer"' : '';
-    var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
+    var rowClick = 'onclick="cvAbrirFormulario(\''+r.id+'\')" style="cursor:pointer"';
+    var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Formulário</button>'
+      + (canEdit
+      ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
         +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteRetencao(\''+r.id+'\')">Excluir</button>'
-      : '';
+      : '');
     return '<tr '+rowClick+'>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
       +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
       +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
       +'<td style="font-size:11px;white-space:nowrap">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span>&nbsp;<button onclick="event.stopPropagation();copyImrLink(this,\''+r.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
-      +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
+      +'<td style="white-space:nowrap">'+actions+'</td>'
       +'</tr>';
   }).join('');
   wrap.innerHTML = '<div class="table-wrap">'
     +'<div class="table-info"><span>'+retFiltered.length+' formulário(s)</span><span>Página '+retPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
-    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Formulário</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
+    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Link externo</th><th>Ações</th></tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +retPaginationHtml(totalPages)+'</div>';
@@ -4620,6 +4708,424 @@ function docExportRows() {
 function docExportHeaders() { return DOC_FIELDS.map(function(c) { return c.label; }); }
 function exportDocumentosPDF()   { genericExportPDF('Documentos', docExportHeaders(), docExportRows().map(function(r){ return r.map(String); }), 'documentos'); }
 function exportDocumentosExcel() { genericExportExcel('Documentos', docExportHeaders(), docExportRows(), 'documentos'); }
+
+// Unidades do modelo de Conta Vinculada (aba Unidades da planilha)
+var CV_UNIDADES = [{"sigla":"ADMC","nome":"Administração Central"},{"sigla":"AJUDA","nome":"Campus Macaé"},{"sigla":"ALM","nome":"Almoxarifado Central"},{"sigla":"BINGO","nome":"Espaço ex Bingo"},{"sigla":"CANECAO","nome":"CANECÃO UFRJ"},{"sigla":"CAP","nome":"Colégio de Aplicação"},{"sigla":"CASAP","nome":"Polo Casa da Pedra"},{"sigla":"CBAE","nome":"Colégio Brasileiro de Altos Estudos"},{"sigla":"CC","nome":"Casa da Ciência"},{"sigla":"CCA","nome":"COORDENAÇÃO DOS CURSOS DE ACESSO - PR1"},{"sigla":"CCJE","nome":"Centro de Ciências Jurídicas e Econômicas"},{"sigla":"CCMN","nome":"Centro de Ciências Matemáticas e da Natureza"},{"sigla":"CCS","nome":"Centro de Ciências e Saúde"},{"sigla":"CENABIO","nome":"Centro Nacional de Biologia Estrutural e Bioimagem - CCS"},{"sigla":"CENIMP","nome":"Centro Nacional de Identificação Molecular do Pescado - CCS"},{"sigla":"CENPES","nome":"Centro de Pesquisa da Petrobras"},{"sigla":"CFCH","nome":"Centro de Filosofia e Ciências Humanas"},{"sigla":"CIDU","nome":"Cidade Universitária"},{"sigla":"CLA","nome":"Centro de Letras e Artes"},{"sigla":"CMA","nome":"Centro de Memória Acadêmica - SIBI"},{"sigla":"COPPE","nome":"Instituto Alberto Luiz Coimbra de Pós-Graduação e Pesquisa de Engenharia - CT"},{"sigla":"COPPEAD","nome":"Instituto de Pós-Graduação e Pesquisa em Administração da Universidade Federal do Rio de Janeiro"},{"sigla":"COPPETEC","nome":"Fundação Coordenação de Projetos, Pesquisas e Estudos Tecnológicos"},{"sigla":"CPS","nome":"Centro de Práticas de Saúde - Macaé"},{"sigla":"CPST","nome":"Coordenação de Políticas de Saúde do Trabalhador"},{"sigla":"CRM","nome":"Centro de Referência da Mulher"},{"sigla":"CRMM","nome":"Centro de Referência de Mulheres da Maré"},{"sigla":"CT","nome":"Centro de Tecnologia"},{"sigla":"DG","nome":"Divisão Gráfica - PR6"},{"sigla":"DGDI","nome":"Divisão de Gestão Documental e da Informação - PR6"},{"sigla":"DGP","nome":"Divisão de Gestão Patrimonial - PR6"},{"sigla":"EBA","nome":"Escola de Belas Artes"},{"sigla":"ECO","nome":"Escola de Comunicação"},{"sigla":"EDITORA","nome":"Editora UFRJ"},{"sigla":"EEAN","nome":"Escola de Enfermagem Anna Nery - CCS"},{"sigla":"EEFD","nome":"Escola de Esducação Física e Desportos - CCS"},{"sigla":"EEI","nome":"Escola de Educação Infantil"},{"sigla":"EM","nome":"Escola de Música"},{"sigla":"EMM","nome":"Engenharia Metalúrgica e de Materiais - CT"},{"sigla":"EQ","nome":"Escola de Química - CT"},{"sigla":"ESS","nome":"Escola de Serviço Social"},{"sigla":"ETU","nome":"Escritório Técnico da Universidade"},{"sigla":"FACC","nome":"Faculdade de Administração e Ciências Contábeis"},{"sigla":"FAU","nome":"Faculdade de Arquitetura e Urbanismo"},{"sigla":"FCC","nome":"Fórum de Ciência e Cultura"},{"sigla":"FE","nome":"Faculdade de Educação"},{"sigla":"FF","nome":"Faculdade de Farmácia - CCS"},{"sigla":"FL","nome":"Faculdade de Letras"},{"sigla":"FM","nome":"Faculdade de Medicina - CCS"},{"sigla":"FND","nome":"Faculdade Nacional de Direito"},{"sigla":"FO","nome":"Faculdade de Odontologia - CCS"},{"sigla":"GR","nome":"Gabinete do Reitor"},{"sigla":"GTEC","nome":"Prédio GTEC - Parque Tecnológico"},{"sigla":"HANGAR","nome":"Hangar Náutico"},{"sigla":"HESFA","nome":"Hospital Escola São Francisco de Assis - CCS"},{"sigla":"HPM","nome":"Hospital Público Municipal de Macaé"},{"sigla":"HUCFF","nome":"Hospital Universitário Clementino Fraga Filho - CCS"},{"sigla":"IB","nome":"Instituto de Biologia - CCS"},{"sigla":"IBCCF","nome":"Instituto de Biofísica Carlos Chagas Filho - CCS"},{"sigla":"IBQM","nome":"Instituto de Bioquímica Médica - CCS"},{"sigla":"ICB","nome":"Instituto de Ciências Biomédicas - CCS"},{"sigla":"IDT","nome":"Instituto de Doenças do Tórax - CCS"},{"sigla":"IE","nome":"Instituto de Economia"},{"sigla":"IESC","nome":"Instituto de Estudos em Saúde Coletiva - CCS"},{"sigla":"IF","nome":"Instituto de Física - CCMN"},{"sigla":"IFCS","nome":"Instituto de Filosofia e Ciências Socias"},{"sigla":"IG","nome":"Instiuto de Ginecologia - CCS"},{"sigla":"IGEO","nome":"Instituto de Geociências - CCMN"},{"sigla":"IM","nome":"Instituto de Matemática - CCMN"},{"sigla":"IMA","nome":"Instituto de Macromoléculas Professora Eloisa Mano - CT"},{"sigla":"IMMT","nome":"Instituto Macaé de Metrologia e Tecnologia"},{"sigla":"IMPPG","nome":"Instituto Microbiologia Prof Paulo Góes - CCS"},{"sigla":"INDC","nome":"Instituto de Neurologia Deolindo Couto - CCS"},{"sigla":"INJC","nome":"Instituto de Nutrição Josué de Castro - CCS"},{"sigla":"INOVA","nome":"Agência UFRJ de Inovação"},{"sigla":"IP","nome":"Instituto de Psicologia"},{"sigla":"IPPMG","nome":"Instituto de Puericultura e Pediatria Martagão Gesteira - CCS"},{"sigla":"IPPN","nome":"Instiuto de Pesquisa de Produtos Naturais - CCS"},{"sigla":"IPPUR","nome":"Instituto de Pesquisa e Planejamento Urbano e Regional"},{"sigla":"IPUB","nome":"Instituto de Psquiatria da UFRJ - CCS"},{"sigla":"IPUFRJ","nome":"Instituto Politécnico da UFRJ em Cabo Frio - CT"},{"sigla":"IQ","nome":"Instituto de Química - CCMN"},{"sigla":"ITCP","nome":"Incubadora Tecnológica de Cooperativas Populares - UFRJ"},{"sigla":"LADETEC","nome":"Laboratório de Apoio ao Desenvolvimento Tecnológico - IQ/CCMN"},{"sigla":"LAGOMAR","nome":"Campus Macaé"},{"sigla":"LASUP","nome":"Laboratório de Aplicações de Supercondutores - COPPE/CT"},{"sigla":"MACAÉ","nome":"Polo Universitário"},{"sigla":"ME","nome":"Maternidade Escola - CCS"},{"sigla":"MN","nome":"Museu Nacional"},{"sigla":"NCE","nome":"Núcleo de Computação Eletrônica - CCMN"},{"sigla":"NEO","nome":"Núcleo de Estruturas Oceânicas"},{"sigla":"NEPP-DH","nome":"Núcleo de Estudos de Políticas Públicas em Direitos Humanos"},{"sigla":"NUMPEX-BIO","nome":"Núcleo Multidisciplinar de Pesquisa UFRJ – Xerém em Biologia (Duque de Caxias)"},{"sigla":"NUPEM","nome":"Núcleo em Ecologia e Desenvolvimento Sócio - Ambiental de Macaé CCS"},{"sigla":"NUTES","nome":"Núcleo de Tecnologia Educacional para a Saúde - CCS"},{"sigla":"OUVIDORIA","nome":"Ouvidoria-Geral"},{"sigla":"OV","nome":"Observatório do Valongo - CCMN"},{"sigla":"PALACIO","nome":"Palácio Universitário"},{"sigla":"PATR","nome":"Depósito Patrimonio"},{"sigla":"PESAGRO","nome":"Empresa de Pesquisa Agropecuária - Macaé"},{"sigla":"PN","nome":"Polo Naútico - CT"},{"sigla":"POLI","nome":"Escola Politécnica da Universidade Federal do Rio de Janeiro - CT"},{"sigla":"PQTEC","nome":"Parque Tecnológico"},{"sigla":"PR1","nome":"Pró-reitoria de Graduação"},{"sigla":"PR2","nome":"Pró-Reitoria de Pós-graduação e Pesquisa"},{"sigla":"PR3","nome":"Pró-Reitoria de Planejamento, Desenvolvimento e Finanças"},{"sigla":"PR4","nome":"Pró-Reitoria de Pessoal"},{"sigla":"PR5","nome":"Pró-reitoria de Extensão"},{"sigla":"PR6","nome":"Pró Reitoria de Gestão e Governança"},{"sigla":"PR7","nome":"Pró-Reitoria de Políticas Estudantis"},{"sigla":"PROCF","nome":"Procuradoria Federal"},{"sigla":"PRODBIO","nome":"Pós-graduação em Produtos Bioativos e Biociências da UFRJ-Macaé"},{"sigla":"PU","nome":"Prefeitura Universitária"},{"sigla":"PV","nome":"Praia Vermelha"},{"sigla":"PXQ","nome":"Polo de Xistoquímica – Professor Claudio Costa Neto - IQ/CCMN"},{"sigla":"REIT","nome":"Reitoria - Administração da Sede"},{"sigla":"RESID","nome":"Residência Estudantil"},{"sigla":"RU","nome":"Restaurante Universitário"},{"sigla":"SCDS","nome":"Santa Cruz da Serra / Duque de Caxias"},{"sigla":"SIBI","nome":"Sistema de Bibliotecas e Informação da UFRJ"},{"sigla":"SPU","nome":"Terreno cedido pela Superintendência do Patrimônio da União (SPU) à UFRJ"},{"sigla":"SUBPU","nome":"Subprefeitura da Praia Vermelha"},{"sigla":"SUPEREST","nome":"Superintendência Geral de Políticas Estudantis"},{"sigla":"TAMS","nome":"TERRENO NA AVENIDA MEN DE SÁ"},{"sigla":"TIC","nome":"Superintendência de Tecnologia da Informação e Comunicação"},{"sigla":"TODAS","nome":"Todas as unidades do contrato (Ajustes, repactuações)"},{"sigla":"UMAA","nome":"Unidade Multiusuário de Análises Ambientais"},{"sigla":"XERÉM","nome":"Polo de Xerém (Duque de Caxias)"}];
+
+// ══════════════════════════════════════════════════════════════
+//  FORMULÁRIO CONTA VINCULADA MENSAL
+//  Origem: Modelo_Conta_Vinculada_Mensal.xlsx (abas Contrato / Registro)
+//  As colunas calculadas reproduzem as fórmulas da planilha:
+//    N = M × 8,33%  × L/30        (13º salário, só linhas de Retenção)
+//    O = M × 12,10% × L/30        (férias e adicional)
+//    P = M × 4,00%  × L/30        (rescisão e adicional do FGTS)
+//    Q = M × %sub   × L/30        (incidência sobre o submódulo 4.1)
+//    R = N+O+P+Q                  (total depositado)
+//    W = S+T+U+V                  (total retirado, só linhas de Retirada)
+//    X = "ERRO" quando a mesma linha tem remuneração e retirada
+//    Totais = SUBTOTAL(9) → somam apenas as linhas visíveis no filtro
+//    Valor para depósito = R4   |   Saldo = R4 − W4
+// ══════════════════════════════════════════════════════════════
+var CV_PERC = { n: 0.0833, o: 0.121, p: 0.04 };   // Registro!N6, O6, P6
+var CV_PERC_SUB_PADRAO = 0.0739;                   // Contrato!H18
+var CV_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var CV_SITUACOES = ['Admitido','Ativa','Demitido','Férias'];
+var CV_TIPOS = ['Retenção','Retirada'];
+
+var CV_COLS = [
+  {k:'tipo',            r:'A', label:'Tipo',                tipo:'select', opts:CV_TIPOS,      w:'104px'},
+  {k:'cpf',             r:'B', label:'CPF',                 tipo:'cpf',                        w:'128px'},
+  {k:'nome',            r:'C', label:'Nome do funcionário', tipo:'texto',                      w:'210px'},
+  {k:'unidade',         r:'D', label:'Unidade',             tipo:'lista', lista:'cv-dl-unidades', w:'104px'},
+  {k:'funcao',          r:'E', label:'Função',              tipo:'texto',                      w:'150px'},
+  {k:'contratado',      r:'F', label:'Contratado pela empresa',    tipo:'data',                w:'120px'},
+  {k:'disponibilizacao',r:'G', label:'Data de disponibilização',   tipo:'data',                w:'120px'},
+  {k:'desligamento',    r:'H', label:'Desligamento',        tipo:'data',                       w:'120px'},
+  {k:'situacao',        r:'I', label:'Situação',            tipo:'select', opts:CV_SITUACOES,  w:'110px'},
+  {k:'mes',             r:'J', label:'Competência (mês)',   tipo:'select', opts:CV_MESES,      w:'86px'},
+  {k:'ano',             r:'K', label:'Competência (ano)',   tipo:'select', opts:[],            w:'86px'},
+  {k:'dias',            r:'L', label:'Proporcionalidade',   tipo:'numero',                     w:'78px'},
+  {k:'remuneracao',     r:'M', label:'Remuneração',         tipo:'dinheiro',                   w:'112px'},
+  {k:'n',               r:'N', label:'13º salário',                       calc:true, grupo:1},
+  {k:'o',               r:'O', label:'Férias e adicional',                calc:true, grupo:1},
+  {k:'p',               r:'P', label:'Rescisão e adicional do FGTS',      calc:true, grupo:1},
+  {k:'q',               r:'Q', label:'Incidência sobre o submódulo 4.1',  calc:true, grupo:1},
+  {k:'r',               r:'R', label:'Total depositado',                  calc:true, grupo:1},
+  {k:'s',               r:'S', label:'13º salário',                       tipo:'dinheiro', grupo:2, w:'112px'},
+  {k:'t',               r:'T', label:'Férias e adicional',                tipo:'dinheiro', grupo:2, w:'112px'},
+  {k:'u',               r:'U', label:'Rescisão e adicional do FGTS',      tipo:'dinheiro', grupo:2, w:'112px'},
+  {k:'v',               r:'V', label:'Incidência sobre o submódulo 4.1',  tipo:'dinheiro', grupo:2, w:'112px'},
+  {k:'w',               r:'W', label:'Total retirado',                    calc:true, grupo:2},
+  {k:'erro',            r:'X', label:'Erro',                              calc:true, fim:true}
+];
+
+var CV_ATUAL = null;      // {id, contrato, objeto, perc, linhas:[]}
+var CV_REG_ID = '';       // registro da tela de Retenção a que este formulário pertence
+var cvFiltradas = [], _cvSalvarTimer = null, _cvGravouEm = 0, _cvInit = false;
+
+// ── Números e datas ──
+function cvNum(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  if (typeof v === 'number') return v;
+  var t = String(v).replace(/R\$/gi,'').replace(/\s/g,'');
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g,'').replace(',','.');
+  var n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+function cvMoeda(v) {
+  if (v === '' || v === null || v === undefined || isNaN(v)) return '';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function cvPercTexto(p) { return (p*100).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%'; }
+function cvLerPerc(txt) {
+  var n = cvNum(String(txt).replace('%',''));
+  if (n === null) return null;
+  return n > 1 ? n/100 : n;   // aceita "7,39%" e "0,0739"
+}
+function cvCPF(v) {
+  var d = String(v||'').replace(/\D/g,'').slice(0,11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return d.slice(0,3)+'.'+d.slice(3);
+  if (d.length <= 9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
+  return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
+}
+
+// ── Fórmulas da planilha ──
+function cvCalc(l, percSub) {
+  var m = cvNum(l.remuneracao), dias = cvNum(l.dias);
+  var out = {n:null, o:null, p:null, q:null, r:null, w:null, erro:''};
+  if (l.tipo === 'Retenção') {
+    var base = (m || 0) * ((dias === null ? 0 : dias) / 30);
+    out.n = base * CV_PERC.n;
+    out.o = base * CV_PERC.o;
+    out.p = base * CV_PERC.p;
+    out.q = base * percSub;
+    out.r = out.n + out.o + out.p + out.q;
+  }
+  if (l.tipo === 'Retirada') {
+    out.w = (cvNum(l.s)||0) + (cvNum(l.t)||0) + (cvNum(l.u)||0) + (cvNum(l.v)||0);
+  }
+  // Registro!X: ERRO quando a mesma linha tem retirada e remuneração preenchidas
+  var temRetirada = [l.s,l.t,l.u,l.v].some(function(x){ return x !== '' && x !== null && x !== undefined; });
+  if (temRetirada && m !== null) out.erro = 'ERRO';
+  return out;
+}
+function cvPercSub() {
+  return (CV_ATUAL && typeof CV_ATUAL.perc === 'number') ? CV_ATUAL.perc : CV_PERC_SUB_PADRAO;
+}
+
+// ── Persistência (Firebase: retencao_form/<id>) ──
+function cvSalvar(imediato) {
+  if (!CV_ATUAL || !CV_REG_ID) return;
+  clearTimeout(_cvSalvarTimer);
+  function grava() {
+    _cvGravouEm = Date.now();
+    var el = document.getElementById('cv-status');
+    if (el) el.textContent = 'salvando...';
+    fbdb.ref('retencao_form/' + CV_REG_ID).set(CV_ATUAL).then(function() {
+      if (el) { el.textContent = '✔ salvo'; setTimeout(function(){ if (el.textContent === '✔ salvo') el.textContent=''; }, 2500); }
+    }).catch(function(e) {
+      console.error('cvSalvar:', e);
+      if (el) el.textContent = '❌ erro ao salvar: ' + e.message;
+    });
+  }
+  if (imediato) grava(); else _cvSalvarTimer = setTimeout(grava, 700);
+}
+
+function cvAbrirFormulario(regId) {
+  var reg = RETENCAO.find(function(x){ return x.id === regId; });
+  if (!reg) return;
+  CV_REG_ID = regId;
+  sessionStorage.setItem('ufrj_cvform', regId);
+  showLoadingOverlay('Abrindo formulário...');
+  fbdb.ref('retencao_form/' + regId).once('value').then(function(snap) {
+    var val = snap.val() || {};
+    CV_ATUAL = {
+      contrato: val.contrato || reg.contrato || '',
+      objeto:   val.objeto   || '',
+      perc:     (typeof val.perc === 'number') ? val.perc : CV_PERC_SUB_PADRAO,
+      linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : [])
+    };
+    hideLoadingOverlay();
+    cvMontarTela(reg);
+    showView('cvform');
+  }).catch(function(e) {
+    hideLoadingOverlay();
+    alert('Não foi possível abrir o formulário: ' + e.message);
+  });
+}
+
+function cvMontarTela(reg) {
+  document.getElementById('cv-titulo').textContent =
+    'Conta Vinculada Mensal — ' + (reg.contrato || '') + (reg.empresa ? ' · ' + reg.empresa : '');
+  document.getElementById('cv-contrato').value = CV_ATUAL.contrato;
+  document.getElementById('cv-objeto').value = CV_ATUAL.objeto;
+  document.getElementById('cv-perc').value = cvPercTexto(cvPercSub());
+  if (!_cvInit) {
+    var dl = document.getElementById('cv-dl-unidades');
+    if (dl) dl.innerHTML = CV_UNIDADES.map(function(u){ return '<option value="'+esc(u.sigla)+'">'+esc(u.nome)+'</option>'; }).join('');
+    var anos = [];
+    for (var a = 2019; a <= new Date().getFullYear() + 3; a++) anos.push(String(a));
+    CV_COLS.find(function(c){ return c.k === 'ano'; }).opts = anos;
+    cvPreencher('cv-f-mes', CV_MESES, 'Todos');
+    cvPreencher('cv-f-ano', anos, 'Todos');
+    cvPreencher('cv-f-unidade', CV_UNIDADES.map(function(u){ return u.sigla; }), 'Todas');
+    _cvInit = true;
+  }
+  var podeEditar = (currentRole === 'admin' || currentRole === 'editor');
+  var btn = document.getElementById('btn-cv-linha');
+  if (btn) btn.style.display = podeEditar ? '' : 'none';
+  ['cv-contrato','cv-objeto','cv-perc'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !podeEditar;
+  });
+  cvRender();
+}
+
+function cvPreencher(id, valores, placeholder) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = '<option value="">' + placeholder + '</option>'
+    + valores.map(function(v){ return '<option value="'+esc(v)+'">'+esc(v)+'</option>'; }).join('');
+}
+
+function cvCampoCab() {
+  if (!CV_ATUAL) return;
+  CV_ATUAL.contrato = document.getElementById('cv-contrato').value.trim();
+  CV_ATUAL.objeto   = document.getElementById('cv-objeto').value.trim();
+  var p = cvLerPerc(document.getElementById('cv-perc').value);
+  if (p !== null) CV_ATUAL.perc = p;
+  cvRenderTotais();
+  cvAtualizarCalculadas();
+  cvSalvar();
+}
+
+function cvLimparFiltros() {
+  ['cv-q','cv-f-tipo','cv-f-mes','cv-f-ano','cv-f-unidade'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  cvRender();
+}
+
+function cvAddLinha() {
+  if (!CV_ATUAL) return;
+  var hoje = new Date();
+  CV_ATUAL.linhas.push({
+    id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+    tipo: 'Retenção', cpf:'', nome:'', unidade:'', funcao:'',
+    contratado:'', disponibilizacao:'', desligamento:'', situacao:'',
+    mes: CV_MESES[hoje.getMonth()], ano: String(hoje.getFullYear()),
+    dias: '30', remuneracao:'', s:'', t:'', u:'', v:''
+  });
+  cvSalvar();
+  cvRender();
+  var linhas = document.querySelectorAll('#cv-tabela tbody tr');
+  var ultima = linhas[linhas.length-1];
+  if (ultima) {
+    var inp = ultima.querySelector('input.cv-inp');
+    if (inp) inp.focus();
+    ultima.scrollIntoView({block:'nearest'});
+  }
+}
+
+function cvRemoverLinha(id) {
+  if (!CV_ATUAL) return;
+  var l = CV_ATUAL.linhas.find(function(x){ return x.id === id; });
+  if (!l) return;
+  if (!confirm('Excluir o lançamento' + (l.nome ? ' de ' + l.nome : '') + '?')) return;
+  CV_ATUAL.linhas = CV_ATUAL.linhas.filter(function(x){ return x.id !== id; });
+  cvSalvar(true);
+  cvRender();
+}
+
+// ── Edição das células ──
+function cvSetCampo(id, campo, valor, el) {
+  var l = CV_ATUAL && CV_ATUAL.linhas.find(function(x){ return x.id === id; });
+  if (!l) return;
+  if (campo === 'cpf') { valor = cvCPF(valor); if (el) el.value = valor; }
+  l[campo] = valor;
+  cvAtualizarLinha(id);
+  cvRenderTotais();
+  cvSalvar();
+}
+
+function cvAtualizarLinha(id) {
+  var l = CV_ATUAL.linhas.find(function(x){ return x.id === id; });
+  var tr = document.querySelector('#cv-tabela tr[data-id="' + id + '"]');
+  if (!l || !tr) return;
+  var c = cvCalc(l, cvPercSub());
+  CV_COLS.filter(function(col){ return col.calc; }).forEach(function(col) {
+    var td = tr.querySelector('td[data-k="' + col.k + '"]');
+    if (td) td.innerHTML = cvCelulaCalc(col, c);
+  });
+  tr.classList.toggle('cv-tem-erro', c.erro === 'ERRO');
+}
+
+function cvAtualizarCalculadas() {
+  if (!CV_ATUAL) return;
+  CV_ATUAL.linhas.forEach(function(l){ cvAtualizarLinha(l.id); });
+}
+
+function cvCelulaCalc(col, c) {
+  if (col.k === 'erro') return c.erro ? '<span class="cv-erro">ERRO</span>' : '<span class="cv-calc vazio">—</span>';
+  var v = c[col.k];
+  if (v === null || v === undefined || v === '') return '<span class="cv-calc vazio">—</span>';
+  return '<span class="cv-calc">' + esc(cvMoeda(v)) + '</span>';
+}
+
+function cvCampoHtml(col, l, podeEditar) {
+  var v = l[col.k] === undefined || l[col.k] === null ? '' : l[col.k];
+  var dis = podeEditar ? '' : ' disabled';
+  var ev = ' oninput="cvSetCampo(\'' + l.id + '\',\'' + col.k + '\',this.value,this)"';
+  var evSel = ' onchange="cvSetCampo(\'' + l.id + '\',\'' + col.k + '\',this.value)"';
+  if (col.tipo === 'select') {
+    return '<select class="cv-inp"' + dis + evSel + '><option value=""></option>'
+      + col.opts.map(function(o){ return '<option value="'+esc(o)+'"'+(String(v)===String(o)?' selected':'')+'>'+esc(o)+'</option>'; }).join('')
+      + '</select>';
+  }
+  if (col.tipo === 'data') return '<input type="date" class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
+  if (col.tipo === 'lista') return '<input class="cv-inp" list="'+col.lista+'" value="'+esc(v)+'"'+dis+ev+'>';
+  if (col.tipo === 'numero') return '<input type="number" min="0" max="30" step="1" class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
+  if (col.tipo === 'dinheiro') return '<input class="cv-inp" style="text-align:right" placeholder="0,00" value="'+esc(v)+'"'+dis+ev+'>';
+  return '<input class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
+}
+
+// ── Tabela ──
+function cvFiltrar() {
+  var q = (document.getElementById('cv-q')||{}).value || '';
+  q = q.toLowerCase().trim();
+  var fT = (document.getElementById('cv-f-tipo')||{}).value || '';
+  var fM = (document.getElementById('cv-f-mes')||{}).value || '';
+  var fA = (document.getElementById('cv-f-ano')||{}).value || '';
+  var fU = (document.getElementById('cv-f-unidade')||{}).value || '';
+  cvFiltradas = (CV_ATUAL ? CV_ATUAL.linhas : []).filter(function(l) {
+    if (fT && l.tipo !== fT) return false;
+    if (fM && l.mes !== fM) return false;
+    if (fA && String(l.ano) !== fA) return false;
+    if (fU && l.unidade !== fU) return false;
+    if (!q) return true;
+    return ['nome','cpf','funcao','unidade'].some(function(k){ return String(l[k]||'').toLowerCase().indexOf(q) !== -1; });
+  });
+}
+
+function cvRender() {
+  if (!CV_ATUAL) return;
+  cvFiltrar();
+  var podeEditar = (currentRole === 'admin' || currentRole === 'editor');
+  var wrap = document.getElementById('cv-tabela');
+  if (!wrap) return;
+
+  // O cabeçalho segue exatamente a ordem de CV_COLS: colunas simples,
+  // grupo "Retenções", grupo "Retiradas" e, por último, a coluna Erro.
+  function thSimples(c) { return '<th rowspan="2"'+(c.w?' style="width:'+c.w+'"':'')+'>'+esc(c.label)+'</th>'; }
+  var th1 = '<tr>'
+    + '<th rowspan="2" style="width:34px">#</th>'
+    + CV_COLS.filter(function(c){ return !c.grupo && !c.fim; }).map(thSimples).join('')
+    + '<th class="cv-g1" colspan="'+CV_COLS.filter(function(c){ return c.grupo === 1; }).length+'">Retenções para depósito</th>'
+    + '<th class="cv-g2" colspan="'+CV_COLS.filter(function(c){ return c.grupo === 2; }).length+'">Registro de retiradas</th>'
+    + CV_COLS.filter(function(c){ return c.fim; }).map(thSimples).join('')
+    + (podeEditar ? '<th rowspan="2" style="width:44px"></th>' : '')
+    + '</tr>';
+  var th2 = '<tr>'
+    + CV_COLS.filter(function(c){ return c.grupo === 1; }).map(function(c){ return '<th class="cv-g1">'+esc(c.label)+'</th>'; }).join('')
+    + CV_COLS.filter(function(c){ return c.grupo === 2; }).map(function(c){ return '<th class="cv-g2">'+esc(c.label)+'</th>'; }).join('')
+    + '</tr>';
+
+  var linhas = cvFiltradas.map(function(l, i) {
+    var c = cvCalc(l, cvPercSub());
+    var tds = CV_COLS.map(function(col) {
+      if (col.calc) return '<td data-k="'+col.k+'" style="text-align:right">'+cvCelulaCalc(col, c)+'</td>';
+      return '<td data-k="'+col.k+'">'+cvCampoHtml(col, l, podeEditar)+'</td>';
+    }).join('');
+    return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro':'')+'">'
+      + '<td style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px">'+(i+1)+'</td>'
+      + tds
+      + (podeEditar ? '<td><button class="cv-del" onclick="cvRemoverLinha(\''+l.id+'\')" title="Excluir lançamento">✕</button></td>' : '')
+      + '</tr>';
+  }).join('');
+
+  if (!cvFiltradas.length) {
+    linhas = '<tr><td colspan="40" style="text-align:center;color:var(--muted);padding:26px">'
+      + (CV_ATUAL.linhas.length ? 'Nenhum lançamento encontrado com os filtros atuais.' : 'Nenhum lançamento. Use “+ Adicionar lançamento” para começar.')
+      + '</td></tr>';
+  }
+
+  wrap.innerHTML = '<div class="table-wrap">'
+    + '<div class="table-info"><span>'+cvFiltradas.length+' lançamento(s)'
+    + (cvFiltradas.length !== CV_ATUAL.linhas.length ? ' de '+CV_ATUAL.linhas.length : '')+'</span>'
+    + '<span style="color:var(--muted)">Os totais somam apenas os lançamentos filtrados</span></div>'
+    + '<div class="doc-scroll" style="overflow-x:scroll"><table id="cv-tbl">'
+    + '<thead>'+th1+th2+'</thead><tbody>'+linhas+'</tbody></table></div></div>';
+
+  cvRenderTotais();
+}
+
+function cvRenderTotais() {
+  if (!CV_ATUAL) return;
+  cvFiltrar();
+  var perc = cvPercSub();
+  var t = {n:0,o:0,p:0,q:0,r:0,s:0,t:0,u:0,v:0,w:0};
+  cvFiltradas.forEach(function(l) {
+    var c = cvCalc(l, perc);
+    ['n','o','p','q','r'].forEach(function(k){ if (c[k]) t[k] += c[k]; });
+    if (l.tipo === 'Retirada') {
+      ['s','t','u','v'].forEach(function(k){ t[k] += (cvNum(l[k])||0); });
+      t.w += (c.w || 0);
+    }
+  });
+
+  function linha(lbl, val, cls) {
+    return '<div class="cv-lin'+(cls?' '+cls:'')+'"><span>'+esc(lbl)+'</span><span>'+esc(val)+'</span></div>';
+  }
+  var elP = document.getElementById('cv-percentuais');
+  if (elP) elP.innerHTML =
+      linha('13º salário', cvPercTexto(CV_PERC.n))
+    + linha('Férias e adicional', cvPercTexto(CV_PERC.o))
+    + linha('Rescisão e adicional do FGTS', cvPercTexto(CV_PERC.p))
+    + linha('Incidência sobre o submódulo 4.1', cvPercTexto(perc))
+    + linha('Total', cvPercTexto(CV_PERC.n + CV_PERC.o + CV_PERC.p + perc), 'total');
+
+  var elR = document.getElementById('cv-tot-retencao');
+  if (elR) elR.innerHTML =
+      linha('13º salário', cvMoeda(t.n) || 'R$ 0,00')
+    + linha('Férias e adicional', cvMoeda(t.o) || 'R$ 0,00')
+    + linha('Rescisão e adicional do FGTS', cvMoeda(t.p) || 'R$ 0,00')
+    + linha('Incidência sobre o submódulo 4.1', cvMoeda(t.q) || 'R$ 0,00')
+    + linha('Total depositado', cvMoeda(t.r) || 'R$ 0,00', 'total');
+
+  var elS = document.getElementById('cv-tot-retirada');
+  if (elS) elS.innerHTML =
+      linha('13º salário', cvMoeda(t.s) || 'R$ 0,00')
+    + linha('Férias e adicional', cvMoeda(t.t) || 'R$ 0,00')
+    + linha('Rescisão e adicional do FGTS', cvMoeda(t.u) || 'R$ 0,00')
+    + linha('Incidência sobre o submódulo 4.1', cvMoeda(t.v) || 'R$ 0,00')
+    + linha('Total retirado', cvMoeda(t.w) || 'R$ 0,00', 'total');
+
+  var elD = document.getElementById('cv-deposito');
+  if (elD) elD.textContent = cvMoeda(t.r) || 'R$ 0,00';
+  var elSaldo = document.getElementById('cv-saldo');
+  if (elSaldo) elSaldo.textContent = 'Saldo (depositado − retirado): ' + (cvMoeda(t.r - t.w) || 'R$ 0,00');
+}
+
+// ── Exportação ──
+function cvExportarExcel() {
+  if (!CV_ATUAL) return;
+  cvFiltrar();
+  var perc = cvPercSub();
+  var cab = ['#'].concat(CV_COLS.map(function(c){ return c.label; }));
+  var linhas = cvFiltradas.map(function(l, i) {
+    var c = cvCalc(l, perc);
+    return [i+1].concat(CV_COLS.map(function(col) {
+      if (col.calc) {
+        if (col.k === 'erro') return c.erro || '';
+        return c[col.k] === null || c[col.k] === undefined ? '' : Number(c[col.k].toFixed(2));
+      }
+      if (col.tipo === 'dinheiro') { var n = cvNum(l[col.k]); return n === null ? '' : n; }
+      return l[col.k] || '';
+    }));
+  });
+  genericExportExcel('Conta Vinculada', cab, linhas, 'conta_vinculada_' + (CV_ATUAL.contrato || '').replace(/\//g,'-'));
+}
 
 // ── Boot ──
 document.addEventListener('DOMContentLoaded', function() {
