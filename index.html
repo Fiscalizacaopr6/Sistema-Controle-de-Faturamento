@@ -116,6 +116,12 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--muted);font-size:13px;border-left:3px solid transparent;transition:all .15s}
 .nav-item:hover{color:var(--text);background:rgba(59,130,246,.06)}
 .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,130,246,.08)}
+.nav-group{justify-content:space-between}
+.nav-caret{font-size:9px;margin-left:auto;transition:transform .2s}
+.nav-group.aberto .nav-caret{transform:rotate(90deg)}
+.nav-sub{display:none}
+.nav-sub.aberto{display:block}
+.nav-sub-item{padding-left:42px;font-size:12.5px}
 .sb-foot{padding:16px 20px;border-top:1px solid var(--border);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
 .sb-fv{color:var(--text);font-size:14px;font-weight:500;margin-bottom:4px}
 .main{margin-left:220px;height:100vh;overflow-y:auto;overflow-x:hidden;overflow-anchor:none}
@@ -360,7 +366,11 @@ select.doc-inp{cursor:pointer}
       <div class="nav-item" id="nav-documentos" onclick="showView('documentos')">🗂️ Documentos</div>
       <div class="nav-item" id="nav-fiscais" onclick="showView('fiscais')">🔍 Fiscais</div>
       <div class="nav-item" id="nav-reajustes" onclick="showView('reajustes')">📈 Reajuste/Repactuação</div>
-      <div class="nav-item" id="nav-contas" onclick="showView('contas')">🔗 Conta Vinculada</div>
+      <div class="nav-item nav-group" id="nav-conta-grupo" onclick="toggleContaMenu()">🔗 Conta Vinculada<span class="nav-caret">▸</span></div>
+      <div class="nav-sub" id="nav-conta-sub">
+        <div class="nav-item nav-sub-item" id="nav-contas" onclick="showView('contas')">💸 Retirada</div>
+        <div class="nav-item nav-sub-item" id="nav-retencao" onclick="showView('retencao')">🔒 Retenção</div>
+      </div>
       <div class="nav-item" id="nav-empresas" onclick="showView('empresas')">🏭 Empresas</div>
       <div class="nav-item" id="nav-unidades" onclick="showView('unidades')">🏢 Unidades</div>
       <div class="nav-item" id="nav-imr" onclick="showView('imr')">📋 IMR</div>
@@ -583,7 +593,7 @@ select.doc-inp{cursor:pointer}
     <!-- CONTA VINCULADA -->
     <div class="view" id="view-contas">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Conta Vinculada</h2>
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Retirada Conta Vinculada</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:500px">
           <input id="conta-q" type="text" placeholder="Buscar por contrato, processo, responsável, empresa ou situação..." oninput="buildContasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-export pdf" onclick="exportContasPDF()">⬇ PDF</button>
@@ -629,6 +639,17 @@ select.doc-inp{cursor:pointer}
         </div>
       </div>
       <div id="imr-table"></div>
+    </div>
+    <!-- RETENÇÃO CONTA VINCULADA -->
+    <div class="view" id="view-retencao">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Retenção Conta Vinculada</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
+          <input id="ret-q" type="text" placeholder="Buscar por contrato, empresa ou unidade..." oninput="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-new" id="btn-novo-retencao" onclick="openNewRetencaoModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
+        </div>
+      </div>
+      <div id="ret-table"></div>
     </div>
 <!-- USUÁRIOS -->
     <div class="view" id="view-usuarios">
@@ -893,6 +914,7 @@ function launchApp(u) {
     document.getElementById('btn-novo-conta').style.display = '';
     document.getElementById('btn-novo-reajuste').style.display = '';
     document.getElementById('btn-novo-imr').style.display = '';
+    document.getElementById('btn-novo-retencao').style.display = '';
     document.getElementById('btn-novo-documento').style.display = '';
   }
   loadAllFromFirebase(function() {
@@ -951,6 +973,13 @@ function setupRealtimeListeners() {
     REAJUSTES.length = 0; arr.forEach(function(d){ if(d) REAJUSTES.push(d); });
     refreshAll();
   });
+  fbdb.ref('retencao').on('value', function(snap) {
+    if (_suppressRefresh) return;
+    var val = snap.val(); if (!val) { RETENCAO.length = 0; return; }
+    var arr = Array.isArray(val) ? val : Object.values(val);
+    RETENCAO.length = 0; arr.forEach(function(d){ if(d) RETENCAO.push(d); });
+    if (document.getElementById('view-retencao') && document.getElementById('view-retencao').classList.contains('active')) buildRetencaoTable();
+  });
   fbdb.ref('imr').on('value', function(snap) {
     if (_suppressRefresh) return;
     var val = snap.val(); if (!val) { IMR.length = 0; return; }
@@ -977,6 +1006,15 @@ function setupRealtimeListeners() {
 }
 
 // ── Navigation ──
+function toggleContaMenu(forcar) {
+  var grupo = document.getElementById('nav-conta-grupo');
+  var sub = document.getElementById('nav-conta-sub');
+  if (!grupo || !sub) return;
+  var abrir = (forcar === undefined) ? !sub.classList.contains('aberto') : !!forcar;
+  sub.classList.toggle('aberto', abrir);
+  grupo.classList.toggle('aberto', abrir);
+}
+
 function showView(v) {
   // Tela inexistente (ex.: 'alertas', guardada na sessão antes de ela ser removida) → volta ao Dashboard
   if (!document.getElementById('view-' + v)) { v = 'dashboard'; sessionStorage.setItem('ufrj_view', v); }
@@ -985,8 +1023,13 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Retirada Conta Vinculada', retencao:'Retenção Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
+  // Conta Vinculada é um grupo: mantém o submenu aberto e o grupo destacado nas duas telas
+  var ehConta = (v === 'contas' || v === 'retencao');
+  var grupoConta = document.getElementById('nav-conta-grupo');
+  if (grupoConta) grupoConta.classList.toggle('active', ehConta);
+  if (ehConta) toggleContaMenu(true);
   if (v === 'documentos') { initDocumentos(); buildDocumentosTable(); }
   else { var hb = document.getElementById('doc-hbar'); if (hb) hb.style.display = 'none'; }
   if (v === 'usuarios') buildUsersTable();
@@ -994,6 +1037,7 @@ function showView(v) {
   if (v === 'imr') buildImrTable();
   if (v === 'empresas') buildEmpresasTable();
   if (v === 'contas') buildContasTable();
+  if (v === 'retencao') buildRetencaoTable();
   if (v === 'reajustes') buildReajustesTable();
   if (v === 'fiscais') buildFiscaisCards();
   var m = document.querySelector('.main');
@@ -2900,6 +2944,153 @@ function fallbackCopy(text) {
   document.body.removeChild(ta);
 }
 
+// ══════════════════════════════════════════════
+//  RETENÇÃO CONTA VINCULADA — formulários por empresa
+// ══════════════════════════════════════════════
+var RETENCAO = [];
+
+function saveRetencaoToStorage() {
+  fbdb.ref('retencao').set(fbSanitizeKeys(RETENCAO)).catch(function(e){ console.error('saveRetencao:', e); });
+}
+
+var retFiltered = [], retPage = 1, retPer = 50;
+
+function buildRetencaoTable() {
+  var q = (document.getElementById('ret-q') ? document.getElementById('ret-q').value : '').toLowerCase();
+  retFiltered = RETENCAO.filter(function(r) {
+    if (!q) return true;
+    return (r.contrato||'').toLowerCase().indexOf(q) !== -1
+        || (r.empresa||'').toLowerCase().indexOf(q) !== -1
+        || (r.unidade||'').toLowerCase().indexOf(q) !== -1;
+  });
+  retPage = 1;
+  renderRetencaoTable();
+}
+
+function renderRetencaoTable() {
+  var canEdit = currentRole === 'admin' || currentRole === 'editor';
+  var wrap = document.getElementById('ret-table');
+  if (!wrap) return;
+  if (!RETENCAO.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum formulário de retenção cadastrado.</div>'; return; }
+  if (!retFiltered.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum registro encontrado.</div>'; return; }
+  var totalPages = Math.ceil(retFiltered.length / retPer);
+  if (retPage > totalPages) retPage = totalPages;
+  var start = (retPage - 1) * retPer;
+  var slice = retFiltered.slice(start, start + retPer);
+  var rows = slice.map(function(r) {
+    var hasLink = !!r.link;
+    var rowClick = hasLink ? 'onclick="window.open(\''+r.link+'\',\'_blank\')" style="cursor:pointer"' : '';
+    var actions = canEdit
+      ? '<button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
+        +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteRetencao(\''+r.id+'\')">Excluir</button>'
+      : '';
+    return '<tr '+rowClick+'>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
+      +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
+      +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
+      +'<td style="font-size:11px;white-space:nowrap">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span>&nbsp;<button onclick="event.stopPropagation();copyImrLink(this,\''+r.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
+      +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
+      +'</tr>';
+  }).join('');
+  wrap.innerHTML = '<div class="table-wrap">'
+    +'<div class="table-info"><span>'+retFiltered.length+' formulário(s)</span><span>Página '+retPage+' de '+totalPages+'</span></div>'
+    +'<div style="overflow-x:auto"><table>'
+    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Formulário</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table></div>'
+    +retPaginationHtml(totalPages)+'</div>';
+}
+
+function retPaginationHtml(total) {
+  if (total <= 1) return '';
+  var h = '<div class="pagination">';
+  h += '<button class="pg" onclick="retGoPage('+(retPage-1)+')" '+(retPage===1?'disabled':'')+'>&#8249;</button>';
+  var s = Math.max(1, retPage-2), e = Math.min(total, retPage+2);
+  if (s > 1) h += '<button class="pg" onclick="retGoPage(1)">1</button>'+(s>2?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'');
+  for (var i=s; i<=e; i++) h += '<button class="pg'+(i===retPage?' act':'')+'" onclick="retGoPage('+i+')">'+i+'</button>';
+  if (e < total) h += (e<total-1?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'')+'<button class="pg" onclick="retGoPage('+total+')">'+total+'</button>';
+  h += '<button class="pg" onclick="retGoPage('+(retPage+1)+')" '+(retPage===total?'disabled':'')+'>&#8250;</button></div>';
+  return h;
+}
+
+function retGoPage(p) {
+  var total = Math.ceil(retFiltered.length / retPer);
+  if (p < 1 || p > total) return;
+  retPage = p; renderRetencaoTable();
+}
+
+function retencaoFormHtml(r) {
+  r = r || {};
+  var contratoOpts = Array.from(new Set(DADOS.map(function(d){ return d['CONTRATO']||''; }).filter(Boolean))).sort();
+  var empresaOpts  = Array.from(new Set(DADOS.map(function(d){ return (d['EMPRESA']||'').trim(); }).filter(Boolean))).sort();
+  return '<div class="eform">'
+    +'<div class="ef"><label>Contrato *</label><input id="ef-ret-contrato" list="ret-contrato-list" value="'+esc(r.contrato||'')+'" placeholder="Ex: 01/24">'
+    +'<datalist id="ret-contrato-list">'+contratoOpts.map(function(c){ return '<option value="'+esc(c)+'">'; }).join('')+'</datalist></div>'
+    +'<div class="ef"><label>Unidade</label><input id="ef-ret-unidade" value="'+esc(r.unidade||'')+'"></div>'
+    +'<div class="ef full"><label>Empresa *</label><input id="ef-ret-empresa" list="ret-empresa-list" value="'+esc(r.empresa||'')+'">'
+    +'<datalist id="ret-empresa-list">'+empresaOpts.map(function(c){ return '<option value="'+esc(c)+'">'; }).join('')+'</datalist></div>'
+    +'<div class="ef full"><label>Link do formulário</label><input id="ef-ret-link" type="url" style="text-transform:none" value="'+esc(r.link||'')+'" placeholder="https://..."></div>'
+    +'</div>';
+}
+
+function readRetencaoForm() {
+  function v(id){ return document.getElementById(id).value.trim(); }
+  return { contrato: v('ef-ret-contrato'), empresa: v('ef-ret-empresa'), unidade: v('ef-ret-unidade'), link: v('ef-ret-link') };
+}
+
+function openNewRetencaoModal() {
+  document.getElementById('mo-t').textContent = 'Novo Formulário de Retenção';
+  document.getElementById('mo-s').textContent = 'Conta vinculada — retenção';
+  document.getElementById('mo-b').innerHTML = retencaoFormHtml(null);
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    +'<button class="btn-save" onclick="saveNewRetencao()">Salvar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+
+function saveNewRetencao() {
+  var r = readRetencaoForm();
+  if (!r.contrato || !r.empresa) { alert('Contrato e Empresa são obrigatórios.'); return; }
+  r.id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  RETENCAO.push(r);
+  saveRetencaoToStorage();
+  closeMo();
+  buildRetencaoTable();
+}
+
+function openEditRetencaoModal(id) {
+  var r = RETENCAO.find(function(x){ return x.id === id; });
+  if (!r) return;
+  document.getElementById('mo-t').textContent = 'Editar Formulário de Retenção';
+  document.getElementById('mo-s').textContent = r.contrato;
+  document.getElementById('mo-b').innerHTML = retencaoFormHtml(r);
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    +'<button class="btn-save" onclick="saveEditRetencao(\''+id+'\')">Salvar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+
+function saveEditRetencao(id) {
+  var idx = RETENCAO.findIndex(function(x){ return x.id === id; });
+  if (idx === -1) return;
+  var r = readRetencaoForm();
+  if (!r.contrato || !r.empresa) { alert('Contrato e Empresa são obrigatórios.'); return; }
+  r.id = id;
+  RETENCAO[idx] = r;
+  saveRetencaoToStorage();
+  closeMo();
+  buildRetencaoTable();
+}
+
+function confirmDeleteRetencao(id) {
+  var r = RETENCAO.find(function(x){ return x.id === id; });
+  if (!r) return;
+  if (!confirm('Excluir o formulário de retenção do contrato ' + r.contrato + '?')) return;
+  RETENCAO = RETENCAO.filter(function(x){ return x.id !== id; });
+  saveRetencaoToStorage();
+  buildRetencaoTable();
+}
+
 function confirmDeleteImr(id) {
   var r = IMR.find(function(x){ return x.id === id; });
   if (!r) return;
@@ -3291,7 +3482,8 @@ function loadAllFromFirebase(callback) {
     safeRead(fbdb.ref('contas')),
     safeRead(fbdb.ref('reajustes')),
     safeRead(fbdb.ref('imr')),
-    safeRead(fbdb.ref('documentos_edits'))
+    safeRead(fbdb.ref('documentos_edits')),
+    safeRead(fbdb.ref('retencao'))
   ]).then(function(snaps) {
     // dados
     var dadosVal = snaps[0].val();
@@ -3365,6 +3557,13 @@ function loadAllFromFirebase(callback) {
       IMR.length = 0; arr.forEach(function(x){ if(x) IMR.push(x); });
     } else {
       IMR.length = 0;
+    }
+    // retenção de conta vinculada
+    var retVal = snaps[8].val();
+    RETENCAO.length = 0;
+    if (retVal) {
+      var arrRet = Array.isArray(retVal) ? retVal : Object.values(retVal);
+      arrRet.forEach(function(x){ if(x) RETENCAO.push(x); });
     }
     // documentos (planilha base + alterações salvas no Firebase)
     DOC_OVERRIDES = snaps[7].val() || {};
