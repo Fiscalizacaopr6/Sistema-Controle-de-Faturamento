@@ -510,7 +510,6 @@ select.doc-inp{cursor:pointer}
 
     <!-- DOCUMENTOS -->
     <div class="view" id="view-documentos">
-      <div class="kpi-grid" id="doc-kpi"></div>
       <div class="filters">
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Buscar</span>
           <input class="si" id="doc-q" type="text" placeholder="Empresa, contrato, unidade, NF..." oninput="buildDocumentosTable()">
@@ -4206,7 +4205,7 @@ function docCommitCell(td, move) {
   }
   td.classList.remove('doc-editing');
   td.innerHTML = docCellDisplay(col, rec);
-  if (mudou) { docUpdateKpis(); docToast('✔ Alteração salva em "' + col.label + '".'); }
+  if (mudou) { docToast('✔ Alteração salva em "' + col.label + '".'); }
   if (move) docEditVizinha(td, move);
 }
 
@@ -4273,7 +4272,7 @@ function docSaveRow(id) {
     docPersist(rec);
   }
   docRenderRow(tr, rec);
-  if (mudou) { docUpdateKpis(); docToast('✔ Linha salva.'); }
+  if (mudou) { docToast('✔ Linha salva.'); }
 }
 
 function docCancelRow(id) {
@@ -4400,35 +4399,12 @@ function buildDocumentosTable(manterPagina) {
   }
   if (!manterPagina) docPage = 1;
   renderDocumentosTable();
-  docUpdateKpis();
 }
 
 function docSortBy(k) {
   if (docSort.k === k) docSort.dir = -docSort.dir;
   else { docSort.k = k; docSort.dir = 1; }
   buildDocumentosTable();
-}
-
-function docUpdateKpis() {
-  var el = document.getElementById('doc-kpi');
-  if (!el) return;
-  var total = docFiltered.length;
-  var pagos = 0, valor = 0;
-  docFiltered.forEach(function(r) {
-    if (String(r.situacao || '').toUpperCase() === 'PAGO') pagos++;
-    if (typeof r.valorNf === 'number') valor += r.valorNf;
-  });
-  var pend = total - pagos;
-  var kpis = [
-    {c:'blue',  l:'Registros',      v:total.toLocaleString('pt-BR'), s:DOCUMENTOS.length.toLocaleString('pt-BR') + ' no total'},
-    {c:'green', l:'Valor das NFs',  v:fmtM(valor),                   s:'somatório do filtro'},
-    {c:'purple',l:'Pagos',          v:pagos.toLocaleString('pt-BR'), s:total ? Math.round(pagos / total * 100) + '% do filtro' : '—'},
-    {c:'amber', l:'Pendentes',      v:pend.toLocaleString('pt-BR'),  s:'situação diferente de pago'}
-  ];
-  el.innerHTML = kpis.map(function(k) {
-    return '<div class="kpi ' + k.c + '"><div class="kpi-label">' + k.l + '</div>'
-      + '<div class="kpi-value">' + k.v + '</div><div class="kpi-sub">' + k.s + '</div></div>';
-  }).join('');
 }
 
 function renderDocumentosTable() {
