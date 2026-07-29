@@ -258,12 +258,40 @@ tr:last-child td{border-bottom:none}
 .btn-export.xlsx{border-color:rgba(16,185,129,.4);color:var(--green)}
 .btn-export.xlsx:hover{background:rgba(16,185,129,.12)}
 @keyframes spin { to { transform: rotate(360deg); } }
+/* ── Documentos (edição direto na linha) ── */
+.doc-hint{display:flex;align-items:center;gap:8px;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.22);border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)}
+.doc-hint b{color:var(--accent);font-weight:600}
+#doc-table th{padding:9px 10px;font-size:10px;letter-spacing:.6px}
+#doc-table td{padding:6px 10px;font-size:11.5px}
+#doc-table td.doc-cell{cursor:cell}
+#doc-table td.doc-cell:hover{box-shadow:inset 0 0 0 1px rgba(59,130,246,.35)}
+#doc-table td.doc-editing{padding:3px 5px;background:rgba(59,130,246,.10)}
+#doc-table tr.doc-row-editing td{background:rgba(59,130,246,.08)}
+#doc-table .doc-sticky{position:sticky;left:0;z-index:2;background:var(--surface)}
+#doc-table th.doc-sticky{background:var(--surface2);z-index:3}
+#doc-table tr.doc-row-editing td.doc-sticky{background:#16243d}
+html.light #doc-table tr.doc-row-editing td.doc-sticky{background:#e8effb}
+.doc-inp{width:100%;min-width:96px;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--accent);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 7px;outline:none}
+select.doc-inp{cursor:pointer}
+.doc-mono{font-family:'DM Mono',monospace}
+.doc-empty{color:var(--muted);opacity:.5}
+.doc-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.doc-b-ok{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.doc-b-warn{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.doc-b-red{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.doc-b-mut{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.doc-act{display:flex;gap:4px;white-space:nowrap}
+.btn-doc{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:600;line-height:1.4}
+.btn-doc:hover{border-color:var(--accent);color:var(--accent)}
+.btn-doc.ok{border-color:rgba(16,185,129,.4);color:var(--green)}
+.btn-doc.no{border-color:rgba(239,68,68,.3);color:#f87171}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script defer src="documentos-data.js"></script>
 </head>
 <body>
 
@@ -319,6 +347,7 @@ tr:last-child td{border-bottom:none}
     <nav class="sb-nav">
       <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">📊 Dashboard</div>
       <div class="nav-item" id="nav-contratos" onclick="showView('contratos')">📄 Contratos</div>
+      <div class="nav-item" id="nav-documentos" onclick="showView('documentos')">🗂️ Documentos</div>
       <div class="nav-item" id="nav-alertas" onclick="showView('alertas')">⚠️ Alertas</div>
       <div class="nav-item" id="nav-fiscais" onclick="showView('fiscais')">🔍 Fiscais</div>
       <div class="nav-item" id="nav-reajustes" onclick="showView('reajustes')">📈 Reajuste/Repactuação</div>
@@ -477,6 +506,38 @@ tr:last-child td{border-bottom:none}
         </div>
         <div class="pagination" id="pagination"></div>
       </div>
+    </div>
+
+    <!-- DOCUMENTOS -->
+    <div class="view" id="view-documentos">
+      <div class="kpi-grid" id="doc-kpi"></div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Buscar</span>
+          <input class="si" id="doc-q" type="text" placeholder="Empresa, contrato, unidade, NF..." oninput="buildDocumentosTable()">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Ano</span>
+          <select class="sel" id="doc-f-ano" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Mês</span>
+          <select class="sel" id="doc-f-mes" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Situação</span>
+          <select class="sel" id="doc-f-sit" onchange="buildDocumentosTable()"><option value="">Todas</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
+          <select class="sel" id="doc-f-resp" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="doc-f-status" onchange="buildDocumentosTable()"><option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="ENCERRADO">Encerrado</option></select>
+        </div>
+        <button class="btn clear" onclick="clearDocFilters()">Limpar</button>
+        <button class="btn-export pdf" onclick="exportDocumentosPDF()" title="Baixar os resultados filtrados em PDF">⬇ PDF</button>
+        <button class="btn-export xlsx" onclick="exportDocumentosExcel()" title="Baixar os resultados filtrados em Excel">⬇ Excel</button>
+        <button class="btn-new" id="btn-novo-documento" onclick="openNewDocumentoModal()" style="display:none">+ Novo Registro</button>
+      </div>
+      <div class="doc-hint" id="doc-hint">✏️ <span>Dê um <b>duplo clique</b> sobre a informação para editar direto na linha. <b>Enter</b> salva, <b>Tab</b> vai para a próxima coluna e <b>Esc</b> cancela. O botão <b>Editar linha</b> abre a linha inteira para edição.</span></div>
+      <div id="doc-table"></div>
+      <datalist id="doc-dl-flag"><option value="SIM"></option><option value="NÃO SE APLICA"></option><option value="NÃO HOUVE FAT"></option></datalist>
     </div>
 
     <!-- ALERTAS -->
@@ -842,6 +903,7 @@ function launchApp(u) {
     document.getElementById('btn-novo-conta').style.display = '';
     document.getElementById('btn-novo-reajuste').style.display = '';
     document.getElementById('btn-novo-imr').style.display = '';
+    document.getElementById('btn-novo-documento').style.display = '';
   }
   loadAllFromFirebase(function() {
     calcLive();
@@ -907,6 +969,16 @@ function setupRealtimeListeners() {
     IMR.length = 0; arr.forEach(function(d){ if(d) IMR.push(d); });
     if (document.getElementById('view-imr') && document.getElementById('view-imr').classList.contains('active')) buildImrTable();
   });
+  fbdb.ref('documentos_edits').on('value', function(snap) {
+    if (_suppressRefresh) return;
+    DOC_OVERRIDES = snap.val() || {};
+    docRebuild();
+    var el = document.getElementById('view-documentos');
+    var ecoDaPropriaEdicao = (Date.now() - _docLocalWrite) < 5000;
+    if (el && el.classList.contains('active') && !docHasOpenEditor() && !ecoDaPropriaEdicao) {
+      buildDocumentosTable(true);
+    }
+  });
   fbdb.ref('users').on('value', function(snap) {
     var val = snap.val(); if (!val) return;
     Object.keys(val).forEach(function(k){ USERS_DB[k] = val[k]; });
@@ -922,8 +994,9 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', alertas:'Alertas de Vencimento', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', alertas:'Alertas de Vencimento', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
+  if (v === 'documentos') { initDocumentos(); buildDocumentosTable(); }
   if (v === 'usuarios') buildUsersTable();
   if (v === 'unidades') buildUnidadesTable();
   if (v === 'imr') buildImrTable();
@@ -3336,7 +3409,8 @@ function loadAllFromFirebase(callback) {
     safeRead(fbdb.ref('empresas')),
     safeRead(fbdb.ref('contas')),
     safeRead(fbdb.ref('reajustes')),
-    safeRead(fbdb.ref('imr'))
+    safeRead(fbdb.ref('imr')),
+    safeRead(fbdb.ref('documentos_edits'))
   ]).then(function(snaps) {
     // dados
     var dadosVal = snaps[0].val();
@@ -3411,6 +3485,9 @@ function loadAllFromFirebase(callback) {
     } else {
       IMR.length = 0;
     }
+    // documentos (planilha base + alterações salvas no Firebase)
+    DOC_OVERRIDES = snaps[7].val() || {};
+    docRebuild();
     hideLoadingOverlay();
     updateLoginStats();
     callback();
@@ -3866,6 +3943,616 @@ function importDataFromJSONFile(event) {
   };
   reader.readAsText(file);
 }
+
+// ══════════════════════════════════════════════════════════════
+//  DOCUMENTOS — planilha de faturamento com edição direto na linha
+//  Base: documentos-data.js (DOC_COLS / DOC_ROWS)
+//  Alterações: Firebase em 'documentos_edits' (só o que foi mexido)
+// ══════════════════════════════════════════════════════════════
+var DOC_SEED = null;          // registros originais da planilha
+var DOC_OVERRIDES = {};       // {id: registro alterado | {_del:true}}
+var DOCUMENTOS = [];          // base + alterações, o que a tela mostra
+
+var DOC_FIELDS = [
+  {k:'empresa',          label:'Empresa',              type:'text',   upper:true, sticky:true},
+  {k:'contrato',         label:'Contrato',             type:'text',   upper:true, mono:true},
+  {k:'ano',              label:'Ano',                  type:'text',   mono:true},
+  {k:'mes',              label:'Mês / Referência',     type:'text',   upper:true},
+  {k:'unidade',          label:'Unidade',              type:'text',   upper:true},
+  {k:'situacao',         label:'Situação',             type:'select', badge:true, upper:true, options:['PAGO','AGUARDANDO IMR','AUTORIZAR NOTA','NOTA AUTORIZADA','DENTRO DO PRAZO','EM ATRASO','ENVIADO À PR3','NÃO HOUVE SERVIÇO']},
+  {k:'imrRecebido',      label:'IMR Recebido',         type:'date'},
+  {k:'nfAutorizada',     label:'NF Autorizada',        type:'date'},
+  {k:'nfRecebida',       label:'NF Recebida',          type:'date'},
+  {k:'notaFiscal',       label:'Nota Fiscal',          type:'text',   mono:true},
+  {k:'emissao',          label:'Emissão',              type:'date'},
+  {k:'valorNf',          label:'Valor da NF',          type:'money',  mono:true, align:'right'},
+  {k:'valorContratado',  label:'Valor Contratado',     type:'money',  mono:true, align:'right'},
+  {k:'atesto',           label:'Atesto',               type:'date'},
+  {k:'documentacao',     label:'Documentação',         type:'date'},
+  {k:'contaVinculada',   label:'Conta Vinculada',      type:'date'},
+  {k:'sicaf',            label:'SICAF',                type:'select', badge:true, upper:true, options:['REGULAR','IRREGULAR','NÃO HOUVE FAT']},
+  {k:'folhaInfo',        label:'Folha de Informação',  type:'text',   mono:true},
+  {k:'envioPr3',         label:'Envio à PR3',          type:'select', badge:true, options:['SIM']},
+  {k:'ordemBancaria',    label:'Ordem Bancária',       type:'text',   mono:true},
+  {k:'semPrestacao',     label:'Não Houve Prestação',  type:'select', badge:true, options:['SIM']},
+  {k:'observacao',       label:'Observação',           type:'text'},
+  {k:'retornoProblema',  label:'Retorno com Problema', type:'select', badge:true, options:['SIM']},
+  {k:'responsavel',      label:'Responsável',          type:'select', upper:true, options:[]},
+  {k:'situacaoContrato', label:'Contrato',             type:'select', badge:true, options:['VIGENTE','ENCERRADO']}
+];
+var DOC_FIELD_MAP = {};
+DOC_FIELDS.forEach(function(c) {
+  if (c.type === 'date') c.list = 'doc-dl-flag';
+  DOC_FIELD_MAP[c.k] = c;
+});
+
+var MESES_ORDEM = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+
+// ── Base + alterações ──
+function docSeed() {
+  if (DOC_SEED) return DOC_SEED;
+  if (typeof DOC_ROWS === 'undefined' || typeof DOC_COLS === 'undefined') return [];
+  var seed = [];
+  for (var i = 0; i < DOC_ROWS.length; i++) {
+    var row = DOC_ROWS[i], rec = {id: row[0]};
+    for (var j = 0; j < DOC_COLS.length; j++) {
+      var v = row[j + 1];
+      if (v !== '' && v !== null && v !== undefined) rec[DOC_COLS[j]] = v;
+    }
+    seed.push(rec);
+  }
+  DOC_SEED = seed;
+  return DOC_SEED;
+}
+
+function docRebuild() {
+  var seed = docSeed(), out = [], usados = {};
+  seed.forEach(function(r) {
+    usados[r.id] = true;
+    var ov = DOC_OVERRIDES[r.id];
+    if (ov) { if (!ov._del) out.push(ov); return; }
+    out.push(r);
+  });
+  Object.keys(DOC_OVERRIDES).forEach(function(id) {
+    if (usados[id]) return;
+    var ov = DOC_OVERRIDES[id];
+    if (ov && !ov._del) out.push(ov);
+  });
+  DOCUMENTOS = out;
+  // mantém a lista filtrada apontando para os registros novos, sem perder a ordem/página
+  if (docFiltered && docFiltered.length) {
+    var porId = {};
+    out.forEach(function(r) { porId[r.id] = r; });
+    docFiltered = docFiltered.filter(function(r) { return !!porId[r.id]; })
+                             .map(function(r) { return porId[r.id]; });
+  }
+}
+
+function docFind(id) {
+  for (var i = 0; i < DOCUMENTOS.length; i++) if (DOCUMENTOS[i].id === id) return DOCUMENTOS[i];
+  return null;
+}
+
+// Devolve uma cópia editável do registro sem alterar a base original da planilha.
+function docMutable(id) {
+  var rec = docFind(id);
+  if (!rec) return null;
+  if (DOC_OVERRIDES[id] === rec) return rec;
+  var copia = {};
+  Object.keys(rec).forEach(function(k) { copia[k] = rec[k]; });
+  var i = DOCUMENTOS.indexOf(rec);
+  if (i !== -1) DOCUMENTOS[i] = copia;
+  var j = docFiltered.indexOf(rec);
+  if (j !== -1) docFiltered[j] = copia;
+  return copia;
+}
+
+var _docLocalWrite = 0;
+
+function docPersist(rec) {
+  _docLocalWrite = Date.now();
+  DOC_OVERRIDES[rec.id] = rec;
+  fbdb.ref('documentos_edits/' + rec.id).set(rec).catch(function(e) {
+    console.error('saveDocumento:', e);
+    docToast('❌ Não foi possível salvar no servidor: ' + e.message, true);
+  });
+}
+
+function docRemove(id) {
+  _docLocalWrite = Date.now();
+  var reg = {id: id, _del: true};
+  DOC_OVERRIDES[id] = reg;
+  docRebuild();
+  fbdb.ref('documentos_edits/' + id).set(reg).catch(function(e) {
+    console.error('deleteDocumento:', e);
+    docToast('❌ Não foi possível excluir no servidor: ' + e.message, true);
+  });
+}
+
+// ── Conversões ──
+function docParseNumber(s) {
+  var t = String(s).replace(/R\$/gi, '').replace(/\s/g, '');
+  if (!t) return null;
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+  var n = parseFloat(t);
+  return isNaN(n) ? null : Math.round(n * 100) / 100;
+}
+
+function docParseDate(s) {
+  var t = String(s).trim();
+  var m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return t;
+  m = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (!m) m = t.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if (!m) return null;
+  var d = parseInt(m[1], 10), mo = parseInt(m[2], 10), y = parseInt(m[3], 10);
+  if (y < 100) y += 2000;
+  if (d < 1 || d > 31 || mo < 1 || mo > 12) return null;
+  return y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2);
+}
+
+function docFmtDate(v) {
+  var m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[3] + '/' + m[2] + '/' + m[1] : String(v);
+}
+
+function docParseValue(col, raw) {
+  var s = String(raw == null ? '' : raw).replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  if (col.type === 'money') { var n = docParseNumber(s); return n === null ? s : n; }
+  if (col.type === 'date')  { return docParseDate(s) || s.toUpperCase(); }
+  if (col.upper) return s.toUpperCase();
+  return s;
+}
+
+function docBadgeClass(k, v) {
+  var s = String(v).toUpperCase();
+  if (k === 'situacao')         return s === 'PAGO' ? 'doc-b-ok' : (s === 'EM ATRASO' ? 'doc-b-red' : 'doc-b-warn');
+  if (k === 'sicaf')            return s === 'REGULAR' ? 'doc-b-ok' : (s === 'IRREGULAR' ? 'doc-b-red' : 'doc-b-mut');
+  if (k === 'situacaoContrato') return s === 'VIGENTE' ? 'doc-b-ok' : 'doc-b-mut';
+  if (k === 'retornoProblema' || k === 'semPrestacao') return 'doc-b-red';
+  return 'doc-b-ok';
+}
+
+// ── Células (leitura / edição) ──
+function docCellDisplay(col, rec) {
+  var v = rec ? rec[col.k] : '';
+  if (v === undefined || v === null || v === '') return '<span class="doc-empty">—</span>';
+  if (col.type === 'money') return typeof v === 'number' ? esc(fmtBR(v)) : esc(v);
+  if (col.type === 'date')  return esc(docFmtDate(v));
+  if (col.badge) return '<span class="doc-badge ' + docBadgeClass(col.k, v) + '">' + esc(v) + '</span>';
+  return esc(v);
+}
+
+function docEditorHtml(col, v) {
+  v = (v === undefined || v === null) ? '' : v;
+  if (col.type === 'select') {
+    var cur = String(v), opts = (col.options || []).slice();
+    if (cur && opts.indexOf(cur) === -1) opts.push(cur);
+    return '<select class="doc-inp"><option value="">—</option>'
+      + opts.map(function(o) { return '<option value="' + esc(o) + '"' + (o === cur ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('')
+      + '</select>';
+  }
+  var val = v;
+  if (col.type === 'money' && typeof v === 'number') val = v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  else if (col.type === 'date') val = docFmtDate(v);
+  return '<input class="doc-inp" type="text"' + (col.list ? ' list="' + col.list + '"' : '')
+    + ' placeholder="' + (col.type === 'date' ? 'dd/mm/aaaa' : '') + '" value="' + esc(val) + '">';
+}
+
+function docCanEdit() { return currentRole === 'admin' || currentRole === 'editor'; }
+
+var _docToastTimer = null;
+function docToast(msg, isErro) {
+  var el = document.getElementById('doc-hint');
+  if (!el) return;
+  if (!el.getAttribute('data-orig')) el.setAttribute('data-orig', el.innerHTML);
+  el.innerHTML = '<span style="color:' + (isErro ? 'var(--red)' : 'var(--green)') + '">' + esc(msg) + '</span>';
+  clearTimeout(_docToastTimer);
+  _docToastTimer = setTimeout(function() { el.innerHTML = el.getAttribute('data-orig'); }, 3200);
+}
+
+function docHasOpenEditor() {
+  return !!document.querySelector('#doc-table .doc-editing, #doc-table .doc-row-editing');
+}
+
+function docCellTd(id, k) {
+  return document.querySelector('#doc-table td[data-id="' + id + '"][data-k="' + k + '"]');
+}
+
+// ── Edição de uma célula (duplo clique) ──
+function docEditCell(td) {
+  if (!td) return;
+  if (!docCanEdit()) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return; }
+  if (td.classList.contains('doc-editing')) return;
+  var tr = td.parentNode;
+  if (tr && tr.classList.contains('doc-row-editing')) return;
+  var rec = docFind(td.getAttribute('data-id'));
+  var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
+  if (!rec || !col) return;
+  td.classList.add('doc-editing');
+  td.innerHTML = docEditorHtml(col, rec[col.k]);
+  var inp = td.querySelector('.doc-inp');
+  if (!inp) { docCancelCell(td); return; }
+  inp.focus();
+  if (inp.select) { try { inp.select(); } catch (e) {} }
+  inp.onkeydown = function(e) {
+    if (e.key === 'Enter')       { e.preventDefault(); docCommitCell(td, 0); }
+    else if (e.key === 'Escape') { e.preventDefault(); docCancelCell(td); }
+    else if (e.key === 'Tab')    { e.preventDefault(); docCommitCell(td, e.shiftKey ? -1 : 1); }
+  };
+  inp.onblur = function() {
+    setTimeout(function() { if (td.classList.contains('doc-editing') && td.contains(inp)) docCommitCell(td, 0); }, 120);
+  };
+  if (col.type === 'select') inp.onchange = function() { docCommitCell(td, 0); };
+}
+
+function docCommitCell(td, move) {
+  var inp = td.querySelector('.doc-inp');
+  if (!inp) return;
+  var id = td.getAttribute('data-id');
+  var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
+  var rec = docFind(id);
+  var mudou = false;
+  if (rec && col) {
+    var novo = docParseValue(col, inp.value);
+    var atual = rec[col.k] === undefined ? '' : rec[col.k];
+    if (String(novo) !== String(atual)) {
+      rec = docMutable(id);
+      if (novo === '') delete rec[col.k]; else rec[col.k] = novo;
+      docPersist(rec);
+      mudou = true;
+    }
+  }
+  td.classList.remove('doc-editing');
+  td.innerHTML = docCellDisplay(col, rec);
+  if (mudou) { docUpdateKpis(); docToast('✔ Alteração salva em "' + col.label + '".'); }
+  if (move) docEditVizinha(td, move);
+}
+
+function docCancelCell(td) {
+  var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
+  var rec = docFind(td.getAttribute('data-id'));
+  td.classList.remove('doc-editing');
+  td.innerHTML = docCellDisplay(col, rec);
+}
+
+function docEditVizinha(td, dir) {
+  var tr = td.parentNode;
+  if (!tr) return;
+  var cels = Array.prototype.filter.call(tr.children, function(c) { return c.classList.contains('doc-cell'); });
+  var i = cels.indexOf(td);
+  if (i === -1) return;
+  var alvo = cels[i + dir];
+  if (alvo) docEditCell(alvo);
+}
+
+// ── Edição da linha inteira (ainda na própria linha) ──
+function docEditRow(id) {
+  if (!docCanEdit()) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return; }
+  var tr = document.querySelector('#doc-table tr[data-id="' + id + '"]');
+  var rec = docFind(id);
+  if (!tr || !rec || tr.classList.contains('doc-row-editing')) return;
+  Array.prototype.forEach.call(document.querySelectorAll('#doc-table td.doc-editing'), docCancelCell);
+  tr.classList.add('doc-row-editing');
+  Array.prototype.forEach.call(tr.querySelectorAll('td.doc-cell'), function(td) {
+    var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
+    td.innerHTML = docEditorHtml(col, rec[col.k]);
+  });
+  var acoes = tr.querySelector('td.doc-actions');
+  if (acoes) acoes.innerHTML = '<div class="doc-act">'
+    + '<button class="btn-doc ok" onclick="docSaveRow(\'' + id + '\')">✔ Salvar</button>'
+    + '<button class="btn-doc" onclick="docCancelRow(\'' + id + '\')">Cancelar</button></div>';
+  tr.onkeydown = function(e) {
+    if (e.key === 'Enter')  { e.preventDefault(); docSaveRow(id); }
+    if (e.key === 'Escape') { e.preventDefault(); docCancelRow(id); }
+  };
+  var primeiro = tr.querySelector('.doc-inp');
+  if (primeiro) { primeiro.focus(); if (primeiro.select) { try { primeiro.select(); } catch (er) {} } }
+}
+
+function docSaveRow(id) {
+  var tr = document.querySelector('#doc-table tr[data-id="' + id + '"]');
+  var rec = docFind(id);
+  if (!tr || !rec) return;
+  var alteracoes = {};
+  Array.prototype.forEach.call(tr.querySelectorAll('td.doc-cell'), function(td) {
+    var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
+    var inp = td.querySelector('.doc-inp');
+    if (!col || !inp) return;
+    var novo = docParseValue(col, inp.value);
+    var atual = rec[col.k] === undefined ? '' : rec[col.k];
+    if (String(novo) !== String(atual)) alteracoes[col.k] = novo;
+  });
+  var mudou = Object.keys(alteracoes).length > 0;
+  if (mudou) {
+    rec = docMutable(id);
+    Object.keys(alteracoes).forEach(function(k) {
+      if (alteracoes[k] === '') delete rec[k]; else rec[k] = alteracoes[k];
+    });
+    docPersist(rec);
+  }
+  docRenderRow(tr, rec);
+  if (mudou) { docUpdateKpis(); docToast('✔ Linha salva.'); }
+}
+
+function docCancelRow(id) {
+  var tr = document.querySelector('#doc-table tr[data-id="' + id + '"]');
+  var rec = docFind(id);
+  if (tr && rec) docRenderRow(tr, rec);
+}
+
+function docRenderRow(tr, rec) {
+  tr.classList.remove('doc-row-editing');
+  tr.onkeydown = null;
+  Array.prototype.forEach.call(tr.querySelectorAll('td.doc-cell'), function(td) {
+    td.innerHTML = docCellDisplay(DOC_FIELD_MAP[td.getAttribute('data-k')], rec);
+  });
+  var acoes = tr.querySelector('td.doc-actions');
+  if (acoes) acoes.innerHTML = docActionsHtml(rec.id);
+}
+
+function docActionsHtml(id) {
+  return '<div class="doc-act">'
+    + '<button class="btn-doc" onclick="docEditRow(\'' + id + '\')">✏️ Editar linha</button>'
+    + '<button class="btn-doc no" onclick="docConfirmDelete(\'' + id + '\')">Excluir</button></div>';
+}
+
+function docConfirmDelete(id) {
+  if (!docCanEdit()) { docToast('Seu perfil é somente leitura — exclusão não permitida.', true); return; }
+  var rec = docFind(id);
+  if (!rec) return;
+  if (!confirm('Excluir o registro do contrato ' + (rec.contrato || '') + ' — ' + (rec.mes || '') + '/' + (rec.ano || '') + ' (' + (rec.unidade || '') + ')?')) return;
+  docRemove(id);
+  buildDocumentosTable();
+  docToast('✔ Registro excluído.');
+}
+
+// ── Filtros / tabela ──
+var docFiltered = [], docPage = 1, docPer = 50, docSort = {k:'', dir:1}, _docInit = false;
+
+function docDistinct(k) {
+  var vistos = {}, out = [];
+  DOCUMENTOS.forEach(function(r) {
+    var v = r[k];
+    if (v === undefined || v === null || v === '') return;
+    v = String(v);
+    if (!vistos[v]) { vistos[v] = 1; out.push(v); }
+  });
+  return out;
+}
+
+function docFillSelect(id, valores, placeholder) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var atual = el.value;
+  el.innerHTML = '<option value="">' + placeholder + '</option>'
+    + valores.map(function(v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+  if (atual && valores.indexOf(atual) !== -1) el.value = atual;
+}
+
+function initDocumentos() {
+  if (!DOCUMENTOS.length) docRebuild();
+  var anos = docDistinct('ano').sort(function(a, b) { return b.localeCompare(a); });
+  var meses = docDistinct('mes').sort(function(a, b) {
+    var ia = MESES_ORDEM.indexOf(a), ib = MESES_ORDEM.indexOf(b);
+    if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    return a.localeCompare(b, 'pt-BR', {numeric:true});
+  });
+  var sits = docDistinct('situacao').sort();
+  var resps = docDistinct('responsavel').sort();
+  docFillSelect('doc-f-ano', anos, 'Todos');
+  docFillSelect('doc-f-mes', meses, 'Todos');
+  docFillSelect('doc-f-sit', sits, 'Todas');
+  docFillSelect('doc-f-resp', resps, 'Todos');
+  DOC_FIELD_MAP.responsavel.options = resps;
+  DOC_FIELD_MAP.situacao.options = Array.from(new Set(DOC_FIELD_MAP.situacao.options.concat(sits))).sort();
+  if (!_docInit) {
+    var cont = document.getElementById('doc-table');
+    if (cont) cont.addEventListener('dblclick', function(e) {
+      var td = e.target;
+      while (td && td.nodeName !== 'TD') td = td.parentNode;
+      if (td && td.classList && td.classList.contains('doc-cell')) docEditCell(td);
+    });
+    _docInit = true;
+  }
+}
+
+function clearDocFilters() {
+  ['doc-q','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  buildDocumentosTable();
+}
+
+function docVal(id) {
+  var el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
+function buildDocumentosTable(manterPagina) {
+  if (!DOCUMENTOS.length) docRebuild();
+  var q = docVal('doc-q').toLowerCase().trim();
+  var fAno = docVal('doc-f-ano'), fMes = docVal('doc-f-mes'), fSit = docVal('doc-f-sit'),
+      fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status');
+  docFiltered = DOCUMENTOS.filter(function(r) {
+    if (fAno  && String(r.ano || '') !== fAno) return false;
+    if (fMes  && String(r.mes || '') !== fMes) return false;
+    if (fSit  && String(r.situacao || '') !== fSit) return false;
+    if (fResp && String(r.responsavel || '') !== fResp) return false;
+    if (fSt   && String(r.situacaoContrato || '') !== fSt) return false;
+    if (!q) return true;
+    return ['empresa','contrato','unidade','notaFiscal','folhaInfo','ordemBancaria','observacao','responsavel','mes']
+      .some(function(k) { return String(r[k] || '').toLowerCase().indexOf(q) !== -1; });
+  });
+  if (docSort.k) {
+    var col = DOC_FIELD_MAP[docSort.k];
+    docFiltered.sort(function(a, b) {
+      var va = a[docSort.k], vb = b[docSort.k];
+      var ea = (va === undefined || va === null || va === ''), eb = (vb === undefined || vb === null || vb === '');
+      if (ea && eb) return 0;
+      if (ea) return 1;
+      if (eb) return -1;
+      if (col && col.type === 'money') return (Number(va) - Number(vb)) * docSort.dir;
+      return String(va).localeCompare(String(vb), 'pt-BR', {numeric:true}) * docSort.dir;
+    });
+  }
+  if (!manterPagina) docPage = 1;
+  renderDocumentosTable();
+  docUpdateKpis();
+}
+
+function docSortBy(k) {
+  if (docSort.k === k) docSort.dir = -docSort.dir;
+  else { docSort.k = k; docSort.dir = 1; }
+  buildDocumentosTable();
+}
+
+function docUpdateKpis() {
+  var el = document.getElementById('doc-kpi');
+  if (!el) return;
+  var total = docFiltered.length;
+  var pagos = 0, valor = 0;
+  docFiltered.forEach(function(r) {
+    if (String(r.situacao || '').toUpperCase() === 'PAGO') pagos++;
+    if (typeof r.valorNf === 'number') valor += r.valorNf;
+  });
+  var pend = total - pagos;
+  var kpis = [
+    {c:'blue',  l:'Registros',      v:total.toLocaleString('pt-BR'), s:DOCUMENTOS.length.toLocaleString('pt-BR') + ' no total'},
+    {c:'green', l:'Valor das NFs',  v:fmtM(valor),                   s:'somatório do filtro'},
+    {c:'purple',l:'Pagos',          v:pagos.toLocaleString('pt-BR'), s:total ? Math.round(pagos / total * 100) + '% do filtro' : '—'},
+    {c:'amber', l:'Pendentes',      v:pend.toLocaleString('pt-BR'),  s:'situação diferente de pago'}
+  ];
+  el.innerHTML = kpis.map(function(k) {
+    return '<div class="kpi ' + k.c + '"><div class="kpi-label">' + k.l + '</div>'
+      + '<div class="kpi-value">' + k.v + '</div><div class="kpi-sub">' + k.s + '</div></div>';
+  }).join('');
+}
+
+function renderDocumentosTable() {
+  var wrap = document.getElementById('doc-table');
+  if (!wrap) return;
+  var canEdit = docCanEdit();
+  if (!DOCUMENTOS.length) {
+    wrap.innerHTML = '<div class="fiscais-empty">Base de documentos não carregada. Recarregue a página (F5).</div>';
+    return;
+  }
+  if (!docFiltered.length) {
+    wrap.innerHTML = '<div class="fiscais-empty">Nenhum registro encontrado com os filtros atuais.</div>';
+    return;
+  }
+  var totalPages = Math.ceil(docFiltered.length / docPer);
+  if (docPage > totalPages) docPage = totalPages;
+  var start = (docPage - 1) * docPer;
+  var slice = docFiltered.slice(start, start + docPer);
+
+  var ths = DOC_FIELDS.map(function(c) {
+    var cls = (c.sticky ? 'doc-sticky ' : '') + (docSort.k === c.k ? (docSort.dir === 1 ? 'sort-asc' : 'sort-desc') : '');
+    return '<th class="' + cls.trim() + '" onclick="docSortBy(\'' + c.k + '\')">' + esc(c.label) + '</th>';
+  }).join('') + (canEdit ? '<th style="cursor:default">Ações</th>' : '');
+
+  var rows = slice.map(function(rec) {
+    var tds = DOC_FIELDS.map(function(c) {
+      return '<td class="doc-cell' + (c.sticky ? ' doc-sticky' : '') + (c.mono ? ' doc-mono' : '') + '"'
+        + ' data-id="' + esc(rec.id) + '" data-k="' + c.k + '"'
+        + (c.align ? ' style="text-align:' + c.align + '"' : '')
+        + ' title="Duplo clique para editar">' + docCellDisplay(c, rec) + '</td>';
+    }).join('');
+    return '<tr data-id="' + esc(rec.id) + '">' + tds
+      + (canEdit ? '<td class="doc-actions">' + docActionsHtml(rec.id) + '</td>' : '') + '</tr>';
+  }).join('');
+
+  wrap.innerHTML = '<div class="table-wrap">'
+    + '<div class="table-info"><span>' + docFiltered.length.toLocaleString('pt-BR') + ' registro(s)</span>'
+    + '<span style="color:var(--muted)">Página ' + docPage + ' de ' + totalPages + '</span></div>'
+    + '<div style="overflow-x:auto"><table id="doc-tbl">'
+    + '<thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+    + docPaginationHtml(totalPages) + '</div>';
+}
+
+function docPaginationHtml(total) {
+  if (total <= 1) return '';
+  var h = '<div class="pagination">';
+  h += '<button class="pg" onclick="docGoPage(' + (docPage - 1) + ')" ' + (docPage === 1 ? 'disabled' : '') + '>&#8249;</button>';
+  var s = Math.max(1, docPage - 2), e = Math.min(total, docPage + 2);
+  if (s > 1) h += '<button class="pg" onclick="docGoPage(1)">1</button>' + (s > 2 ? '<span style="color:var(--muted);padding:0 4px">&hellip;</span>' : '');
+  for (var i = s; i <= e; i++) h += '<button class="pg' + (i === docPage ? ' act' : '') + '" onclick="docGoPage(' + i + ')">' + i + '</button>';
+  if (e < total) h += (e < total - 1 ? '<span style="color:var(--muted);padding:0 4px">&hellip;</span>' : '') + '<button class="pg" onclick="docGoPage(' + total + ')">' + total + '</button>';
+  h += '<button class="pg" onclick="docGoPage(' + (docPage + 1) + ')" ' + (docPage === total ? 'disabled' : '') + '>&#8250;</button></div>';
+  return h;
+}
+
+function docGoPage(p) {
+  var total = Math.ceil(docFiltered.length / docPer);
+  if (p < 1 || p > total) return;
+  docPage = p;
+  renderDocumentosTable();
+  var m = document.querySelector('.main');
+  if (m) m.scrollTop = 0;
+}
+
+// ── Novo registro ──
+function openNewDocumentoModal() {
+  if (!docCanEdit()) return;
+  var contratos = Array.from(new Set(DADOS.map(function(d) { return d['CONTRATO'] || ''; }).filter(Boolean))).sort();
+  var campos = ['empresa','contrato','ano','mes','unidade','situacao','valorNf','valorContratado','responsavel','situacaoContrato'];
+  var html = '<div class="eform">' + campos.map(function(k) {
+    var c = DOC_FIELD_MAP[k];
+    var input;
+    if (c.type === 'select') {
+      input = '<select id="ef-doc-' + k + '"><option value="">— Selecione —</option>'
+        + (c.options || []).map(function(o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') + '</select>';
+    } else if (k === 'contrato') {
+      input = '<input id="ef-doc-contrato" list="doc-contrato-list" placeholder="Ex: 01/24">'
+        + '<datalist id="doc-contrato-list">' + contratos.map(function(x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
+    } else {
+      input = '<input id="ef-doc-' + k + '">';
+    }
+    return '<div class="ef' + (k === 'empresa' || k === 'unidade' ? ' full' : '') + '"><label>' + esc(c.label)
+      + (k === 'empresa' || k === 'contrato' ? ' *' : '') + '</label>' + input + '</div>';
+  }).join('') + '</div>';
+  document.getElementById('mo-t').textContent = 'Novo Registro de Documento';
+  document.getElementById('mo-s').textContent = 'Os demais campos podem ser preenchidos direto na linha, com duplo clique';
+  document.getElementById('mo-b').innerHTML = html;
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    + '<button class="btn-save" onclick="saveNewDocumento()">Salvar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+
+function saveNewDocumento() {
+  var campos = ['empresa','contrato','ano','mes','unidade','situacao','valorNf','valorContratado','responsavel','situacaoContrato'];
+  var rec = {id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)};
+  campos.forEach(function(k) {
+    var el = document.getElementById('ef-doc-' + k);
+    if (!el) return;
+    var v = docParseValue(DOC_FIELD_MAP[k], el.value);
+    if (v !== '') rec[k] = v;
+  });
+  if (!rec.empresa || !rec.contrato) { alert('Empresa e Contrato são obrigatórios.'); return; }
+  docPersist(rec);
+  docRebuild();
+  closeMo();
+  buildDocumentosTable();
+  docToast('✔ Registro criado. Use o duplo clique para completar as demais colunas.');
+}
+
+// ── Exportação ──
+function docExportRows() {
+  return docFiltered.map(function(r) {
+    return DOC_FIELDS.map(function(c) {
+      var v = r[c.k];
+      if (v === undefined || v === null) return '';
+      if (c.type === 'date') return docFmtDate(v);
+      return v;
+    });
+  });
+}
+function docExportHeaders() { return DOC_FIELDS.map(function(c) { return c.label; }); }
+function exportDocumentosPDF()   { genericExportPDF('Documentos', docExportHeaders(), docExportRows().map(function(r){ return r.map(String); }), 'documentos'); }
+function exportDocumentosExcel() { genericExportExcel('Documentos', docExportHeaders(), docExportRows(), 'documentos'); }
 
 // ── Boot ──
 document.addEventListener('DOMContentLoaded', function() { initTheme(); initLogin(); });
