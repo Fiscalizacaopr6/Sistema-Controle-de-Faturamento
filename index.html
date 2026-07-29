@@ -283,6 +283,7 @@ tr:last-child td{border-bottom:none}
 select.doc-inp{cursor:pointer}
 .doc-mono{font-family:'DM Mono',monospace}
 .doc-empty{color:var(--muted);opacity:.5}
+.doc-simbolo{font-weight:700;font-size:13px}
 .doc-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
 .doc-b-ok{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
 .doc-b-warn{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
@@ -3981,11 +3982,11 @@ var DOC_FIELDS = [
   {k:'contaVinculada',   label:'Conta Vinculada',      type:'date'},
   {k:'sicaf',            label:'SICAF',                type:'select', badge:true, upper:true, options:['REGULAR','IRREGULAR','NÃO HOUVE FAT']},
   {k:'folhaInfo',        label:'Folha de Informação',  type:'text',   mono:true},
-  {k:'envioPr3',         label:'Envio à PR3',          type:'select', badge:true, options:['SIM']},
+  {k:'envioPr3',         label:'Envio à PR3',          type:'select', simbolo:'✔', cor:'var(--green)', options:['✔']},
   {k:'ordemBancaria',    label:'Ordem Bancária',       type:'text',   mono:true},
-  {k:'semPrestacao',     label:'Não Houve Prestação',  type:'select', badge:true, options:['SIM']},
+  {k:'semPrestacao',     label:'Não Houve Prestação',  type:'select', simbolo:'X', cor:'var(--amber)', options:['X']},
   {k:'observacao',       label:'Observação',           type:'text'},
-  {k:'retornoProblema',  label:'Retorno com Problema', type:'select', badge:true, options:['SIM']},
+  {k:'retornoProblema',  label:'Retorno com Problema', type:'select', simbolo:'X', cor:'var(--red)', options:['X']},
   {k:'responsavel',      label:'Responsável',          type:'select', upper:true, options:[]},
   {k:'situacaoContrato', label:'Contrato',             type:'select', badge:true, options:['VIGENTE','ENCERRADO']}
 ];
@@ -4014,18 +4015,32 @@ function docSeed() {
   return DOC_SEED;
 }
 
+// Registros salvos antes da troca de "SIM" pelos símbolos continuam válidos.
+var DOC_SIMBOLOS = ['envioPr3','semPrestacao','retornoProblema'];
+function docNormalizaSimbolos(rec) {
+  DOC_SIMBOLOS.forEach(function(k) {
+    var v = rec[k];
+    if (v === undefined || v === null || v === '') return;
+    var t = String(v).trim().toUpperCase();
+    if (t === 'SIM' || t === 'X' || t.indexOf('✔') !== -1 || t.indexOf('✓') !== -1) {
+      rec[k] = DOC_FIELD_MAP[k].simbolo;
+    }
+  });
+  return rec;
+}
+
 function docRebuild() {
   var seed = docSeed(), out = [], usados = {};
   seed.forEach(function(r) {
     usados[r.id] = true;
     var ov = DOC_OVERRIDES[r.id];
-    if (ov) { if (!ov._del) out.push(ov); return; }
+    if (ov) { if (!ov._del) out.push(docNormalizaSimbolos(ov)); return; }
     out.push(r);
   });
   Object.keys(DOC_OVERRIDES).forEach(function(id) {
     if (usados[id]) return;
     var ov = DOC_OVERRIDES[id];
-    if (ov && !ov._del) out.push(ov);
+    if (ov && !ov._del) out.push(docNormalizaSimbolos(ov));
   });
   DOCUMENTOS = out;
   // mantém a lista filtrada apontando para os registros novos, sem perder a ordem/página
@@ -4127,6 +4142,7 @@ function docBadgeClass(k, v) {
 function docCellDisplay(col, rec) {
   var v = rec ? rec[col.k] : '';
   if (v === undefined || v === null || v === '') return '<span class="doc-empty">—</span>';
+  if (col.simbolo) return '<span class="doc-simbolo" style="color:' + col.cor + '">' + esc(v) + '</span>';
   if (col.type === 'money') return typeof v === 'number' ? esc(fmtBR(v)) : esc(v);
   if (col.type === 'date')  return esc(docFmtDate(v));
   if (col.badge) return '<span class="doc-badge ' + docBadgeClass(col.k, v) + '">' + esc(v) + '</span>';
@@ -4138,7 +4154,7 @@ function docEditorHtml(col, v) {
   if (col.type === 'select') {
     var cur = String(v), opts = (col.options || []).slice();
     if (cur && opts.indexOf(cur) === -1) opts.push(cur);
-    return '<select class="doc-inp"><option value="">—</option>'
+    return '<select class="doc-inp"><option value="">' + (col.simbolo ? '— (retirar)' : '—') + '</option>'
       + opts.map(function(o) { return '<option value="' + esc(o) + '"' + (o === cur ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('')
       + '</select>';
   }
