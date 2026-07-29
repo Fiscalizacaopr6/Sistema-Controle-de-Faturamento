@@ -358,7 +358,6 @@ select.doc-inp{cursor:pointer}
       <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">📊 Dashboard</div>
       <div class="nav-item" id="nav-contratos" onclick="showView('contratos')">📄 Contratos</div>
       <div class="nav-item" id="nav-documentos" onclick="showView('documentos')">🗂️ Documentos</div>
-      <div class="nav-item" id="nav-alertas" onclick="showView('alertas')">⚠️ Alertas</div>
       <div class="nav-item" id="nav-fiscais" onclick="showView('fiscais')">🔍 Fiscais</div>
       <div class="nav-item" id="nav-reajustes" onclick="showView('reajustes')">📈 Reajuste/Repactuação</div>
       <div class="nav-item" id="nav-contas" onclick="showView('contas')">🔗 Conta Vinculada</div>
@@ -548,34 +547,6 @@ select.doc-inp{cursor:pointer}
       <div id="doc-hbar"><div id="doc-hbar-thumb"></div></div>
       <div id="doc-toast"></div>
       <datalist id="doc-dl-flag"><option value="SIM"></option><option value="NÃO SE APLICA"></option><option value="NÃO HOUVE FAT"></option></datalist>
-    </div>
-
-    <!-- ALERTAS -->
-    <div class="view" id="view-alertas">
-      <div class="kpi-grid" id="alert-kpi"></div>
-
-      <!-- Barra de e-mail -->
-      <div id="alert-email-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
-        <span style="font-size:13px;font-weight:600;white-space:nowrap">📧 Enviar resumo para:</span>
-        <input id="alert-email-input" type="email" placeholder="destinatario@email.com"
-          style="flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:6px 10px;outline:none"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)';saveEmailDestinatario()">
-        <button onclick="sendAlertEmail(false)"
-          style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">
-          Enviar Resumo
-        </button>
-        <span id="alert-email-status" style="font-size:11px;color:var(--text-muted)"></span>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button class="btn-export pdf" onclick="exportAlertasPDF()">⬇ PDF</button>
-        <button class="btn-export xlsx" onclick="exportAlertasExcel()">⬇ Excel</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
-        <div><div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:14px">🔴 Vencendo em até 30 dias</div><div class="al" id="al-30"></div></div>
-        <div><div style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:14px">🟡 Vencendo em 31–90 dias</div><div class="al" id="al-90"></div></div>
-      </div>
     </div>
 
     <!-- FISCAIS -->
@@ -927,7 +898,6 @@ function launchApp(u) {
   loadAllFromFirebase(function() {
     calcLive();
     buildDashboard();
-    buildAlerts();
     applyFilters();
     updateSidebar();
     setupRealtimeListeners();
@@ -1008,12 +978,14 @@ function setupRealtimeListeners() {
 
 // ── Navigation ──
 function showView(v) {
+  // Tela inexistente (ex.: 'alertas', guardada na sessão antes de ela ser removida) → volta ao Dashboard
+  if (!document.getElementById('view-' + v)) { v = 'dashboard'; sessionStorage.setItem('ufrj_view', v); }
   document.querySelectorAll('.view').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', alertas:'Alertas de Vencimento', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   if (v === 'documentos') { initDocumentos(); buildDocumentosTable(); }
   else { var hb = document.getElementById('doc-hbar'); if (hb) hb.style.display = 'none'; }
@@ -1167,7 +1139,7 @@ function buildDashboard() {
     {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true},
     {l:'Contratos Encerrados', v:encCount, s:'histórico'+labelAno, c:'red', btnEnc:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
-    {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber'},
+    {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
     {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true},
     {l:'Total de Empresas', v:empresas, s:'empresas distintas'+labelAno, c:'green', btnEmp:true},
   ];
@@ -1175,6 +1147,7 @@ function buildDashboard() {
     var clickFn = k.btn ? 'showKpiLista(\'vigentes\')'
                 : k.btnEnc ? 'showKpiLista(\'encerrados\')'
                 : k.btnEmp ? 'showKpiLista(\'empresas\')'
+                : k.btnV30 ? 'showKpiLista(\'venc30\')'
                 : '';
     var clickable = !!clickFn;
     return '<div class="kpi '+k.c+'"'
@@ -1486,26 +1459,6 @@ function exportUnidadesExcel() {
   var h = ['Nome','Cargo','Unidade','Sigla','E-mail','Telefone'];
   var r = unFiltered.map(function(u){ return [u.nome||'',u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
   genericExportExcel('Unidades', h, r, 'unidades');
-}
-
-// Alertas
-function exportAlertasPDF() {
-  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
-  var v30 = vig.filter(function(d){ return d._dias!==null&&d._dias<=30; }).sort(function(a,b){ return a._dias-b._dias; });
-  var v90 = vig.filter(function(d){ return d._dias!==null&&d._dias>30&&d._dias<=90; }).sort(function(a,b){ return a._dias-b._dias; });
-  var all = v30.concat(v90);
-  var h = ['Contrato','Empresa','Tipo','Responsável','Término da Vigência','Dias Restantes','Urgência'];
-  var r = all.map(function(d){ return [d['CONTRATO']||'',(d['EMPRESA']||'').trim(),d['TIPO']||'',d['RESPONSÁVEL NO FATURAMENTO']||'',d['TÉRMINO DA VIGÊNCIA']||'',d._dias!=null?String(d._dias):'',d._dias<=30?'Crítico':'Atenção']; });
-  genericExportPDF('Alertas de Vencimento', h, r, 'alertas');
-}
-function exportAlertasExcel() {
-  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
-  var v30 = vig.filter(function(d){ return d._dias!==null&&d._dias<=30; }).sort(function(a,b){ return a._dias-b._dias; });
-  var v90 = vig.filter(function(d){ return d._dias!==null&&d._dias>30&&d._dias<=90; }).sort(function(a,b){ return a._dias-b._dias; });
-  var all = v30.concat(v90);
-  var h = ['Contrato','Empresa','Tipo','Responsável','Término da Vigência','Dias Restantes','Urgência'];
-  var r = all.map(function(d){ return [d['CONTRATO']||'',(d['EMPRESA']||'').trim(),d['TIPO']||'',d['RESPONSÁVEL NO FATURAMENTO']||'',d['TÉRMINO DA VIGÊNCIA']||'',d._dias!=null?d._dias:'',d._dias<=30?'Crítico':'Atenção']; });
-  genericExportExcel('Alertas', h, r, 'alertas');
 }
 
 // Usuários
@@ -1847,6 +1800,18 @@ function exportContratoPDF(numContrato) {
   doc.save('Contrato_' + numContrato.replace(/\//g,'-') + '.pdf');
 }
 
+// Item da lista "Vencendo em até 30 dias" (aberta pelo card do Dashboard)
+function alertaItemHtml(d) {
+  var idx = DADOS.indexOf(d);
+  return '<div class="ai urg" onclick="openModal(' + idx + ')">'
+    + '<div class="ai-info">'
+    + '<div class="ai-c">' + esc(d['CONTRATO'] || '—') + ' · ' + esc(d['TIPO'] || '—') + '</div>'
+    + '<div class="ai-e">' + esc((d['EMPRESA'] || '').trim()) + ' · ' + esc(d['RESPONSÁVEL NO FATURAMENTO'] || '') + '</div>'
+    + '</div>'
+    + '<div class="ai-d" style="color:var(--red)">' + (d._dias !== null ? d._dias + 'd' : '—') + '</div>'
+    + '</div>';
+}
+
 function showKpiLista(tipo) {
   var base = DADOS;
   if (currentYearFilter)    base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
@@ -1923,6 +1888,15 @@ function showKpiLista(tipo) {
     subtitulo = 'Contratos sem nenhum termo vigente — clique para ver detalhes';
     rows = lista.map(function(d){ return kpiCard(d, 'var(--red)'); }).join('');
 
+  } else if (tipo === 'venc30') {
+    var lista = base.filter(function(d){ return d._st === 'VIGENTE' && d._dias !== null && d._dias <= 30; })
+                    .sort(function(a,b){ return a._dias - b._dias; });
+    titulo = '🔴 Vencendo em até 30 dias (' + lista.length + ')';
+    subtitulo = 'Clique em um contrato para ver os detalhes';
+    rows = lista.length
+      ? '<div class="al">' + lista.map(alertaItemHtml).join('') + '</div>'
+      : '<div class="empty">Nenhum contrato vencendo nos próximos 30 dias ✓</div>';
+
   } else if (tipo === 'empresas') {
     var empMap = {};
     base.forEach(function(d){
@@ -1955,119 +1929,6 @@ function closeMoClick(e) {
   // Não fecha clicando fora quando há formulário aberto (modo edição)
   if (document.getElementById('mo-b').querySelector('input,select,textarea')) return;
   closeMo();
-}
-
-// ── Alerts ──
-function buildAlerts() {
-  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
-  var v30 = vig.filter(function(d){ return d._dias!==null&&d._dias<=30; }).sort(function(a,b){ return a._dias-b._dias; });
-  var v90 = vig.filter(function(d){ return d._dias!==null&&d._dias>30&&d._dias<=90; }).sort(function(a,b){ return a._dias-b._dias; });
-  var kpis = [
-    {l:'Vencendo em 30 dias',v:v30.length,c:'red'},
-    {l:'Vencendo 31–90 dias',v:v90.length,c:'amber'},
-    {l:'Vigentes',v:vig.length,c:'green'}
-  ];
-  document.getElementById('alert-kpi').innerHTML = kpis.map(function(k){
-    return '<div class="kpi '+k.c+'"><div class="kpi-label">'+k.l+'</div><div class="kpi-value">'+k.v+'</div></div>';
-  }).join('');
-  function alHtml(d, cls) {
-    var idx = DADOS.indexOf(d);
-    var c = cls==='urg'?'var(--red)':cls==='warn'?'var(--amber)':'var(--green)';
-    return '<div class="ai '+cls+'" onclick="openModal('+idx+')">'
-      +'<div class="ai-info"><div class="ai-c">'+d['CONTRATO']+' · '+(d['TIPO']||'—')+'</div>'
-      +'<div class="ai-e">'+(d['EMPRESA']||'').trim()+' · '+(d['RESPONSÁVEL NO FATURAMENTO']||'')+'</div></div>'
-      +'<div class="ai-d" style="color:'+c+'">'+(d._dias!==null?d._dias+'d':'—')+'</div></div>';
-  }
-  document.getElementById('al-30').innerHTML = v30.length ? v30.map(function(d){ return alHtml(d,'urg'); }).join('') : '<div class="empty">Nenhum ✓</div>';
-  document.getElementById('al-90').innerHTML = v90.length ? v90.map(function(d){ return alHtml(d,'warn'); }).join('') : '<div class="empty">Nenhum ✓</div>';
-
-  // Restaura e-mail salvo no input
-  var savedEmail = localStorage.getItem('alert_email') || '';
-  var emailInput = document.getElementById('alert-email-input');
-  if (emailInput && !emailInput.value) emailInput.value = savedEmail;
-
-  // Detecta novos alertas e envia e-mail automaticamente
-  var prevRaw = localStorage.getItem('alert_prev_counts');
-  var prev = prevRaw ? JSON.parse(prevRaw) : null;
-  localStorage.setItem('alert_prev_counts', JSON.stringify({v30: v30.length, v90: v90.length}));
-  if (prev !== null && (v30.length > prev.v30 || v90.length > prev.v90)) {
-    setTimeout(function() { sendAlertEmail(true); }, 600);
-  }
-}
-
-// ── E-mail de Alertas ──
-function saveEmailDestinatario() {
-  var el = document.getElementById('alert-email-input');
-  if (!el) return;
-  localStorage.setItem('alert_email', el.value.trim());
-}
-
-function buildAlertEmailBody(v30, v90) {
-  var hoje = new Date().toLocaleDateString('pt-BR');
-  var vigTotal = DADOS.filter(function(d){ return d._st==='VIGENTE'; }).length;
-  var lines = [
-    'RESUMO DE ALERTAS DE CONTRATOS',
-    'Data: ' + hoje,
-    '─────────────────────────────────────────',
-    '',
-    '🔴 VENCENDO EM ATÉ 30 DIAS (' + v30.length + ')'
-  ];
-  if (v30.length) {
-    v30.forEach(function(d) {
-      lines.push('  • Contrato: ' + (d['CONTRATO']||'—')
-        + ' | Empresa: ' + (d['EMPRESA']||'').trim()
-        + ' | Tipo: ' + (d['TIPO']||'—')
-        + ' | Dias restantes: ' + d._dias);
-    });
-  } else {
-    lines.push('  Nenhum contrato nesta categoria.');
-  }
-  lines.push('');
-  lines.push('🟡 VENCENDO EM 31–90 DIAS (' + v90.length + ')');
-  if (v90.length) {
-    v90.forEach(function(d) {
-      lines.push('  • Contrato: ' + (d['CONTRATO']||'—')
-        + ' | Empresa: ' + (d['EMPRESA']||'').trim()
-        + ' | Tipo: ' + (d['TIPO']||'—')
-        + ' | Dias restantes: ' + d._dias);
-    });
-  } else {
-    lines.push('  Nenhum contrato nesta categoria.');
-  }
-  lines.push('');
-  lines.push('─────────────────────────────────────────');
-  lines.push('Total de contratos vigentes: ' + vigTotal);
-  lines.push('');
-  lines.push('Este resumo foi gerado automaticamente pelo Sistema de Faturamento.');
-  return lines.join('\n');
-}
-
-function sendAlertEmail(isAuto) {
-  var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
-  var v30 = vig.filter(function(d){ return d._dias!==null&&d._dias<=30; }).sort(function(a,b){ return a._dias-b._dias; });
-  var v90 = vig.filter(function(d){ return d._dias!==null&&d._dias>30&&d._dias<=90; }).sort(function(a,b){ return a._dias-b._dias; });
-
-  var dest = localStorage.getItem('alert_email') || '';
-  var emailInput = document.getElementById('alert-email-input');
-  if (emailInput && emailInput.value.trim()) dest = emailInput.value.trim();
-
-  if (!dest && !isAuto) {
-    var statusEl = document.getElementById('alert-email-status');
-    if (statusEl) { statusEl.textContent = '⚠️ Informe um e-mail destinatário.'; statusEl.style.color = 'var(--red)'; }
-    return;
-  }
-
-  var hoje = new Date().toLocaleDateString('pt-BR');
-  var subject = 'Próximos contratos a vencer';
-  var body = buildAlertEmailBody(v30, v90);
-
-  var mailto = 'mailto:' + encodeURIComponent(dest)
-    + '?subject=' + encodeURIComponent(subject)
-    + '&body=' + encodeURIComponent(body);
-  window.location.href = mailto;
-
-  var statusEl = document.getElementById('alert-email-status');
-  if (statusEl) { statusEl.textContent = '✓ Cliente de e-mail aberto.'; statusEl.style.color = 'var(--green)'; }
 }
 
 // ── Fiscais ──
@@ -2581,7 +2442,7 @@ function calcOne(d) {
 }
 
 function refreshAll() {
-  buildDashboard(); buildAlerts(); applyFilters(); updateSidebar();
+  buildDashboard(); applyFilters(); updateSidebar();
 }
 
 function openEditModal(idx) {
