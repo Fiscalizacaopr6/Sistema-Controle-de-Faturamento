@@ -300,7 +300,8 @@ select.doc-inp{cursor:pointer}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script defer src="documentos-data.js"></script>
+<!-- o ?v= muda a cada versão da base para o navegador não servir uma cópia velha do cache -->
+<script defer src="documentos-data.js?v=2"></script>
 </head>
 <body>
 
@@ -840,7 +841,16 @@ function _finishInitLogin() {
       document.getElementById('lf-eye').textContent = i.type === 'password' ? '👁' : '🙈';
     });
     var u = sessionStorage.getItem('ufrj_user');
-    if (u && USERS_DB[u]) { launchApp(u); return; }
+    var ls = document.getElementById('login-screen');
+    if (u && USERS_DB[u]) {
+      // Sessão já aberta nesta aba (ex.: F5): entra direto, sem pedir login de novo
+      if (ls) { ls.classList.add('hidden'); ls.style.display = 'none'; }
+      launchApp(u);
+      return;
+    }
+    // Sem sessão válida — garante que a tela de login esteja à vista
+    if (ls) { ls.style.display = ''; ls.classList.remove('hidden'); }
+    sessionStorage.removeItem('ufrj_user');
     setTimeout(function(){ document.getElementById('lf-u').focus(); }, 300);
 }
 // Converte automaticamente para maiúsculas em todos os campos de texto dos formulários
@@ -4552,7 +4562,17 @@ function exportDocumentosPDF()   { genericExportPDF('Documentos', docExportHeade
 function exportDocumentosExcel() { genericExportExcel('Documentos', docExportHeaders(), docExportRows(), 'documentos'); }
 
 // ── Boot ──
-document.addEventListener('DOMContentLoaded', function() { initTheme(); initLogin(); });
+document.addEventListener('DOMContentLoaded', function() {
+  initTheme();
+  // Já existe sessão nesta aba: esconde a tela de login antes de tudo, para
+  // que o F5 não mostre nem de relance o formulário. Se a sessão não valer
+  // mais, _finishInitLogin traz a tela de volta.
+  if (sessionStorage.getItem('ufrj_user')) {
+    var ls = document.getElementById('login-screen');
+    if (ls) { ls.classList.add('hidden'); ls.style.display = 'none'; }
+  }
+  initLogin();
+});
 </script>
 <div id="fc-sticky-scroll"><div id="fc-sticky-inner"></div></div>
 
