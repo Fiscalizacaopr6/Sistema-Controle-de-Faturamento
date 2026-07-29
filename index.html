@@ -259,18 +259,26 @@ tr:last-child td{border-bottom:none}
 .btn-export.xlsx:hover{background:rgba(16,185,129,.12)}
 @keyframes spin { to { transform: rotate(360deg); } }
 /* ── Documentos (edição direto na linha) ── */
-.doc-hint{display:flex;align-items:center;gap:8px;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.22);border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)}
-.doc-hint b{color:var(--accent);font-weight:600}
+#doc-toast{display:none;position:fixed;right:22px;bottom:34px;z-index:900;max-width:340px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35);padding:10px 16px;font-size:12px;color:var(--text)}
+#doc-toast.erro{border-left-color:var(--red)}
 #doc-table th{padding:9px 10px;font-size:10px;letter-spacing:.6px}
 #doc-table td{padding:6px 10px;font-size:11.5px}
 #doc-table td.doc-cell{cursor:cell}
 #doc-table td.doc-cell:hover{box-shadow:inset 0 0 0 1px rgba(59,130,246,.35)}
 #doc-table td.doc-editing{padding:3px 5px;background:rgba(59,130,246,.10)}
-#doc-table tr.doc-row-editing td{background:rgba(59,130,246,.08)}
 #doc-table .doc-sticky{position:sticky;left:0;z-index:2;background:var(--surface)}
 #doc-table th.doc-sticky{background:var(--surface2);z-index:3}
-#doc-table tr.doc-row-editing td.doc-sticky{background:#16243d}
-html.light #doc-table tr.doc-row-editing td.doc-sticky{background:#e8effb}
+/* barra de rolagem horizontal sempre visível (não some como a padrão do sistema) */
+#doc-table .doc-scroll{overflow-x:scroll;scrollbar-width:thin;scrollbar-color:var(--accent) var(--surface2)}
+#doc-table .doc-scroll::-webkit-scrollbar{height:12px;-webkit-appearance:none}
+#doc-table .doc-scroll::-webkit-scrollbar-track{background:var(--surface2);border-radius:6px}
+#doc-table .doc-scroll::-webkit-scrollbar-thumb{background:var(--accent);border-radius:6px;border:2px solid var(--surface2)}
+#doc-table .doc-scroll::-webkit-scrollbar-thumb:hover{background:#60a5fa}
+/* barra de rolagem própria, fixa no rodapé — não depende da barra nativa do sistema */
+#doc-hbar{display:none;position:fixed;bottom:0;left:220px;right:0;height:18px;background:var(--surface2);border-top:1px solid var(--border);z-index:300}
+#doc-hbar-thumb{position:absolute;top:4px;left:0;height:10px;min-width:44px;border-radius:5px;background:var(--accent);cursor:grab}
+#doc-hbar-thumb:hover{background:#60a5fa}
+#doc-hbar-thumb.arrastando{cursor:grabbing;background:#60a5fa}
 .doc-inp{width:100%;min-width:96px;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--accent);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 7px;outline:none}
 select.doc-inp{cursor:pointer}
 .doc-mono{font-family:'DM Mono',monospace}
@@ -534,8 +542,9 @@ select.doc-inp{cursor:pointer}
         <button class="btn-export xlsx" onclick="exportDocumentosExcel()" title="Baixar os resultados filtrados em Excel">⬇ Excel</button>
         <button class="btn-new" id="btn-novo-documento" onclick="openNewDocumentoModal()" style="display:none">+ Novo Registro</button>
       </div>
-      <div class="doc-hint" id="doc-hint">✏️ <span>Dê um <b>duplo clique</b> sobre a informação para editar direto na linha. <b>Enter</b> salva, <b>Tab</b> vai para a próxima coluna e <b>Esc</b> cancela. O botão <b>Editar linha</b> abre a linha inteira para edição.</span></div>
       <div id="doc-table"></div>
+      <div id="doc-hbar"><div id="doc-hbar-thumb"></div></div>
+      <div id="doc-toast"></div>
       <datalist id="doc-dl-flag"><option value="SIM"></option><option value="NÃO SE APLICA"></option><option value="NÃO HOUVE FAT"></option></datalist>
     </div>
 
@@ -996,6 +1005,7 @@ function showView(v) {
   var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', alertas:'Alertas de Vencimento', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Conta Vinculada', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   if (v === 'documentos') { initDocumentos(); buildDocumentosTable(); }
+  else { var hb = document.getElementById('doc-hbar'); if (hb) hb.style.display = 'none'; }
   if (v === 'usuarios') buildUsersTable();
   if (v === 'unidades') buildUnidadesTable();
   if (v === 'imr') buildImrTable();
@@ -4143,16 +4153,77 @@ function docCanEdit() { return currentRole === 'admin' || currentRole === 'edito
 
 var _docToastTimer = null;
 function docToast(msg, isErro) {
-  var el = document.getElementById('doc-hint');
+  var el = document.getElementById('doc-toast');
   if (!el) return;
-  if (!el.getAttribute('data-orig')) el.setAttribute('data-orig', el.innerHTML);
-  el.innerHTML = '<span style="color:' + (isErro ? 'var(--red)' : 'var(--green)') + '">' + esc(msg) + '</span>';
+  el.textContent = msg;
+  el.className = isErro ? 'erro' : '';
+  el.style.display = 'block';
   clearTimeout(_docToastTimer);
-  _docToastTimer = setTimeout(function() { el.innerHTML = el.getAttribute('data-orig'); }, 3200);
+  _docToastTimer = setTimeout(function() { el.style.display = 'none'; }, 3200);
+}
+
+// ── Barra de rolagem horizontal própria, sempre visível no rodapé ──
+function docScrollDiv() { return document.querySelector('#doc-table .doc-scroll'); }
+
+function docHBarSync() {
+  var bar = document.getElementById('doc-hbar');
+  var thumb = document.getElementById('doc-hbar-thumb');
+  var div = docScrollDiv();
+  var view = document.getElementById('view-documentos');
+  if (!bar || !thumb) return;
+  if (!div || !view || !view.classList.contains('active') || div.scrollWidth <= div.clientWidth + 1) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'block';
+  var trilha = bar.clientWidth;
+  var largura = Math.max(44, Math.round(trilha * div.clientWidth / div.scrollWidth));
+  var maxEsq = trilha - largura;
+  var maxRol = div.scrollWidth - div.clientWidth;
+  thumb.style.width = largura + 'px';
+  thumb.style.left = Math.round(maxRol > 0 ? (div.scrollLeft / maxRol) * maxEsq : 0) + 'px';
+  if (!div._docHBarLigado) {
+    div.addEventListener('scroll', docHBarSync);
+    div._docHBarLigado = true;
+  }
+}
+
+function docHBarInit() {
+  var bar = document.getElementById('doc-hbar');
+  var thumb = document.getElementById('doc-hbar-thumb');
+  if (!bar || !thumb || bar._docLigado) return;
+  bar._docLigado = true;
+  var arrastando = false, xInicial = 0, esqInicial = 0;
+
+  function rolarPara(esq) {
+    var div = docScrollDiv();
+    if (!div) return;
+    var trilha = bar.clientWidth, largura = thumb.offsetWidth;
+    var maxEsq = Math.max(1, trilha - largura);
+    var pos = Math.min(Math.max(esq, 0), maxEsq);
+    div.scrollLeft = (pos / maxEsq) * (div.scrollWidth - div.clientWidth);
+    docHBarSync();
+  }
+  thumb.addEventListener('mousedown', function(e) {
+    arrastando = true; xInicial = e.clientX; esqInicial = thumb.offsetLeft;
+    thumb.classList.add('arrastando');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (arrastando) rolarPara(esqInicial + (e.clientX - xInicial));
+  });
+  document.addEventListener('mouseup', function() {
+    arrastando = false; thumb.classList.remove('arrastando');
+  });
+  bar.addEventListener('mousedown', function(e) {
+    if (e.target === thumb) return;
+    rolarPara(e.clientX - bar.getBoundingClientRect().left - thumb.offsetWidth / 2);
+  });
+  window.addEventListener('resize', docHBarSync);
 }
 
 function docHasOpenEditor() {
-  return !!document.querySelector('#doc-table .doc-editing, #doc-table .doc-row-editing');
+  return !!document.querySelector('#doc-table .doc-editing');
 }
 
 function docCellTd(id, k) {
@@ -4164,8 +4235,6 @@ function docEditCell(td) {
   if (!td) return;
   if (!docCanEdit()) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return; }
   if (td.classList.contains('doc-editing')) return;
-  var tr = td.parentNode;
-  if (tr && tr.classList.contains('doc-row-editing')) return;
   var rec = docFind(td.getAttribute('data-id'));
   var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
   if (!rec || !col) return;
@@ -4226,74 +4295,8 @@ function docEditVizinha(td, dir) {
   if (alvo) docEditCell(alvo);
 }
 
-// ── Edição da linha inteira (ainda na própria linha) ──
-function docEditRow(id) {
-  if (!docCanEdit()) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return; }
-  var tr = document.querySelector('#doc-table tr[data-id="' + id + '"]');
-  var rec = docFind(id);
-  if (!tr || !rec || tr.classList.contains('doc-row-editing')) return;
-  Array.prototype.forEach.call(document.querySelectorAll('#doc-table td.doc-editing'), docCancelCell);
-  tr.classList.add('doc-row-editing');
-  Array.prototype.forEach.call(tr.querySelectorAll('td.doc-cell'), function(td) {
-    var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
-    td.innerHTML = docEditorHtml(col, rec[col.k]);
-  });
-  var acoes = tr.querySelector('td.doc-actions');
-  if (acoes) acoes.innerHTML = '<div class="doc-act">'
-    + '<button class="btn-doc ok" onclick="docSaveRow(\'' + id + '\')">✔ Salvar</button>'
-    + '<button class="btn-doc" onclick="docCancelRow(\'' + id + '\')">Cancelar</button></div>';
-  tr.onkeydown = function(e) {
-    if (e.key === 'Enter')  { e.preventDefault(); docSaveRow(id); }
-    if (e.key === 'Escape') { e.preventDefault(); docCancelRow(id); }
-  };
-  var primeiro = tr.querySelector('.doc-inp');
-  if (primeiro) { primeiro.focus(); if (primeiro.select) { try { primeiro.select(); } catch (er) {} } }
-}
-
-function docSaveRow(id) {
-  var tr = document.querySelector('#doc-table tr[data-id="' + id + '"]');
-  var rec = docFind(id);
-  if (!tr || !rec) return;
-  var alteracoes = {};
-  Array.prototype.forEach.call(tr.querySelectorAll('td.doc-cell'), function(td) {
-    var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
-    var inp = td.querySelector('.doc-inp');
-    if (!col || !inp) return;
-    var novo = docParseValue(col, inp.value);
-    var atual = rec[col.k] === undefined ? '' : rec[col.k];
-    if (String(novo) !== String(atual)) alteracoes[col.k] = novo;
-  });
-  var mudou = Object.keys(alteracoes).length > 0;
-  if (mudou) {
-    rec = docMutable(id);
-    Object.keys(alteracoes).forEach(function(k) {
-      if (alteracoes[k] === '') delete rec[k]; else rec[k] = alteracoes[k];
-    });
-    docPersist(rec);
-  }
-  docRenderRow(tr, rec);
-  if (mudou) { docToast('✔ Linha salva.'); }
-}
-
-function docCancelRow(id) {
-  var tr = document.querySelector('#doc-table tr[data-id="' + id + '"]');
-  var rec = docFind(id);
-  if (tr && rec) docRenderRow(tr, rec);
-}
-
-function docRenderRow(tr, rec) {
-  tr.classList.remove('doc-row-editing');
-  tr.onkeydown = null;
-  Array.prototype.forEach.call(tr.querySelectorAll('td.doc-cell'), function(td) {
-    td.innerHTML = docCellDisplay(DOC_FIELD_MAP[td.getAttribute('data-k')], rec);
-  });
-  var acoes = tr.querySelector('td.doc-actions');
-  if (acoes) acoes.innerHTML = docActionsHtml(rec.id);
-}
-
 function docActionsHtml(id) {
   return '<div class="doc-act">'
-    + '<button class="btn-doc" onclick="docEditRow(\'' + id + '\')">✏️ Editar linha</button>'
     + '<button class="btn-doc no" onclick="docConfirmDelete(\'' + id + '\')">Excluir</button></div>';
 }
 
@@ -4353,6 +4356,7 @@ function initDocumentos() {
       while (td && td.nodeName !== 'TD') td = td.parentNode;
       if (td && td.classList && td.classList.contains('doc-cell')) docEditCell(td);
     });
+    docHBarInit();
     _docInit = true;
   }
 }
@@ -4443,9 +4447,10 @@ function renderDocumentosTable() {
   wrap.innerHTML = '<div class="table-wrap">'
     + '<div class="table-info"><span>' + docFiltered.length.toLocaleString('pt-BR') + ' registro(s)</span>'
     + '<span style="color:var(--muted)">Página ' + docPage + ' de ' + totalPages + '</span></div>'
-    + '<div style="overflow-x:auto"><table id="doc-tbl">'
+    + '<div class="doc-scroll" style="overflow-x:scroll"><table id="doc-tbl">'
     + '<thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
     + docPaginationHtml(totalPages) + '</div>';
+  setTimeout(docHBarSync, 0);
 }
 
 function docPaginationHtml(total) {
