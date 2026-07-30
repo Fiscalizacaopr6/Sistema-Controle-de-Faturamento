@@ -326,6 +326,16 @@ select.doc-inp{cursor:pointer}
 .btn-doc:hover{border-color:var(--accent);color:var(--accent)}
 .btn-doc.ok{border-color:rgba(16,185,129,.4);color:var(--green)}
 .btn-doc.no{border-color:rgba(239,68,68,.3);color:#f87171}
+/* ── Ordem Bancária: número clicável (editar célula ou abrir no SEI) ── */
+.doc-ob{color:var(--accent);border-bottom:1px dotted var(--accent);cursor:pointer}
+.doc-ob:hover{color:#60a5fa;border-bottom-style:solid}
+#doc-ob-menu{position:fixed;z-index:1200;min-width:190px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.4);padding:6px;font-family:'Sora',sans-serif}
+#doc-ob-menu .ob-cab{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:5px 8px 7px}
+#doc-ob-menu .ob-cab b{display:block;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0;color:var(--text);margin-top:2px}
+#doc-ob-menu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:8px 9px;cursor:pointer}
+#doc-ob-menu button:hover{background:var(--surface2);color:var(--accent)}
+#doc-ob-menu button:disabled{color:var(--muted);cursor:not-allowed;background:none}
+#doc-ob-menu button span.ico{font-size:13px;width:14px;text-align:center}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -3686,6 +3696,14 @@ function buildReajustesTable() {
   renderReajustesTable();
 }
 
+// Número da OB clicável: menu com "Editar registro" ou "Abrir documento no SEI".
+function rrOrdemBancariaHtml(r) {
+  var v = r.ordemBancaria;
+  if (!docSeiNumeros(v).length) return esc(v);
+  return '<span class="doc-ob" title="Clique para editar ou abrir o documento no SEI"'
+    + ' onclick="rrObMenu(event,\'' + esc(r.id) + '\')">' + esc(v) + '</span>';
+}
+
 function renderReajustesTable() {
   var canEdit = currentRole === 'admin' || currentRole === 'editor';
   var wrap = document.getElementById('reajuste-table');
@@ -3720,7 +3738,7 @@ function renderReajustesTable() {
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.nf)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap;text-align:right">'+esc(r.valorNf)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.folhaInfo)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.ordemBancaria)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrOrdemBancariaHtml(r)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'">'+esc(r.situacaoNf)+'</td>'
       +'<td style="font-size:11px;color:var(--muted)">'+esc(r.observacao)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(sitColor[sit]||'var(--muted)')+'">'+esc(r.situacao)+'</td>'
@@ -4304,6 +4322,11 @@ function docCellDisplay(col, rec) {
   if (col.type === 'money') return typeof v === 'number' ? esc(fmtBR(v)) : esc(v);
   if (col.type === 'date')  return esc(docFmtDate(v));
   if (col.badge) return '<span class="doc-badge ' + docBadgeClass(col.k, v) + '">' + esc(v) + '</span>';
+  if (col.k === 'ordemBancaria') {
+    return docSeiNumeros(v).length
+      ? '<span class="doc-ob" title="Clique para editar ou abrir o documento no SEI">' + esc(v) + '</span>'
+      : esc(v);
+  }
   return esc(v);
 }
 
@@ -4404,9 +4427,120 @@ function docCellTd(id, k) {
   return document.querySelector('#doc-table td[data-id="' + id + '"][data-k="' + k + '"]');
 }
 
+// ── Ordem Bancária → documento no SEI ──
+// O número da OB é o número do documento no SEI. A URL abaixo cai direto na
+// Pesquisa Rápida do SEI já com o número preenchido; se a sessão não estiver
+// aberta, o próprio SEI leva ao login e depois devolve para essa mesma busca.
+var SEI_URL_BASE = 'https://sei.ufrj.br/sei/controlador.php';
+
+function docSeiUrl(num) {
+  return SEI_URL_BASE + '?acao=protocolo_pesquisa_rapida&acao_origem=principal'
+    + '&txtPesquisaRapida=' + encodeURIComponent(String(num == null ? '' : num).trim());
+}
+
+// A célula pode ter mais de um documento ("5446924/5446930"), o código SIAFI
+// ("2023OB801072") ou marcações sem documento ("X", "-", "NÃO HOUVE FAT").
+// Só vira link o que tem cara de número de documento: 4 dígitos ou mais.
+function docSeiNumeros(v) {
+  return String(v == null ? '' : v).split(/[\/,;\s]+/)
+    .map(function(t) { return t.trim(); })
+    .filter(function(t) { return (t.replace(/\D/g, '').length >= 4); });
+}
+
+function docAbrirSei(num) {
+  var n = String(num == null ? '' : num).trim();
+  docFecharObMenu();
+  if (!n) { docToast('Sem número de ordem bancária para pesquisar no SEI.', true); return; }
+  window.open(docSeiUrl(n), '_blank', 'noopener');
+  docToast('Abrindo o documento ' + n + ' no SEI…');
+}
+
+function docFecharObMenu() {
+  var m = document.getElementById('doc-ob-menu');
+  if (m && m.parentNode) m.parentNode.removeChild(m);
+  document.removeEventListener('mousedown', _docObFora, true);
+  document.removeEventListener('keydown', _docObEsc, true);
+  window.removeEventListener('scroll', docFecharObMenu, true);
+}
+
+function _docObFora(e) {
+  var m = document.getElementById('doc-ob-menu');
+  if (m && !m.contains(e.target)) docFecharObMenu();
+}
+
+function _docObEsc(e) {
+  if (e.key === 'Escape') docFecharObMenu();
+}
+
+// Menu do número da OB — usado pela tabela de Documentos (edita a célula) e
+// pela de Reajustes/Retroativos (abre o modal do registro).
+// cfg: {rotuloEditar, podeEditar, aoEditar}
+function obMenu(ev, num, cfg) {
+  docFecharObMenu();
+  num = String(num == null ? '' : num).trim();
+  var docs = docSeiNumeros(num);
+  var m = document.createElement('div');
+  m.id = 'doc-ob-menu';
+  var btnsSei = docs.length
+    ? docs.map(function(d) {
+        return '<button type="button" data-acao="sei" data-num="' + esc(d) + '">'
+          + '<span class="ico">↗</span>Abrir ' + (docs.length > 1 ? esc(d) + ' ' : 'documento ') + 'no SEI</button>';
+      }).join('')
+    : '<button type="button" disabled><span class="ico">↗</span>Sem documento no SEI</button>';
+  m.innerHTML = '<div class="ob-cab">Ordem bancária<b>' + esc(num || '—') + '</b></div>'
+    + '<button type="button"' + (cfg.podeEditar ? '' : ' disabled') + ' data-acao="editar">'
+    + '<span class="ico">✎</span>' + esc(cfg.rotuloEditar) + '</button>'
+    + btnsSei;
+  document.body.appendChild(m);
+
+  var larg = m.offsetWidth, alt = m.offsetHeight;
+  var x = Math.min(ev.clientX, window.innerWidth - larg - 8);
+  var y = ev.clientY + 6;
+  if (y + alt > window.innerHeight - 8) y = Math.max(8, ev.clientY - alt - 6);
+  m.style.left = Math.max(8, x) + 'px';
+  m.style.top = y + 'px';
+
+  m.onclick = function(e) {
+    var b = e.target;
+    while (b && b.nodeName !== 'BUTTON') b = b.parentNode;
+    if (!b || b.disabled) return;
+    if (b.getAttribute('data-acao') === 'sei') docAbrirSei(b.getAttribute('data-num'));
+    else { docFecharObMenu(); cfg.aoEditar(); }
+  };
+  setTimeout(function() {
+    document.addEventListener('mousedown', _docObFora, true);
+    document.addEventListener('keydown', _docObEsc, true);
+    window.addEventListener('scroll', docFecharObMenu, true);
+  }, 0);
+}
+
+function docObMenu(td, ev) {
+  var rec = docFind(td.getAttribute('data-id'));
+  if (!rec) return;
+  obMenu(ev, rec.ordemBancaria, {
+    rotuloEditar: 'Editar célula',
+    podeEditar: docCanEdit(),
+    aoEditar: function() { docEditCell(td); }
+  });
+}
+
+// Tabela de Reajustes/Retroativos: lá a edição é pelo modal do registro.
+function rrObMenu(ev, id) {
+  ev.stopPropagation();
+  var r = null;
+  for (var i = 0; i < REAJUSTES.length; i++) if (REAJUSTES[i].id === id) { r = REAJUSTES[i]; break; }
+  if (!r) return;
+  obMenu(ev, r.ordemBancaria, {
+    rotuloEditar: 'Editar registro',
+    podeEditar: (currentRole === 'admin' || currentRole === 'editor'),
+    aoEditar: function() { openEditReajusteModal(id); }
+  });
+}
+
 // ── Edição de uma célula (duplo clique) ──
 function docEditCell(td) {
   if (!td) return;
+  docFecharObMenu();
   if (!docCanEdit()) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return; }
   if (td.classList.contains('doc-editing')) return;
   var rec = docFind(td.getAttribute('data-id'));
@@ -4529,6 +4663,16 @@ function initDocumentos() {
       var td = e.target;
       while (td && td.nodeName !== 'TD') td = td.parentNode;
       if (td && td.classList && td.classList.contains('doc-cell')) docEditCell(td);
+    });
+    // clique simples na Ordem Bancária: escolher entre editar a célula ou abrir no SEI
+    if (cont) cont.addEventListener('click', function(e) {
+      var td = e.target;
+      while (td && td.nodeName !== 'TD') td = td.parentNode;
+      if (!td || !td.classList || !td.classList.contains('doc-cell')) return;
+      if (td.getAttribute('data-k') !== 'ordemBancaria') return;
+      if (td.classList.contains('doc-editing')) return;
+      e.stopPropagation();
+      docObMenu(td, e);
     });
     docHBarInit();
     _docInit = true;
