@@ -4430,14 +4430,29 @@ function docCellTd(id, k) {
 }
 
 // ── Ordem Bancária → documento no SEI ──
-// O número da OB é o número do documento no SEI. A URL abaixo cai direto na
-// Pesquisa Rápida do SEI já com o número preenchido; se a sessão não estiver
-// aberta, o próprio SEI leva ao login e depois devolve para essa mesma busca.
-var SEI_URL_BASE = 'https://sei.ufrj.br/sei/controlador.php';
+// O número da OB é o número do documento no SEI.
+// Não dá para linkar direto a busca: o SEI 4 exige um "infra_hash" assinado
+// pelo servidor em toda URL da área autenticada e responde "Link sem
+// assinatura" a qualquer link externo. Então abrimos o SEI e deixamos o número
+// na área de transferência, é só colar na Pesquisa.
+// O "#ob=<numero>" é ignorado pelo SEI; serve para o script de automação
+// (Tampermonkey) preencher a Pesquisa sozinho, quando instalado.
+var SEI_URL_BASE = 'https://sei.ufrj.br/sei/';
 
 function docSeiUrl(num) {
-  return SEI_URL_BASE + '?acao=protocolo_pesquisa_rapida&acao_origem=principal'
-    + '&txtPesquisaRapida=' + encodeURIComponent(String(num == null ? '' : num).trim());
+  return SEI_URL_BASE + '#ob=' + encodeURIComponent(String(num == null ? '' : num).trim());
+}
+
+function docCopiar(txt) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt); return true; }
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
 }
 
 // A célula pode ter mais de um documento ("5446924/5446930"), o código SIAFI
@@ -4453,12 +4468,11 @@ function docAbrirSei(num) {
   var n = String(num == null ? '' : num).trim();
   docFecharObMenu();
   if (!n) { docToast('Sem número de ordem bancária para pesquisar no SEI.', true); return; }
-  // o número vai para a área de transferência como plano B (busca manual)
-  try { if (navigator.clipboard) navigator.clipboard.writeText(n); } catch (e) {}
+  var copiou = docCopiar(n);
   window.open(docSeiUrl(n), '_blank', 'noopener');
-  docToast('Abrindo o documento ' + n + ' no SEI. Se aparecer a tela de login, '
-    + 'entre normalmente — o SEI volta direto para esse documento. '
-    + 'O número também foi copiado.');
+  docToast(copiou
+    ? 'SEI aberto e número ' + n + ' copiado — cole na Pesquisa (Ctrl+V) e tecle Enter.'
+    : 'SEI aberto. Pesquise pelo número ' + n + '.');
 }
 
 function docFecharObMenu() {
@@ -4490,7 +4504,7 @@ function obMenu(ev, num, cfg) {
   var btnsSei = docs.length
     ? docs.map(function(d) {
         return '<button type="button" data-acao="sei" data-num="' + esc(d) + '">'
-          + '<span class="ico">↗</span>Abrir ' + (docs.length > 1 ? esc(d) + ' ' : 'documento ') + 'no SEI</button>';
+          + '<span class="ico">↗</span>Abrir ' + (docs.length > 1 ? esc(d) : 'documento') + ' no SEI</button>';
       }).join('')
     : '<button type="button" disabled><span class="ico">↗</span>Sem documento no SEI</button>';
   m.innerHTML = '<div class="ob-cab">Ordem bancária<b>' + esc(num || '—') + '</b></div>'
