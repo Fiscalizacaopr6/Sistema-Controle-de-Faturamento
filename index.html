@@ -4356,7 +4356,9 @@ function docToast(msg, isErro) {
   el.className = isErro ? 'erro' : '';
   el.style.display = 'block';
   clearTimeout(_docToastTimer);
-  _docToastTimer = setTimeout(function() { el.style.display = 'none'; }, 3200);
+  // mensagens longas ficam mais tempo na tela
+  var ms = Math.min(9000, Math.max(3200, String(msg).length * 65));
+  _docToastTimer = setTimeout(function() { el.style.display = 'none'; }, ms);
 }
 
 // ── Barra de rolagem horizontal própria, sempre visível no rodapé ──
@@ -4451,8 +4453,12 @@ function docAbrirSei(num) {
   var n = String(num == null ? '' : num).trim();
   docFecharObMenu();
   if (!n) { docToast('Sem número de ordem bancária para pesquisar no SEI.', true); return; }
+  // o número vai para a área de transferência como plano B (busca manual)
+  try { if (navigator.clipboard) navigator.clipboard.writeText(n); } catch (e) {}
   window.open(docSeiUrl(n), '_blank', 'noopener');
-  docToast('Abrindo o documento ' + n + ' no SEI…');
+  docToast('Abrindo o documento ' + n + ' no SEI. Se aparecer a tela de login, '
+    + 'entre normalmente — o SEI volta direto para esse documento. '
+    + 'O número também foi copiado.');
 }
 
 function docFecharObMenu() {
