@@ -4379,13 +4379,11 @@ var DOC_FIELDS = [
   {k:'atesto',           label:'Atesto',               type:'date'},
   {k:'documentacao',     label:'Documentação',         type:'date'},
   {k:'contaVinculada',   label:'Conta Vinculada',      type:'date'},
-  {k:'sicaf',            label:'SICAF',                type:'select', badge:true, upper:true, options:['REGULAR','IRREGULAR','NÃO HOUVE FAT']},
   {k:'folhaInfo',        label:'Folha de Informação',  type:'text',   mono:true},
   {k:'envioPr3',         label:'Envio à PR3',          type:'select', simbolo:'✔', cor:'var(--green)', options:['✔']},
   {k:'ordemBancaria',    label:'Ordem Bancária',       type:'text',   mono:true},
   {k:'semPrestacao',     label:'Não Houve Prestação',  type:'select', simbolo:'X', cor:'var(--amber)', options:['X']},
   {k:'observacao',       label:'Observação',           type:'text'},
-  {k:'retornoProblema',  label:'Retorno com Problema', type:'select', simbolo:'X', cor:'var(--red)', options:['X']},
   {k:'responsavel',      label:'Responsável',          type:'select', upper:true, options:[]},
   {k:'situacaoContrato', label:'Contrato',             type:'select', badge:true, options:['VIGENTE','ENCERRADO']}
 ];
@@ -4415,14 +4413,15 @@ function docSeed() {
 }
 
 // Registros salvos antes da troca de "SIM" pelos símbolos continuam válidos.
-var DOC_SIMBOLOS = ['envioPr3','semPrestacao','retornoProblema'];
+var DOC_SIMBOLOS = ['envioPr3','semPrestacao'];
 function docNormalizaSimbolos(rec) {
   DOC_SIMBOLOS.forEach(function(k) {
+    var col = DOC_FIELD_MAP[k];
     var v = rec[k];
-    if (v === undefined || v === null || v === '') return;
+    if (!col || v === undefined || v === null || v === '') return;
     var t = String(v).trim().toUpperCase();
     if (t === 'SIM' || t === 'X' || t.indexOf('✔') !== -1 || t.indexOf('✓') !== -1) {
-      rec[k] = DOC_FIELD_MAP[k].simbolo;
+      rec[k] = col.simbolo;
     }
   });
   return rec;
@@ -4531,9 +4530,8 @@ function docParseValue(col, raw) {
 function docBadgeClass(k, v) {
   var s = String(v).toUpperCase();
   if (k === 'situacao')         return s === 'PAGO' ? 'doc-b-ok' : (s === 'EM ATRASO' ? 'doc-b-red' : 'doc-b-warn');
-  if (k === 'sicaf')            return s === 'REGULAR' ? 'doc-b-ok' : (s === 'IRREGULAR' ? 'doc-b-red' : 'doc-b-mut');
   if (k === 'situacaoContrato') return s === 'VIGENTE' ? 'doc-b-ok' : 'doc-b-mut';
-  if (k === 'retornoProblema' || k === 'semPrestacao') return 'doc-b-red';
+  if (k === 'semPrestacao') return 'doc-b-red';
   return 'doc-b-ok';
 }
 
