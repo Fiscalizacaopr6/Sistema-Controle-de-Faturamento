@@ -480,6 +480,12 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Buscar</span>
           <input class="si" id="f-q" type="text" placeholder="Contrato, empresa, responsável..." oninput="applyFilters()">
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="f-ct" onchange="applyFilters()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="f-em" onchange="applyFilters()"><option value="">Todas</option></select>
+        </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Status</span>
           <select class="sel" id="f-st" onchange="applyFilters()">
             <option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="ENCERRADO">Encerrado</option>
@@ -569,6 +575,9 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Buscar</span>
           <input class="si" id="doc-q" type="text" placeholder="Empresa, contrato, unidade, NF..." oninput="buildDocumentosTable()">
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="doc-f-empresa" onchange="buildDocumentosTable()"><option value="">Todas</option></select>
+        </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Ano</span>
           <select class="sel" id="doc-f-ano" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
         </div>
@@ -606,6 +615,21 @@ select.doc-inp{cursor:pointer}
           <button class="btn-new" id="btn-novo-fiscal" onclick="openNewFiscalModal()" style="display:none;white-space:nowrap">+ Novo Fiscal</button>
         </div>
       </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Nome</span>
+          <select class="sel" id="fisc-f-nome" onchange="buildFiscaisCards()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="fisc-f-contrato" onchange="buildFiscaisCards()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="fisc-f-empresa" onchange="buildFiscaisCards()"><option value="">Todas</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Unidade</span>
+          <select class="sel" id="fisc-f-unidade" onchange="buildFiscaisCards()"><option value="">Todas</option></select>
+        </div>
+        <button class="btn clear" onclick="clearFiscalFilters()">Limpar</button>
+      </div>
       <div class="fiscal-cards" id="fiscal-cards"></div>
     </div>
 
@@ -624,6 +648,18 @@ select.doc-inp{cursor:pointer}
           <button class="btn-new" id="btn-novo-reajuste" onclick="openNewReajusteModal()" style="display:none;white-space:nowrap">+ Novo Registro</button>
         </div>
       </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="rj-f-contrato" onchange="buildReajustesTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="rj-f-empresa" onchange="buildReajustesTable()"><option value="">Todas</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
+          <select class="sel" id="rj-f-resp" onchange="buildReajustesTable()"><option value="">Todos</option></select>
+        </div>
+        <button class="btn clear" onclick="clearReajusteFilters()">Limpar</button>
+      </div>
       <div class="fiscal-cards" id="reajuste-table"></div>
     </div>
     <!-- CONTA VINCULADA -->
@@ -636,6 +672,18 @@ select.doc-inp{cursor:pointer}
           <button class="btn-export xlsx" onclick="exportContasExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-conta" onclick="openNewContaModal()" style="display:none;white-space:nowrap">+ Novo Registro</button>
         </div>
+      </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="ct-f-contrato" onchange="buildContasTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="ct-f-empresa" onchange="buildContasTable()"><option value="">Todas</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
+          <select class="sel" id="ct-f-resp" onchange="buildContasTable()"><option value="">Todos</option></select>
+        </div>
+        <button class="btn clear" onclick="clearContaFilters()">Limpar</button>
       </div>
       <div class="fiscal-cards" id="conta-table"></div>
     </div>
@@ -650,6 +698,12 @@ select.doc-inp{cursor:pointer}
           <button class="btn-new" id="btn-novo-empresa" onclick="openNewEmpresaModal()" style="display:none;white-space:nowrap">+ Nova Empresa</button>
         </div>
       </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="emp-f-empresa" onchange="buildEmpresasTable()"><option value="">Todas</option></select>
+        </div>
+        <button class="btn clear" onclick="clearEmpresaFilters()">Limpar</button>
+      </div>
       <div class="fiscal-cards" id="empresa-table"></div>
     </div>
     <!-- UNIDADES -->
@@ -662,6 +716,15 @@ select.doc-inp{cursor:pointer}
           <button class="btn-export xlsx" onclick="exportUnidadesExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-unidade" onclick="openNewUnidadeModal()" style="display:none;white-space:nowrap">+ Nova Entrada</button>
         </div>
+      </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Unidade</span>
+          <select class="sel" id="un-f-unidade" onchange="buildUnidadesTable()"><option value="">Todas</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Sigla</span>
+          <select class="sel" id="un-f-sigla" onchange="buildUnidadesTable()"><option value="">Todas</option></select>
+        </div>
+        <button class="btn clear" onclick="clearUnidadeFilters()">Limpar</button>
       </div>
       <div class="fiscal-cards" id="unidade-table"></div>
     </div>
@@ -1325,19 +1388,73 @@ function buildDashboard() {
   showChart(activeChart);
 }
 
+// ── Filtros em lista suspensa (compartilhados pelas telas) ──
+// Valor de um campo de filtro; '' quando o elemento ainda não existe na tela.
+function fVal(id) {
+  var el = document.getElementById(id);
+  return el ? (el.value || '') : '';
+}
+
+// Valores distintos de uma lista, já limpos e ordenados em pt-BR.
+function distinctSorted(arr, get) {
+  var vistos = Object.create(null), out = [];
+  (arr || []).forEach(function(item) {
+    var v = get(item);
+    if (v === undefined || v === null) return;
+    v = String(v).trim();
+    if (!v || vistos[v]) return;
+    vistos[v] = 1;
+    out.push(v);
+  });
+  return out.sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+}
+
+// Preenche um <select> de filtro preservando a opção escolhida.
+// A assinatura em data-vals evita reconstruir o DOM quando a lista não mudou.
+function fillSelectFilter(id, valores, placeholder) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var assinatura = JSON.stringify(valores);
+  if (el.getAttribute('data-vals') === assinatura) return;
+  var atual = el.value;
+  el.innerHTML = '<option value="">' + esc(placeholder) + '</option>'
+    + valores.map(function(v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+  el.setAttribute('data-vals', assinatura);
+  el.value = (atual && valores.indexOf(atual) !== -1) ? atual : '';
+}
+
+// Zera um conjunto de campos de filtro e chama o rebuild da tela.
+function clearFilterFields(ids, rebuild) {
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  if (rebuild) rebuild();
+}
+
 // ── Table ──
 var filtered = [], sortCol = '_st', sortDir = 1, page = 1;
 var PER = 20;
 
+function populateContratoFilters() {
+  fillSelectFilter('f-ct', distinctSorted(DADOS, function(d){ return d['CONTRATO']; }), 'Todos');
+  fillSelectFilter('f-em', distinctSorted(DADOS, function(d){ return d['EMPRESA']; }), 'Todas');
+}
+
 function applyFilters() {
+  populateContratoFilters();
   var q = (document.getElementById('f-q').value || '').toLowerCase();
   var st = document.getElementById('f-st').value;
   var ti = document.getElementById('f-ti').value;
   var re = document.getElementById('f-re').value;
+  var ct = fVal('f-ct');
+  var em = fVal('f-em');
   filtered = DADOS.filter(function(d) {
     if (st && d._st !== st) return false;
     if (ti && d['TIPO'] !== ti) return false;
     if (re && d['RESPONSÁVEL NO FATURAMENTO'] !== re) return false;
+    if (ct && String(d['CONTRATO'] || '').trim() !== ct) return false;
+    if (em && String(d['EMPRESA'] || '').trim() !== em) return false;
     if (q) {
       var hay = [d['CONTRATO'],d['EMPRESA'],d['RESPONSÁVEL NO FATURAMENTO']].join(' ').toLowerCase();
       if (hay.indexOf(q) === -1) return false;
@@ -1356,11 +1473,7 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  document.getElementById('f-q').value = '';
-  document.getElementById('f-st').value = '';
-  document.getElementById('f-ti').value = '';
-  document.getElementById('f-re').value = '';
-  applyFilters();
+  clearFilterFields(['f-q','f-st','f-ti','f-re','f-ct','f-em'], applyFilters);
 }
 
 function sortBy(col) {
@@ -2085,9 +2198,27 @@ var SITUACOES = ['Titular','Substituto','Presidente','Membro de comissão'];
 
 var fcFiltered = [], fcPage = 1, fcPer = 50;
 
+function populateFiscalFilters() {
+  fillSelectFilter('fisc-f-nome', distinctSorted(FISCAIS, function(f){ return f.nome; }), 'Todos');
+  fillSelectFilter('fisc-f-contrato', distinctSorted(FISCAIS, function(f){ return f.contrato; }), 'Todos');
+  fillSelectFilter('fisc-f-empresa', distinctSorted(FISCAIS, function(f){ return f.empresa; }), 'Todas');
+  fillSelectFilter('fisc-f-unidade', distinctSorted(FISCAIS, function(f){ return f.unidade; }), 'Todas');
+}
+
+function clearFiscalFilters() {
+  clearFilterFields(['fiscal-q','fisc-f-nome','fisc-f-contrato','fisc-f-empresa','fisc-f-unidade'], buildFiscaisCards);
+}
+
 function buildFiscaisCards() {
+  populateFiscalFilters();
   var q = (document.getElementById('fiscal-q') ? document.getElementById('fiscal-q').value : '').toLowerCase();
+  var fNome = fVal('fisc-f-nome'), fContrato = fVal('fisc-f-contrato'),
+      fEmpresa = fVal('fisc-f-empresa'), fUnidade = fVal('fisc-f-unidade');
   fcFiltered = FISCAIS.filter(function(f) {
+    if (fNome && String(f.nome || '').trim() !== fNome) return false;
+    if (fContrato && String(f.contrato || '').trim() !== fContrato) return false;
+    if (fEmpresa && String(f.empresa || '').trim() !== fEmpresa) return false;
+    if (fUnidade && String(f.unidade || '').trim() !== fUnidade) return false;
     if (!q) return true;
     return (f.nome||'').toLowerCase().indexOf(q) !== -1
         || (f.contrato||'').toLowerCase().indexOf(q) !== -1
@@ -2726,9 +2857,22 @@ function loadUnidadesFromStorage() { /* migrado para loadAllFromFirebase */ }
 
 var unFiltered = [], unPage = 1, unPer = 50;
 
+function populateUnidadeFilters() {
+  fillSelectFilter('un-f-unidade', distinctSorted(UNIDADES, function(u){ return u.unidade; }), 'Todas');
+  fillSelectFilter('un-f-sigla', distinctSorted(UNIDADES, function(u){ return u.sigla; }), 'Todas');
+}
+
+function clearUnidadeFilters() {
+  clearFilterFields(['unidade-q','un-f-unidade','un-f-sigla'], buildUnidadesTable);
+}
+
 function buildUnidadesTable() {
+  populateUnidadeFilters();
   var q = (document.getElementById('unidade-q') ? document.getElementById('unidade-q').value : '').toLowerCase();
+  var fUnidade = fVal('un-f-unidade'), fSigla = fVal('un-f-sigla');
   unFiltered = UNIDADES.filter(function(u) {
+    if (fUnidade && String(u.unidade || '').trim() !== fUnidade) return false;
+    if (fSigla && String(u.sigla || '').trim() !== fSigla) return false;
     if (!q) return true;
     return (u.nome||'').toLowerCase().indexOf(q) !== -1
         || (u.unidade||'').toLowerCase().indexOf(q) !== -1
@@ -3207,9 +3351,20 @@ function loadEmpresasFromStorage() { /* migrado para loadAllFromFirebase */ }
 
 var empFiltered = [], empPage = 1, empPer = 50;
 
+function populateEmpresaFilters() {
+  fillSelectFilter('emp-f-empresa', distinctSorted(EMPRESAS, function(e){ return e.empresa; }), 'Todas');
+}
+
+function clearEmpresaFilters() {
+  clearFilterFields(['empresa-q','emp-f-empresa'], buildEmpresasTable);
+}
+
 function buildEmpresasTable() {
+  populateEmpresaFilters();
   var q = (document.getElementById('empresa-q') ? document.getElementById('empresa-q').value : '').toLowerCase();
+  var fEmpresa = fVal('emp-f-empresa');
   empFiltered = EMPRESAS.filter(function(e) {
+    if (fEmpresa && String(e.empresa || '').trim() !== fEmpresa) return false;
     if (!q) return true;
     return (e.empresa||'').toLowerCase().indexOf(q) !== -1
         || (e.responsavel||'').toLowerCase().indexOf(q) !== -1
@@ -3369,9 +3524,24 @@ function loadContasFromStorage() { /* migrado para loadAllFromFirebase */ }
 
 var cvFiltered = [], cvPage = 1, cvPer = 50;
 
+function populateContaFilters() {
+  fillSelectFilter('ct-f-contrato', distinctSorted(CONTAS, function(c){ return c.contrato; }), 'Todos');
+  fillSelectFilter('ct-f-empresa', distinctSorted(CONTAS, function(c){ return c.empresa; }), 'Todas');
+  fillSelectFilter('ct-f-resp', distinctSorted(CONTAS, function(c){ return c.responsavel; }), 'Todos');
+}
+
+function clearContaFilters() {
+  clearFilterFields(['conta-q','ct-f-contrato','ct-f-empresa','ct-f-resp'], buildContasTable);
+}
+
 function buildContasTable() {
+  populateContaFilters();
   var q = (document.getElementById('conta-q') ? document.getElementById('conta-q').value : '').toLowerCase();
+  var fContrato = fVal('ct-f-contrato'), fEmpresa = fVal('ct-f-empresa'), fResp = fVal('ct-f-resp');
   cvFiltered = CONTAS.filter(function(c) {
+    if (fContrato && String(c.contrato || '').trim() !== fContrato) return false;
+    if (fEmpresa && String(c.empresa || '').trim() !== fEmpresa) return false;
+    if (fResp && String(c.responsavel || '').trim() !== fResp) return false;
     if (!q) return true;
     return (c.contrato||'').toLowerCase().indexOf(q) !== -1
         || (c.processo||'').toLowerCase().indexOf(q) !== -1
@@ -3680,9 +3850,24 @@ function loadAllFromFirebase(callback) {
 
 var rrFiltered = [], rrPage = 1, rrPer = 50;
 
+function populateReajusteFilters() {
+  fillSelectFilter('rj-f-contrato', distinctSorted(REAJUSTES, function(r){ return r.contrato; }), 'Todos');
+  fillSelectFilter('rj-f-empresa', distinctSorted(REAJUSTES, function(r){ return r.empresa; }), 'Todas');
+  fillSelectFilter('rj-f-resp', distinctSorted(REAJUSTES, function(r){ return r.responsavel; }), 'Todos');
+}
+
+function clearReajusteFilters() {
+  clearFilterFields(['reajuste-q','rj-f-contrato','rj-f-empresa','rj-f-resp'], buildReajustesTable);
+}
+
 function buildReajustesTable() {
+  populateReajusteFilters();
   var q = (document.getElementById('reajuste-q') ? document.getElementById('reajuste-q').value : '').toLowerCase();
+  var fContrato = fVal('rj-f-contrato'), fEmpresa = fVal('rj-f-empresa'), fResp = fVal('rj-f-resp');
   rrFiltered = REAJUSTES.filter(function(r) {
+    if (fContrato && String(r.contrato || '').trim() !== fContrato) return false;
+    if (fEmpresa && String(r.empresa || '').trim() !== fEmpresa) return false;
+    if (fResp && String(r.responsavel || '').trim() !== fResp) return false;
     if (!q) return true;
     return (r.contrato||'').toLowerCase().indexOf(q) !== -1
         || (r.responsavel||'').toLowerCase().indexOf(q) !== -1
@@ -4671,10 +4856,12 @@ function initDocumentos() {
   });
   var sits = docDistinct('situacao').sort();
   var resps = docDistinct('responsavel').sort();
+  var empresas = docDistinct('empresa').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   docFillSelect('doc-f-ano', anos, 'Todos');
   docFillSelect('doc-f-mes', meses, 'Todos');
   docFillSelect('doc-f-sit', sits, 'Todas');
   docFillSelect('doc-f-resp', resps, 'Todos');
+  docFillSelect('doc-f-empresa', empresas, 'Todas');
   DOC_FIELD_MAP.responsavel.options = resps;
   DOC_FIELD_MAP.situacao.options = Array.from(new Set(DOC_FIELD_MAP.situacao.options.concat(sits))).sort();
   if (!_docInit) {
@@ -4700,7 +4887,7 @@ function initDocumentos() {
 }
 
 function clearDocFilters() {
-  ['doc-q','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
+  ['doc-q','doc-f-empresa','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -4716,8 +4903,9 @@ function buildDocumentosTable(manterPagina) {
   if (!DOCUMENTOS.length) docRebuild();
   var q = docVal('doc-q').toLowerCase().trim();
   var fAno = docVal('doc-f-ano'), fMes = docVal('doc-f-mes'), fSit = docVal('doc-f-sit'),
-      fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status');
+      fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status'), fEmp = docVal('doc-f-empresa');
   docFiltered = DOCUMENTOS.filter(function(r) {
+    if (fEmp  && String(r.empresa || '') !== fEmp) return false;
     if (fAno  && String(r.ano || '') !== fAno) return false;
     if (fMes  && String(r.mes || '') !== fMes) return false;
     if (fSit  && String(r.situacao || '') !== fSit) return false;
