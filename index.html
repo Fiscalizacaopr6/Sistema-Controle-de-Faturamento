@@ -5166,7 +5166,7 @@ function docGoPage(p) {
 // O formulário pede só o que não dá para deduzir. Empresa, responsável e
 // situação do contrato vêm do cadastro de Contratos assim que o número é
 // informado; o ano é o do momento do cadastro (ver docAnoNovo).
-var DOC_NOVO_CAMPOS = ['contrato','mes','unidade','situacao','valorNf'];
+var DOC_NOVO_CAMPOS = ['contrato','mes','unidade','valorNf'];
 
 // O "ano" do registro é o do período faturado, não o do contrato: 76% da base
 // tem ano diferente do contrato (ex.: contrato 93/22 com registros de 2023).
@@ -5303,8 +5303,6 @@ function openNewDocumentoModal() {
     + '</div>'
     + '<div class="ef"><label>Mês / Referência</label><select id="ef-doc-mes">' + docMesOpcoesHtml('') + '</select></div>'
     + '<div class="ef"><label>Unidade</label><select id="ef-doc-unidade">' + docUnidadeOpcoesHtml('', '') + '</select></div>'
-    + '<div class="ef"><label>Situação</label><select id="ef-doc-situacao"><option value="">— Selecione —</option>'
-      + docOpcoesHtml(DOC_FIELD_MAP.situacao.options || [], '') + '</select></div>'
     + '<div class="ef"><label>Valor da NF</label><input id="ef-doc-valorNf"></div>'
     + '</div>';
   document.getElementById('mo-t').textContent = 'Novo Registro de Documento';
