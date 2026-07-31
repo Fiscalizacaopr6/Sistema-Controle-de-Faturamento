@@ -38,7 +38,7 @@
     <li><b>Arraste</b> o botão abaixo para a barra de favoritos</li>
   </ol>
 
-  <p><a class="arrasta" href="javascript:(function()%7Bvar%20h%3D(location.hash.match(%2Fob%3D(%5B%5E%26%5D%2B)%2F)%7C%7C%5B%5D)%5B1%5D%3Bfunction%20g(n)%7Bn%3DString(n).trim()%3Bvar%20i%3Ddocument.getElementById('txtPesquisaRapida')%7C%7Cdocument.querySelector('input%5Bname%3D%22txtPesquisaRapida%22%5D')%7C%7Cdocument.querySelector('form%5Baction*%3D%22protocolo_pesquisa_rapida%22%5D%20input%5Btype%3D%22text%22%5D')%3Bif(!i)%7Balert('Abra%20a%20tela%20inicial%20do%20SEI%20(a%20que%20tem%20a%20barra%20de%20Pesquisa)%20e%20clique%20no%20atalho%20de%20novo.')%3Breturn%7Di.value%3Dn%3Bvar%20f%3Di.form%2Cb%3Df%26%26(f.querySelector('%23sbmPesquisaRapida')%7C%7Cf.querySelector('input%5Btype%3D%22submit%22%5D%2Cbutton%5Btype%3D%22submit%22%5D'))%3Bif(b)b.click()%3Belse%20if(f)f.submit()%7Dif(h)%7Bg(decodeURIComponent(h))%7Delse%20if(navigator.clipboard%26%26navigator.clipboard.readText)%7Bnavigator.clipboard.readText().then(function(t)%7Bvar%20m%3DString(t).match(%2F%5Cd%7B4%2C%7D%2F)%3Bif(m)g(m%5B0%5D)%3Belse%20alert('Na%20area%20de%20transferencia%20nao%20ha%20numero%20de%20documento.')%7D).catch(function()%7Balert('Nao%20consegui%20ler%20a%20area%20de%20transferencia.%20Cole%20com%20Ctrl%2BV%20na%20Pesquisa.')%7D)%7Delse%7Balert('Cole%20com%20Ctrl%2BV%20na%20Pesquisa%20do%20SEI.')%7D%7D)()">🔎 Pesquisar OB no SEI</a></p>
+  <p><a class="arrasta" href="javascript:%28function%28%29%7Bvar%20h%3D%28location.hash.match%28%2Fob%3D%28%5B%5E%26%5D%2B%29%2F%29%7C%7C%5B%5D%29%5B1%5D%3Bfunction%20enviar%28i%2Cn%29%7Bvar%20f%3Di.form%7C%7Cdocument.getElementById%28%27frmProtocoloPesquisaRapida%27%29%7C%7Cdocument.querySelector%28%27form%5Baction%2A%3D%22protocolo_pesquisa_rapida%22%5D%27%29%3Bif%28%21f%29%7Bi.dispatchEvent%28new%20KeyboardEvent%28%27keydown%27%2C%7Bkey%3A%27Enter%27%2CkeyCode%3A13%2Cwhich%3A13%2Cbubbles%3Atrue%7D%29%29%3Bi.dispatchEvent%28new%20KeyboardEvent%28%27keypress%27%2C%7Bkey%3A%27Enter%27%2CkeyCode%3A13%2Cwhich%3A13%2Cbubbles%3Atrue%7D%29%29%3Breturn%7Dvar%20b%3Df.querySelector%28%27%23sbmPesquisaRapida%27%29%7C%7Cf.querySelector%28%27button%5Btype%3D%22submit%22%5D%2Cinput%5Btype%3D%22submit%22%5D%2Cinput%5Btype%3D%22image%22%5D%27%29%3Bif%28typeof%20f.requestSubmit%3D%3D%3D%27function%27%29%7Btry%7Bf.requestSubmit%28b%7C%7Cundefined%29%3Breturn%7Dcatch%28e%29%7B%7D%7Dif%28b%29%7Bb.click%28%29%3Breturn%7Df.submit%28%29%7Dfunction%20p%28i%2Cn%2Ck%29%7Bi.focus%28%29%3Bi.value%3Dn%3Bi.dispatchEvent%28new%20Event%28%27input%27%2C%7Bbubbles%3Atrue%7D%29%29%3Bi.dispatchEvent%28new%20Event%28%27change%27%2C%7Bbubbles%3Atrue%7D%29%29%3BsetTimeout%28function%28%29%7Bif%28i.value%21%3D%3Dn%29%7Bif%28k%3C8%29%7Bp%28i%2Cn%2Ck%2B1%29%3Breturn%7Dalert%28%27O%20SEI%20esta%20limpando%20o%20campo%20de%20pesquisa.%20Cole%20o%20numero%20%27%2Bn%2B%27%20e%20tecle%20Enter.%27%29%3Breturn%7Denviar%28i%2Cn%29%7D%2C300%29%7Dfunction%20g%28n%29%7Bn%3DString%28n%29.trim%28%29%3Bvar%20i%3Ddocument.getElementById%28%27txtPesquisaRapida%27%29%7C%7Cdocument.querySelector%28%27input%5Bname%3D%22txtPesquisaRapida%22%5D%27%29%7C%7Cdocument.querySelector%28%27%23frmProtocoloPesquisaRapida%20input%5Btype%3D%22text%22%5D%27%29%7C%7Cdocument.querySelector%28%27form%5Baction%2A%3D%22protocolo_pesquisa_rapida%22%5D%20input%5Btype%3D%22text%22%5D%27%29%3Bif%28%21i%29%7Balert%28%27Abra%20a%20tela%20inicial%20do%20SEI%20%28a%20que%20tem%20a%20barra%20de%20Pesquisa%29%20e%20clique%20no%20atalho%20de%20novo.%27%29%3Breturn%7Dp%28i%2Cn%2C0%29%7Dif%28h%29%7Bg%28decodeURIComponent%28h%29%29%7Delse%20if%28navigator.clipboard%26%26navigator.clipboard.readText%29%7Bnavigator.clipboard.readText%28%29.then%28function%28t%29%7Bvar%20m%3DString%28t%29.match%28%2F%5Cd%7B4%2C%7D%2F%29%3Bif%28m%29g%28m%5B0%5D%29%3Belse%20alert%28%27Na%20area%20de%20transferencia%20nao%20ha%20numero%20de%20documento.%27%29%7D%29.catch%28function%28%29%7Balert%28%27Nao%20consegui%20ler%20a%20area%20de%20transferencia.%20Cole%20com%20Ctrl%2BV%20na%20Pesquisa.%27%29%7D%29%7Delse%7Balert%28%27Cole%20com%20Ctrl%2BV%20na%20Pesquisa%20do%20SEI.%27%29%7D%7D%29%28%29%3B">🔎 Pesquisar OB no SEI</a></p>
   <p class="dica">Se preferir, clique com o botão direito na barra de favoritos → <i>Adicionar página</i>, e cole o endereço do botão acima.</p>
 
   <h2>Usar</h2>
@@ -60,6 +60,23 @@
   <p>Com a extensão <b>Tampermonkey</b> e o script
      <a href="sei-ob.user.js">sei-ob.user.js</a>, nem o favorito é preciso: o clique no sistema
      abre o SEI e a pesquisa dispara sozinha, inclusive depois do login.</p>
+
+  <h2>O número aparece na pesquisa e some, sem abrir nada</h2>
+  <p>Era isto que a versão <b>1.2.0</b> corrigiu, e a causa é de tempo — por isso o mesmo
+     script funcionava num computador e falhava em outro:</p>
+  <ul>
+    <li>o SEI roda a inicialização dele e <b>limpa os campos</b>; preenchendo antes disso, o
+        número some e a busca é enviada vazia — a tela recarrega e nada abre;</li>
+    <li>o envio antigo (<code>form.submit()</code>) <b>pula o <code>onsubmit</code></b> da página,
+        e o SEI devolve a mesma tela.</li>
+  </ul>
+  <p>Agora o número é reposto se o SEI apagá-lo, e o envio só sai depois de conferir que o valor
+     ficou no campo. Se ainda assim não abrir, aparece um aviso no canto da tela com o número e
+     um botão de copiar.</p>
+  <p class="dica">Para conferir a versão instalada, abra o console numa página do SEI
+     (<code>F12</code>) e digite <code>window.__pr6ObScript</code> — deve responder
+     <code>'1.2.0'</code>. Se continuar falhando, digite <code>window.__pr6ObLog()</code>: ele
+     mostra o que o script fez em cada página.</p>
 </div>
 </body>
 </html>
