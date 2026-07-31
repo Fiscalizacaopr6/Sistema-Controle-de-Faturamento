@@ -125,6 +125,20 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .sb-foot{padding:16px 20px;border-top:1px solid var(--border);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
 .sb-fv{color:var(--text);font-size:14px;font-weight:500;margin-bottom:4px}
 .main{margin-left:220px;height:100vh;overflow-y:auto;overflow-x:hidden;overflow-anchor:none}
+.sb,.main{transition:width .18s ease,margin-left .18s ease}
+/* ── Barra lateral recolhida: fica só a coluna de ícones ── */
+.sb-ic{flex:0 0 auto;width:18px;text-align:center}
+.sb-tx{white-space:nowrap;overflow:hidden}
+.sb-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:14px;line-height:1;padding:4px 9px;margin-right:12px;cursor:pointer;transition:all .2s}
+.sb-toggle:hover{border-color:var(--accent);color:var(--accent)}
+body.sb-min .sb{width:58px}
+body.sb-min .main{margin-left:58px}
+body.sb-min #doc-hbar{left:58px}
+body.sb-min .sb-tx,body.sb-min .nav-caret,body.sb-min .sb-lt,body.sb-min .sb-ls,body.sb-min .sb-foot{display:none}
+body.sb-min .sb-logo{padding:0;height:53px}          /* alinha com a altura da barra de título */
+body.sb-min .nav-item{justify-content:center;padding:11px 0;gap:0;border-left-width:2px}
+body.sb-min .nav-sub-item{padding-left:0;font-size:13px}
+body.sb-min .sb-ic{width:auto;font-size:15px}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
 .topbar-title{font-size:16px;font-weight:600}
 .topbar-right{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px}
@@ -435,20 +449,20 @@ select.doc-inp{cursor:pointer}
       <div class="sb-ls">UFRJ &middot; Contratos</div>
     </div>
     <nav class="sb-nav">
-      <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">📊 Dashboard</div>
-      <div class="nav-item" id="nav-contratos" onclick="showView('contratos')">📄 Contratos</div>
-      <div class="nav-item" id="nav-documentos" onclick="showView('documentos')">🗂️ Documentos</div>
-      <div class="nav-item" id="nav-fiscais" onclick="showView('fiscais')">🔍 Fiscais</div>
-      <div class="nav-item" id="nav-reajustes" onclick="showView('reajustes')">📈 Reajuste/Repactuação</div>
-      <div class="nav-item nav-group" id="nav-conta-grupo" onclick="toggleContaMenu()">🔗 Conta Vinculada<span class="nav-caret">▸</span></div>
+      <div class="nav-item active" id="nav-dashboard" title="Dashboard" onclick="showView('dashboard')"><span class="sb-ic">📊</span><span class="sb-tx">Dashboard</span></div>
+      <div class="nav-item" id="nav-contratos" title="Contratos" onclick="showView('contratos')"><span class="sb-ic">📄</span><span class="sb-tx">Contratos</span></div>
+      <div class="nav-item" id="nav-documentos" title="Documentos" onclick="showView('documentos')"><span class="sb-ic">🗂️</span><span class="sb-tx">Documentos</span></div>
+      <div class="nav-item" id="nav-fiscais" title="Fiscais" onclick="showView('fiscais')"><span class="sb-ic">🔍</span><span class="sb-tx">Fiscais</span></div>
+      <div class="nav-item" id="nav-reajustes" title="Reajuste/Repactuação" onclick="showView('reajustes')"><span class="sb-ic">📈</span><span class="sb-tx">Reajuste/Repactuação</span></div>
+      <div class="nav-item nav-group" id="nav-conta-grupo" title="Conta Vinculada" onclick="toggleContaMenu()"><span class="sb-ic">🔗</span><span class="sb-tx">Conta Vinculada</span><span class="nav-caret">▸</span></div>
       <div class="nav-sub" id="nav-conta-sub">
-        <div class="nav-item nav-sub-item" id="nav-contas" onclick="showView('contas')">💸 Retirada</div>
-        <div class="nav-item nav-sub-item" id="nav-retencao" onclick="showView('retencao')">🔒 Retenção</div>
+        <div class="nav-item nav-sub-item" id="nav-contas" title="Retirada" onclick="showView('contas')"><span class="sb-ic">💸</span><span class="sb-tx">Retirada</span></div>
+        <div class="nav-item nav-sub-item" id="nav-retencao" title="Retenção" onclick="showView('retencao')"><span class="sb-ic">🔒</span><span class="sb-tx">Retenção</span></div>
       </div>
-      <div class="nav-item" id="nav-empresas" onclick="showView('empresas')">🏭 Empresas</div>
-      <div class="nav-item" id="nav-unidades" onclick="showView('unidades')">🏢 Unidades</div>
-      <div class="nav-item" id="nav-imr" onclick="showView('imr')">📋 IMR</div>
-      <div class="nav-item" id="nav-usuarios" onclick="showView('usuarios')" style="display:none">👥 Usuários</div>
+      <div class="nav-item" id="nav-empresas" title="Empresas" onclick="showView('empresas')"><span class="sb-ic">🏭</span><span class="sb-tx">Empresas</span></div>
+      <div class="nav-item" id="nav-unidades" title="Unidades" onclick="showView('unidades')"><span class="sb-ic">🏢</span><span class="sb-tx">Unidades</span></div>
+      <div class="nav-item" id="nav-imr" title="IMR" onclick="showView('imr')"><span class="sb-ic">📋</span><span class="sb-tx">IMR</span></div>
+      <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
     </nav>
     <div class="sb-foot">
       <div class="sb-fv" id="sb-vigentes">—</div><div>contratos vigentes</div>
@@ -457,7 +471,7 @@ select.doc-inp{cursor:pointer}
   </div>
   <div class="main">
     <div class="topbar">
-      <div class="topbar-title" id="view-title">Dashboard</div>
+      <div style="display:flex;align-items:center"><button class="sb-toggle" id="sb-toggle" onclick="toggleSidebar()" title="Recolher o menu" aria-label="Recolher o menu">&#9776;</button><div class="topbar-title" id="view-title">Dashboard</div></div>
       <div class="topbar-right">
         <span id="tb-date"></span>
         <span id="tb-user" style="color:var(--accent);font-weight:600"></span>
@@ -4126,6 +4140,34 @@ function updateThemeBtn() {
   btn.title = isLight ? 'Modo escuro' : 'Modo claro';
 }
 
+// ── Barra lateral: recolher / mostrar ──
+// Recolhida, sobra a coluna de ícones: continua dando para navegar, e a tabela
+// de Documentos ganha 162px de largura, que fazem diferença nela.
+function initSidebar() {
+  if (localStorage.getItem('sidebar') === 'min') document.body.classList.add('sb-min');
+  updateSidebarBtn();
+}
+
+function toggleSidebar() {
+  var min = document.body.classList.toggle('sb-min');
+  localStorage.setItem('sidebar', min ? 'min' : 'full');
+  updateSidebarBtn();
+  // as barras de rolagem horizontal são medidas em pixels: precisam remedir
+  setTimeout(function() {
+    if (typeof docHBarSync === 'function') docHBarSync();
+    var v = sessionStorage.getItem('ufrj_view');
+    if (v && typeof fcStickyScrollSyncFor === 'function') fcStickyScrollSyncFor(v);
+  }, 200);   // depois da transição de largura
+}
+
+function updateSidebarBtn() {
+  var btn = document.getElementById('sb-toggle');
+  if (!btn) return;
+  var min = document.body.classList.contains('sb-min');
+  btn.title = min ? 'Mostrar o menu' : 'Recolher o menu';
+  btn.setAttribute('aria-label', btn.title);
+}
+
 // ── Minha Senha ──
 function openChangePasswordModal() {
   document.getElementById('cp-atual').value = '';
@@ -5940,6 +5982,7 @@ function cvExportarExcel() {
 // ── Boot ──
 document.addEventListener('DOMContentLoaded', function() {
   initTheme();
+  initSidebar();
   // Já existe sessão nesta aba: esconde a tela de login antes de tudo, para
   // que o F5 não mostre nem de relance o formulário. Se a sessão não valer
   // mais, _finishInitLogin traz a tela de volta.
