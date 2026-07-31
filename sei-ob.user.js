@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SEI UFRJ — pesquisa automática da Ordem Bancária
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Recebe o número da ordem bancária vindo do Controle de Faturamento (sei.ufrj.br/sei/#ob=NUMERO), preenche a Pesquisa do SEI e envia sozinho. Sobrevive ao login quando a sessão está expirada.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://sei.ufrj.br/sei/*
@@ -24,10 +24,18 @@
  *   2. se caiu na tela de login, espera — o número fica guardado
  *   3. achando o campo de pesquisa, preenche e envia
  *   4. se não achar o campo, mostra um aviso com botão de copiar
+ *
+ * Conferido no SEI da UFRJ: o campo é #txtPesquisaRapida, dentro do form
+ * #frmProtocoloPesquisaRapida, que NÃO tem botão de enviar — por isso o envio
+ * é por form.submit(), cuja action já traz o infra_hash válido.
  */
 
 (function () {
   'use strict';
+
+  // marca de que o script está rodando — para conferir a instalação, digite
+  // window.__pr6ObScript no console (F12) de uma página do SEI
+  try { window.__pr6ObScript = '1.1.0'; } catch (e) {}
 
   var CHAVE = 'pr6_sei_ob_pendente';
   var VALIDADE_MS = 10 * 60 * 1000;   // número guardado vale 10 minutos
@@ -51,20 +59,6 @@
     try { localStorage.removeItem(CHAVE); } catch (e) {}
   }
 
-  // ── captura o número da URL: .../sei/#ob=6237243 ──
-  var m = String(location.hash || '').match(/ob=([^&]+)/);
-  if (m) {
-    guardar(decodeURIComponent(m[1]));
-    // tira o # da barra de endereços para um F5 não repetir a busca
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-  }
-
-  var num = pendente();
-  if (!num) return;
-
-  // na tela de login não há o que fazer: o número fica guardado para depois
-  if (/\/sip\/login\.php/i.test(location.pathname + location.search)) return;
-
   // ── acha o campo de Pesquisa do SEI ──
   function campo() {
     return document.getElementById('txtPesquisaRapida')
@@ -73,7 +67,7 @@
       || document.querySelector('form[action*="protocolo_pesquisa_rapida"] input[type="text"]');
   }
 
-  function pesquisar(inp) {
+  function pesquisar(inp, num) {
     limpar();                       // limpa ANTES de enviar: nunca entra em laço
     inp.value = num;
     inp.dispatchEvent(new Event('input', { bubbles: true }));
@@ -91,7 +85,7 @@
   }
 
   // ── aviso quando o campo não aparece (layout diferente, tela de erro etc.) ──
-  function avisar() {
+  function avisar(num) {
     if (document.getElementById('pr6-ob-aviso')) return;
     var cx = document.createElement('div');
     cx.id = 'pr6-ob-aviso';
@@ -114,17 +108,37 @@
     };
   }
 
-  // ── procura o campo até achar (o SEI monta a barra depois do load) ──
-  var inicio = Date.now();
-  (function tentar() {
-    if (!pendente()) return;              // outro frame já resolveu
-    var inp = campo();
-    if (inp) { pesquisar(inp); return; }
-    if (Date.now() - inicio > ESPERA_MS) {
-      // só o frame de cima mostra o aviso, para não duplicar
-      if (window.top === window.self) avisar();
-      return;
+  function iniciar() {
+    // captura o número da URL: .../sei/#ob=6237243
+    var m = String(location.hash || '').match(/ob=([^&]+)/);
+    if (m) {
+      guardar(decodeURIComponent(m[1]));
+      // tira o # da barra de endereços para um F5 não repetir a busca
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     }
-    setTimeout(tentar, 300);
-  })();
+
+    var num = pendente();
+    if (!num) return;
+
+    // na tela de login não há o que fazer: o número fica guardado para depois
+    if (/\/sip\/login\.php/i.test(location.pathname + location.search)) return;
+
+    // procura o campo até achar (o SEI monta a barra depois do load)
+    var inicio = Date.now();
+    (function tentar() {
+      if (!pendente()) return;             // outro frame já resolveu
+      var inp = campo();
+      if (inp) { pesquisar(inp, num); return; }
+      if (Date.now() - inicio > ESPERA_MS) {
+        if (window.top === window.self) avisar(num);   // só o frame de cima avisa
+        return;
+      }
+      setTimeout(tentar, 300);
+    })();
+  }
+
+  // com a aba do SEI já aberta, o sistema só troca o "#" e o navegador não
+  // recarrega a página — daí ouvir o hashchange além do carregamento normal
+  window.addEventListener('hashchange', iniciar);
+  iniciar();
 })();

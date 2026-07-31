@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pesquisar Ordem Bancária no SEI — atalho</title>
+<style>
+  :root{color-scheme:light dark}
+  body{margin:0;padding:32px 20px;font:15px/1.6 'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#0f172a}
+  @media (prefers-color-scheme:dark){body{background:#0b0f1a;color:#e2e8f0}}
+  .box{max-width:720px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:26px 28px}
+  @media (prefers-color-scheme:dark){.box{background:#111827;border-color:#1f2d45}}
+  h1{font-size:21px;margin:0 0 4px}
+  .sub{color:#64748b;margin:0 0 22px;font-size:13.5px}
+  h2{font-size:15px;margin:26px 0 8px}
+  ol{padding-left:20px;margin:8px 0}
+  li{margin:6px 0}
+  .arrasta{display:inline-block;margin:10px 0 4px;padding:11px 18px;background:#0a6ca8;color:#fff;
+    border-radius:8px;text-decoration:none;font-weight:700;cursor:grab;box-shadow:0 3px 10px rgba(10,108,168,.35)}
+  .dica{font-size:13px;color:#64748b}
+  code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:13px}
+  @media (prefers-color-scheme:dark){code{background:#1a2235}}
+  .nota{border-left:3px solid #0a6ca8;background:#f8fafc;padding:10px 14px;border-radius:0 6px 6px 0;font-size:13.5px;margin:18px 0}
+  @media (prefers-color-scheme:dark){.nota{background:#1a2235}}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Pesquisar Ordem Bancária no SEI</h1>
+  <p class="sub">Atalho para o Controle de Faturamento — PR6/UFRJ</p>
+
+  <p>No sistema, clicar no número da <b>Ordem Bancária</b> abre o SEI e copia o número.
+     Este atalho faz o resto: preenche a Pesquisa do SEI e envia.</p>
+
+  <h2>Instalar (uma vez só)</h2>
+  <ol>
+    <li>Deixe a barra de favoritos visível: <code>Ctrl + Shift + B</code></li>
+    <li><b>Arraste</b> o botão abaixo para a barra de favoritos</li>
+  </ol>
+
+  <p><a class="arrasta" href="javascript:(function()%7Bvar%20h%3D(location.hash.match(%2Fob%3D(%5B%5E%26%5D%2B)%2F)%7C%7C%5B%5D)%5B1%5D%3Bfunction%20g(n)%7Bn%3DString(n).trim()%3Bvar%20i%3Ddocument.getElementById('txtPesquisaRapida')%7C%7Cdocument.querySelector('input%5Bname%3D%22txtPesquisaRapida%22%5D')%7C%7Cdocument.querySelector('form%5Baction*%3D%22protocolo_pesquisa_rapida%22%5D%20input%5Btype%3D%22text%22%5D')%3Bif(!i)%7Balert('Abra%20a%20tela%20inicial%20do%20SEI%20(a%20que%20tem%20a%20barra%20de%20Pesquisa)%20e%20clique%20no%20atalho%20de%20novo.')%3Breturn%7Di.value%3Dn%3Bvar%20f%3Di.form%2Cb%3Df%26%26(f.querySelector('%23sbmPesquisaRapida')%7C%7Cf.querySelector('input%5Btype%3D%22submit%22%5D%2Cbutton%5Btype%3D%22submit%22%5D'))%3Bif(b)b.click()%3Belse%20if(f)f.submit()%7Dif(h)%7Bg(decodeURIComponent(h))%7Delse%20if(navigator.clipboard%26%26navigator.clipboard.readText)%7Bnavigator.clipboard.readText().then(function(t)%7Bvar%20m%3DString(t).match(%2F%5Cd%7B4%2C%7D%2F)%3Bif(m)g(m%5B0%5D)%3Belse%20alert('Na%20area%20de%20transferencia%20nao%20ha%20numero%20de%20documento.')%7D).catch(function()%7Balert('Nao%20consegui%20ler%20a%20area%20de%20transferencia.%20Cole%20com%20Ctrl%2BV%20na%20Pesquisa.')%7D)%7Delse%7Balert('Cole%20com%20Ctrl%2BV%20na%20Pesquisa%20do%20SEI.')%7D%7D)()">🔎 Pesquisar OB no SEI</a></p>
+  <p class="dica">Se preferir, clique com o botão direito na barra de favoritos → <i>Adicionar página</i>, e cole o endereço do botão acima.</p>
+
+  <h2>Usar</h2>
+  <ol>
+    <li>No sistema, clique no número da Ordem Bancária → o SEI abre em outra aba</li>
+    <li>Já logado no SEI, clique no favorito <b>🔎 Pesquisar OB no SEI</b></li>
+  </ol>
+  <p>O documento aparece pesquisado. Na primeira vez o Chrome pode pedir permissão para ler a
+     área de transferência — é o número que o sistema copiou.</p>
+
+  <div class="nota">
+    <b>Por que precisa deste atalho?</b> O SEI exige uma assinatura interna
+    (<code>infra_hash</code>) em todo endereço da área logada e recusa links de fora com
+    <i>“Link sem assinatura”</i>. A busca precisa partir de dentro da própria página do SEI —
+    é o que o atalho faz.
+  </div>
+
+  <h2>Alternativa: automático de verdade</h2>
+  <p>Com a extensão <b>Tampermonkey</b> e o script
+     <a href="sei-ob.user.js">sei-ob.user.js</a>, nem o favorito é preciso: o clique no sistema
+     abre o SEI e a pesquisa dispara sozinha, inclusive depois do login.</p>
+</div>
+</body>
+</html>
