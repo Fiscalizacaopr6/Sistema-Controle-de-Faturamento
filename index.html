@@ -237,6 +237,20 @@ tr:last-child td{border-bottom:none}
 .ef textarea{resize:vertical;min-height:70px}
 .eform{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .eform .full{grid-column:1/-1}
+/* ── Cadastro em lote ── */
+.lote-uni{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.lote-lin{display:grid;grid-template-columns:1fr 150px 32px;gap:8px;align-items:center}
+.lote-cab{display:grid;grid-template-columns:1fr 150px 32px;gap:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.lote-lin select,.lote-lin input{background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 10px;outline:none;width:100%;box-sizing:border-box;text-align:center}
+.lote-lin select:focus,.lote-lin input:focus{border-color:var(--accent)}
+.lote-x{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:6px 0}
+.lote-x:hover{border-color:var(--red);color:#f87171}
+.lote-add{background:transparent;border:1px dashed var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;font-size:11.5px;font-weight:600;padding:8px;margin-top:8px;width:100%}
+.lote-add:hover{border-color:var(--accent);color:var(--accent)}
+.lote-resumo{margin-top:14px;padding:11px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.6}
+.lote-resumo b{color:var(--text)}
+.lote-resumo.ok{border-color:rgba(16,185,129,.4)}
+.lote-resumo.alerta{border-color:rgba(245,158,11,.45);color:var(--amber)}
 /* Retorno do preenchimento automático a partir do contrato */
 .doc-auto{margin-top:5px;font-size:11px;line-height:1.55;color:var(--muted)}
 .doc-auto.ok{color:var(--green)}
@@ -652,6 +666,7 @@ select.doc-inp{cursor:pointer}
         <button class="btn-export pdf" onclick="exportDocumentosPDF()" title="Baixar os resultados filtrados em PDF">⬇ PDF</button>
         <button class="btn-export xlsx" onclick="exportDocumentosExcel()" title="Baixar os resultados filtrados em Excel">⬇ Excel</button>
         <button class="btn-new" id="btn-novo-documento" onclick="openNewDocumentoModal()" style="display:none">+ Novo Registro</button>
+        <button class="btn-new" id="btn-lote-documento" onclick="openLoteDocumentoModal()" style="display:none" title="Gerar as parcelas mensais de varias unidades de uma vez">+ Cadastro em Lote</button>
       </div>
       <div id="doc-table"></div>
       <div id="doc-hbar"><div id="doc-hbar-thumb"></div></div>
@@ -1128,6 +1143,7 @@ function launchApp(u) {
     document.getElementById('btn-novo-imr').style.display = '';
     document.getElementById('btn-novo-retencao').style.display = '';
     document.getElementById('btn-novo-documento').style.display = '';
+    document.getElementById('btn-lote-documento').style.display = '';
   }
   loadAllFromFirebase(function() {
     calcLive();
@@ -5616,6 +5632,252 @@ function saveNewDocumento() {
   closeMo();
   buildDocumentosTable();
   docToast('✔ Registro criado para ' + rec.empresa + ' (ano ' + rec.ano + '). Use o duplo clique para completar as demais colunas.');
+}
+
+// ── Cadastro em lote ──
+// Gera de uma vez as parcelas mensais de várias unidades: para cada mês do
+// período contratual, um registro por unidade. É o mesmo registro do cadastro
+// avulso, só que criado aos montes.
+var _lote = {unidades: []};
+
+// Meses do período, do mês de início ao mês de término, inclusive.
+function loteMeses(ini, fim) {
+  var a = docParseDate(ini), b = docParseDate(fim);
+  if (!a || !b) return [];
+  var ya = +a.slice(0, 4), ma = +a.slice(5, 7) - 1;
+  var yb = +b.slice(0, 4), mb = +b.slice(5, 7) - 1;
+  var total = (yb - ya) * 12 + (mb - ma);
+  if (total < 0 || total > 600) return [];        // período invertido ou absurdo
+  var out = [];
+  for (var i = 0; i <= total; i++) {
+    var m = ma + i;
+    out.push({ano: String(ya + Math.floor(m / 12)), mes: MESES_ORDEM[((m % 12) + 12) % 12]});
+  }
+  return out;
+}
+
+// Chave de um registro para não duplicar o que já existe.
+function loteChave(contrato, unidade, mes, ano) {
+  return [contrato, unidade, mes, ano].map(function(v) {
+    return String(v == null ? '' : v).trim().toUpperCase();
+  }).join('');
+}
+
+function loteVal(id) {
+  var el = document.getElementById(id);
+  return el ? el.value : '';
+}
+
+function loteUnidadesValidas() {
+  return _lote.unidades.filter(function(u) { return String(u.unidade || '').trim() !== ''; });
+}
+
+// Recalcula o resumo: quantos registros saem, quantos já existem.
+function loteResumo() {
+  var el = document.getElementById('lote-resumo');
+  if (!el) return;
+  var contrato = loteVal('lote-contrato');
+  var meses = loteMeses(loteVal('lote-inicio'), loteVal('lote-fim'));
+  var unis = loteUnidadesValidas();
+  if (!contrato || !meses.length || !unis.length) {
+    el.className = 'lote-resumo';
+    el.textContent = 'Escolha o contrato, o período e ao menos uma unidade para ver quantas parcelas serão criadas.';
+    return;
+  }
+  var existentes = {};
+  DOCUMENTOS.forEach(function(r) { existentes[loteChave(r.contrato, r.unidade, r.mes, r.ano)] = 1; });
+  var novos = 0, repetidos = 0;
+  unis.forEach(function(u) {
+    meses.forEach(function(m) {
+      if (existentes[loteChave(contrato, u.unidade, m.mes, m.ano)]) repetidos++; else novos++;
+    });
+  });
+  var anos = Array.from(new Set(meses.map(function(m) { return m.ano; })));
+  el.className = 'lote-resumo' + (novos ? ' ok' : ' alerta');
+  el.innerHTML = '<b>' + unis.length + '</b> unidade(s) × <b>' + meses.length + '</b> mês(es) = <b>'
+    + (unis.length * meses.length) + '</b> parcelas<br>'
+    + 'De <b>' + esc(meses[0].mes) + '/' + meses[0].ano + '</b> a <b>'
+    + esc(meses[meses.length - 1].mes) + '/' + meses[meses.length - 1].ano + '</b>'
+    + ' &middot; ano ' + (anos.length > 1 ? 'de ' + anos[0] + ' a ' + anos[anos.length - 1] : anos[0])
+    + '<br><b>' + novos + '</b> serão criadas'
+    + (repetidos ? ' &middot; <b>' + repetidos + '</b> já existem e serão puladas' : '');
+}
+
+function loteUnidadesHtml() {
+  var contrato = loteVal('lote-contrato');
+  return _lote.unidades.map(function(u, i) {
+    return '<div class="lote-lin">'
+      + '<select onchange="loteSet(' + i + ',\'unidade\',this.value)">'
+        + docUnidadeOpcoesHtml(contrato, u.unidade) + '</select>'
+      + '<input value="' + esc(u.valor || '') + '" placeholder="0,00"'
+        + ' oninput="loteSet(' + i + ',\'valor\',this.value,true)">'
+      + '<button type="button" class="lote-x" title="Remover"'
+        + ' onclick="loteRemover(' + i + ')">&times;</button>'
+      + '</div>';
+  }).join('');
+}
+
+function loteRedesenhaUnidades() {
+  var el = document.getElementById('lote-unidades');
+  if (el) el.innerHTML = loteUnidadesHtml();
+  loteResumo();
+}
+
+// semValor: só o modelo muda, sem redesenhar — redesenhar tiraria o foco de
+// quem está digitando o valor.
+function loteSet(i, campo, valor, semRedesenho) {
+  if (!_lote.unidades[i]) return;
+  _lote.unidades[i][campo] = valor;
+  if (semRedesenho) loteResumo(); else loteRedesenhaUnidades();
+}
+
+function loteAdicionar() {
+  _lote.unidades.push({unidade: '', valor: ''});
+  loteRedesenhaUnidades();
+}
+
+function loteRemover(i) {
+  _lote.unidades.splice(i, 1);
+  if (!_lote.unidades.length) _lote.unidades.push({unidade: '', valor: ''});
+  loteRedesenhaUnidades();
+}
+
+// Ao escolher o contrato: empresa e período vêm do termo mais recente, e a
+// lista de unidades passa a mostrar primeiro as que já são desse contrato.
+function loteContratoMudou() {
+  var num = loteVal('lote-contrato');
+  var dados = docDadosDoContrato(num);
+  var info = document.getElementById('lote-info');
+  if (info) {
+    if (!String(num).trim()) {
+      info.className = 'doc-auto';
+      info.textContent = 'Escolha o contrato para trazer a empresa e o período de vigência.';
+    } else if (!dados) {
+      info.className = 'doc-auto alerta';
+      info.textContent = 'Contrato não encontrado no cadastro de Contratos — confira o número.';
+    } else {
+      info.className = 'doc-auto ok';
+      info.innerHTML = 'Empresa <b>' + esc(dados.empresa || '—') + '</b> · Responsável <b>'
+        + esc(dados.responsavel || '—') + '</b>';
+    }
+  }
+  var termo = docContratoTermoDatas(num);
+  if (termo) {
+    var ini = document.getElementById('lote-inicio'), fim = document.getElementById('lote-fim');
+    if (ini && !ini.value && termo.inicio) ini.value = termo.inicio;
+    if (fim && !fim.value && termo.fim) fim.value = termo.fim;
+  }
+  loteRedesenhaUnidades();
+}
+
+// Início e término do termo mais recente, para sugerir o período.
+function docContratoTermoDatas(numero) {
+  var n = String(numero || '').trim().toUpperCase();
+  if (!n) return null;
+  var melhor = null, pos = null;
+  DADOS.forEach(function(d) {
+    if (String(d['CONTRATO'] || '').trim().toUpperCase() !== n) return;
+    var p = docPosicaoTermo(d);
+    if (!melhor || docTermoMaisNovo(p, pos)) { melhor = d; pos = p; }
+  });
+  if (!melhor) return null;
+  return {inicio: String(melhor['INÍCIO DO CONTRATO'] || ''), fim: String(melhor['TÉRMINO DA VIGÊNCIA'] || '')};
+}
+
+function openLoteDocumentoModal() {
+  if (!docCanEdit()) return;
+  if (!DOCUMENTOS.length) docRebuild();
+  _lote = {unidades: [{unidade: '', valor: ''}]};
+  document.getElementById('mo-t').textContent = 'Cadastro em Lote';
+  document.getElementById('mo-s').textContent = 'Gera as parcelas mensais de cada unidade para todo o período do contrato';
+  document.getElementById('mo-b').innerHTML = '<div class="eform">'
+    + '<div class="ef full"><label>Contrato *</label>'
+      + '<select id="lote-contrato" onchange="loteContratoMudou()">' + docContratoOpcoesHtml('') + '</select>'
+      + '<div class="doc-auto" id="lote-info">Escolha o contrato para trazer a empresa e o período de vigência.</div>'
+    + '</div>'
+    + '<div class="ef"><label>Início da vigência *</label>'
+      + '<input type="date" id="lote-inicio" onchange="loteResumo()"></div>'
+    + '<div class="ef"><label>Término da vigência *</label>'
+      + '<input type="date" id="lote-fim" onchange="loteResumo()"></div>'
+    + '<div class="ef full"><label>Unidades e valor mensal de cada uma *</label>'
+      + '<div class="lote-cab"><span>Unidade</span><span>Valor mensal</span><span></span></div>'
+      + '<div class="lote-uni" id="lote-unidades">' + loteUnidadesHtml() + '</div>'
+      + '<button type="button" class="lote-add" onclick="loteAdicionar()">+ Adicionar unidade</button>'
+      + '<div class="lote-resumo" id="lote-resumo"></div>'
+    + '</div>'
+    + '</div>';
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    + '<button class="btn-save" onclick="salvarLoteDocumentos()">Gerar parcelas</button>';
+  document.getElementById('mo').classList.add('open');
+  loteResumo();
+}
+
+function salvarLoteDocumentos() {
+  var contrato = loteVal('lote-contrato');
+  if (!contrato) { alert('Escolha o contrato.'); return; }
+  var dados = docDadosDoContrato(contrato);
+  if (!dados || !dados.empresa) {
+    alert('Contrato ' + contrato + ' não encontrado.\n\nA empresa vem do cadastro de Contratos — confira o número ou cadastre o contrato primeiro.');
+    return;
+  }
+  var ini = loteVal('lote-inicio'), fim = loteVal('lote-fim');
+  if (!ini || !fim) { alert('Informe o início e o término da vigência.'); return; }
+  var meses = loteMeses(ini, fim);
+  if (!meses.length) { alert('Período inválido: o término não pode ser anterior ao início.'); return; }
+  var unis = loteUnidadesValidas();
+  if (!unis.length) { alert('Informe ao menos uma unidade.'); return; }
+
+  var existentes = {};
+  DOCUMENTOS.forEach(function(r) { existentes[loteChave(r.contrato, r.unidade, r.mes, r.ano)] = 1; });
+
+  var novos = [], repetidos = 0, i = 0;
+  unis.forEach(function(u) {
+    var valor = docParseNumber(u.valor);
+    meses.forEach(function(m) {
+      var chave = loteChave(contrato, u.unidade, m.mes, m.ano);
+      if (existentes[chave]) { repetidos++; return; }
+      existentes[chave] = 1;
+      var rec = {
+        id: 'L' + Date.now().toString(36) + (i++).toString(36) + Math.random().toString(36).slice(2, 5),
+        empresa: dados.empresa, contrato: contrato,
+        unidade: u.unidade, mes: m.mes, ano: m.ano
+      };
+      if (valor !== null) rec.valorContratado = valor;
+      novos.push(rec);
+    });
+  });
+
+  if (!novos.length) {
+    alert('Nada a criar: as ' + repetidos + ' parcelas desse período já estão cadastradas.');
+    return;
+  }
+  if (!confirm('Criar ' + novos.length + ' parcela(s) do contrato ' + contrato + '?\n\n'
+      + unis.length + ' unidade(s) × ' + meses.length + ' mês(es), de '
+      + meses[0].mes + '/' + meses[0].ano + ' a ' + meses[meses.length-1].mes + '/' + meses[meses.length-1].ano
+      + (repetidos ? '\n' + repetidos + ' já existem e serão puladas.' : ''))) return;
+
+  docPersistVarios(novos);
+  docRebuild();
+  closeMo();
+  buildDocumentosTable();
+  docToast('✔ ' + novos.length + ' parcela(s) criada(s) para ' + dados.empresa
+    + (repetidos ? ' · ' + repetidos + ' já existiam e foram puladas' : ''));
+}
+
+// Uma gravação só para o lote inteiro, em vez de uma por registro.
+function docPersistVarios(recs) {
+  if (!recs.length) return;
+  _docLocalWrite = Date.now();
+  var pacote = {};
+  recs.forEach(function(rec) {
+    DOC_OVERRIDES[rec.id] = rec;
+    pacote[rec.id] = rec;
+  });
+  fbdb.ref('documentos_edits').update(pacote).catch(function(e) {
+    console.error('saveDocumentosLote:', e);
+    docToast('❌ Não foi possível salvar no servidor: ' + e.message, true);
+  });
 }
 
 // ── Exportação ──
