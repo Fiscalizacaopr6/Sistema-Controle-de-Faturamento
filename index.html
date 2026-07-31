@@ -329,6 +329,29 @@ select.doc-inp{cursor:pointer}
 /* ── Ordem Bancária: número clicável (editar célula ou abrir no SEI) ── */
 .doc-ob{color:var(--accent);border-bottom:1px dotted var(--accent);cursor:pointer}
 .doc-ob:hover{color:#60a5fa;border-bottom-style:solid}
+/* ── Campo de data: digitação livre + botão que abre o calendário ── */
+.dt-wrap{display:flex;align-items:center;gap:4px;width:100%}
+.dt-wrap .doc-inp{flex:1;min-width:94px}
+.dt-btn{flex:0 0 auto;background:var(--surface2);border:1.5px solid var(--accent);border-radius:5px;color:var(--text);font-size:12px;line-height:1;padding:4px 5px;cursor:pointer}
+.dt-btn:hover{background:var(--accent)}
+/* ── Calendário ── */
+.cal-pop{position:fixed;z-index:4000;width:246px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;box-shadow:0 12px 34px rgba(0,0,0,.45);font-family:'Sora',sans-serif;user-select:none}
+.cal-top{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.cal-nav{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);cursor:pointer;font-size:14px;line-height:1;padding:4px 8px;font-family:'Sora',sans-serif}
+.cal-nav:hover{border-color:var(--accent);color:var(--accent)}
+.cal-mes,.cal-ano{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:4px 5px;outline:none;cursor:pointer}
+.cal-mes{flex:1;min-width:0}.cal-ano{width:66px;cursor:text}
+.cal-mes:focus,.cal-ano:focus{border-color:var(--accent)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-wd{text-align:center;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:3px 0}
+.cal-d{background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text);cursor:pointer;font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 0;text-align:center}
+.cal-d:hover{background:var(--surface2);border-color:var(--accent)}
+.cal-d.fora{color:var(--muted);opacity:.4}
+.cal-d.hoje{border-color:var(--amber);color:var(--amber);font-weight:700}
+.cal-d.sel{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.cal-bot{display:flex;gap:6px;margin-top:9px;border-top:1px solid var(--border);padding-top:9px}
+.cal-bot button{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;padding:5px 0}
+.cal-bot button:hover{border-color:var(--accent);color:var(--accent)}
 #doc-ob-menu{position:fixed;z-index:1200;min-width:190px;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.4);padding:6px;font-family:'Sora',sans-serif}
 #doc-ob-menu .ob-cab{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:5px 8px 7px}
 #doc-ob-menu .ob-cab b{display:block;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0;color:var(--text);margin-top:2px}
@@ -4499,6 +4522,120 @@ function docBadgeClass(k, v) {
   return 'doc-b-ok';
 }
 
+// ── Calendário ──
+// Popup de seleção de data usado pelos campos que também aceitam digitação.
+// onEscolher recebe 'aaaa-mm-dd', '' (Limpar) ou null (fechou sem escolher).
+var CAL_MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+var CAL_DIAS = ['D','S','T','Q','Q','S','S'];
+var _calPop = null, _calCb = null, _calMes = 0, _calAno = 0, _calSel = '';
+
+function calISO(d) {
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+function calHojeISO() { return calISO(new Date()); }
+
+function calFechar(valor) {
+  if (!_calPop) return;
+  var cb = _calCb;
+  if (_calPop.parentNode) _calPop.parentNode.removeChild(_calPop);
+  _calPop = null; _calCb = null;
+  document.removeEventListener('mousedown', calCliqueFora, true);
+  document.removeEventListener('keydown', calTecla, true);
+  window.removeEventListener('scroll', calReposicionar, true);
+  window.removeEventListener('resize', calReposicionar);
+  if (cb) cb(valor === undefined ? null : valor);
+}
+
+function calCliqueFora(e) { if (_calPop && !_calPop.contains(e.target)) calFechar(); }
+function calTecla(e) { if (e.key === 'Escape') { e.preventDefault(); calFechar(); } }
+function calReposicionar() { calFechar(); }
+
+function calMover(delta) {
+  _calMes += delta;
+  if (_calMes < 0) { _calMes = 11; _calAno--; }
+  else if (_calMes > 11) { _calMes = 0; _calAno++; }
+  calRender();
+}
+
+function calRender() {
+  if (!_calPop) return;
+  var inicio = new Date(_calAno, _calMes, 1).getDay();          // 0 = domingo
+  var noMes = new Date(_calAno, _calMes + 1, 0).getDate();
+  var noAnterior = new Date(_calAno, _calMes, 0).getDate();
+  var hoje = calHojeISO(), celulas = '';
+  for (var i = 0; i < 42; i++) {                                 // 6 semanas: altura estável
+    var dia, mesRef = _calMes, fora = false;
+    if (i < inicio)                    { dia = noAnterior - inicio + 1 + i; mesRef--; fora = true; }
+    else if (i - inicio < noMes)       { dia = i - inicio + 1; }
+    else                               { dia = i - inicio - noMes + 1; mesRef++; fora = true; }
+    var iso = calISO(new Date(_calAno, mesRef, dia));
+    celulas += '<button type="button" class="cal-d' + (fora ? ' fora' : '')
+      + (iso === hoje ? ' hoje' : '') + (iso === _calSel ? ' sel' : '')
+      + '" data-iso="' + iso + '">' + dia + '</button>';
+  }
+  _calPop.innerHTML =
+    '<div class="cal-top">'
+      + '<button type="button" class="cal-nav" data-mv="-1" title="Mês anterior">‹</button>'
+      + '<select class="cal-mes">'
+        + CAL_MESES.map(function(m, i) { return '<option value="' + i + '"' + (i === _calMes ? ' selected' : '') + '>' + m + '</option>'; }).join('')
+      + '</select>'
+      + '<input class="cal-ano" type="number" value="' + _calAno + '">'
+      + '<button type="button" class="cal-nav" data-mv="1" title="Próximo mês">›</button>'
+    + '</div>'
+    + '<div class="cal-grid">'
+      + CAL_DIAS.map(function(d) { return '<span class="cal-wd">' + d + '</span>'; }).join('')
+      + celulas
+    + '</div>'
+    + '<div class="cal-bot">'
+      + '<button type="button" class="cal-hoje">Hoje</button>'
+      + '<button type="button" class="cal-limpar">Limpar</button>'
+    + '</div>';
+  _calPop.onclick = function(e) {
+    var t = e.target;
+    if (!t || !t.classList) return;
+    if (t.classList.contains('cal-d'))      return calFechar(t.getAttribute('data-iso'));
+    if (t.classList.contains('cal-nav'))    return calMover(parseInt(t.getAttribute('data-mv'), 10));
+    if (t.classList.contains('cal-hoje'))   return calFechar(calHojeISO());
+    if (t.classList.contains('cal-limpar')) return calFechar('');
+  };
+  _calPop.querySelector('.cal-mes').onchange = function() { _calMes = parseInt(this.value, 10); calRender(); };
+  _calPop.querySelector('.cal-ano').onchange = function() {
+    var a = parseInt(this.value, 10);
+    if (!isNaN(a) && a >= 1900 && a <= 2200) { _calAno = a; calRender(); }
+    else this.value = _calAno;
+  };
+}
+
+function calPosicionar(anchor) {
+  if (!_calPop || !anchor) return;
+  var r = anchor.getBoundingClientRect();
+  var w = _calPop.offsetWidth, h = _calPop.offsetHeight;
+  var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+  var top = r.bottom + 6;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+  _calPop.style.left = left + 'px';
+  _calPop.style.top = top + 'px';
+}
+
+function calAbrir(anchor, valorISO, onEscolher) {
+  calFechar();
+  _calCb = onEscolher;
+  _calSel = /^\d{4}-\d{2}-\d{2}$/.test(String(valorISO || '')) ? valorISO : '';
+  var base = _calSel || calHojeISO();
+  _calAno = parseInt(base.slice(0, 4), 10);
+  _calMes = parseInt(base.slice(5, 7), 10) - 1;
+  _calPop = document.createElement('div');
+  _calPop.className = 'cal-pop';
+  document.body.appendChild(_calPop);
+  calRender();
+  calPosicionar(anchor);
+  document.addEventListener('mousedown', calCliqueFora, true);
+  document.addEventListener('keydown', calTecla, true);
+  window.addEventListener('scroll', calReposicionar, true);
+  window.addEventListener('resize', calReposicionar);
+}
+
 // ── Células (leitura / edição) ──
 function docCellDisplay(col, rec) {
   var v = rec ? rec[col.k] : '';
@@ -4527,8 +4664,11 @@ function docEditorHtml(col, v) {
   var val = v;
   if (col.type === 'money' && typeof v === 'number') val = v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
   else if (col.type === 'date') val = docFmtDate(v);
-  return '<input class="doc-inp" type="text"' + (col.list ? ' list="' + col.list + '"' : '')
+  var campo = '<input class="doc-inp" type="text"' + (col.list ? ' list="' + col.list + '"' : '')
     + ' placeholder="' + (col.type === 'date' ? 'dd/mm/aaaa' : '') + '" value="' + esc(val) + '">';
+  if (col.type !== 'date') return campo;
+  return '<span class="dt-wrap">' + campo
+    + '<button type="button" class="dt-btn" tabindex="-1" title="Abrir calendário">📅</button></span>';
 }
 
 function docCanEdit() { return currentRole === 'admin' || currentRole === 'editor'; }
@@ -4763,9 +4903,24 @@ function docEditCell(td) {
     else if (e.key === 'Tab')    { e.preventDefault(); docCommitCell(td, e.shiftKey ? -1 : 1); }
   };
   inp.onblur = function() {
-    setTimeout(function() { if (td.classList.contains('doc-editing') && td.contains(inp)) docCommitCell(td, 0); }, 120);
+    setTimeout(function() {
+      if (_docCalTd === td) return;   // calendário aberto para esta célula: mantém a edição
+      if (td.classList.contains('doc-editing') && td.contains(inp)) docCommitCell(td, 0);
+    }, 120);
   };
   if (col.type === 'select') inp.onchange = function() { docCommitCell(td, 0); };
+  var btnCal = td.querySelector('.dt-btn');
+  if (btnCal) btnCal.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    _docCalTd = td;
+    calAbrir(btnCal, docParseDate(inp.value), function(iso) {
+      _docCalTd = null;
+      if (iso === null) { inp.focus(); return; }        // fechou sem escolher: segue digitando
+      inp.value = iso ? docFmtDate(iso) : '';
+      docCommitCell(td, 0);
+    });
+  };
 }
 
 function docCommitCell(td, move) {
@@ -4825,6 +4980,7 @@ function docConfirmDelete(id) {
 
 // ── Filtros / tabela ──
 var docFiltered = [], docPage = 1, docPer = 50, docSort = {k:'', dir:1}, _docInit = false;
+var _docCalTd = null;   // célula com o calendário aberto: o blur não pode encerrar a edição
 
 function docDistinct(k) {
   var vistos = {}, out = [];
