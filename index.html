@@ -280,6 +280,12 @@ tr:last-child td{border-bottom:none}
 #doc-table td.doc-editing{padding:3px 5px;background:rgba(59,130,246,.10)}
 #doc-table .doc-sticky{position:sticky;left:0;z-index:2;background:var(--surface)}
 #doc-table th.doc-sticky{background:var(--surface2);z-index:3}
+/* Linha de total ao pé da tabela: soma tudo que passou pelos filtros */
+#doc-table tfoot td{padding:9px 10px;font-size:12px;font-weight:700;color:var(--text);background:var(--surface2);border-top:2px solid var(--accent);border-bottom:none;white-space:nowrap}
+#doc-table tfoot td.doc-sticky{background:var(--surface2);z-index:3}
+#doc-table tfoot .doc-total-rot{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+#doc-table tfoot .doc-total-val{color:var(--green);font-family:'DM Mono',monospace}
+#doc-table tfoot .doc-total-obs{display:block;font-size:9.5px;font-weight:500;color:var(--amber);text-transform:none;letter-spacing:0}
 /* barra de rolagem horizontal sempre visível (não some como a padrão do sistema) */
 #doc-table .doc-scroll{overflow-x:scroll;scrollbar-width:thin;scrollbar-color:var(--accent) var(--surface2)}
 #doc-table .doc-scroll::-webkit-scrollbar{height:12px;-webkit-appearance:none}
@@ -5139,13 +5145,49 @@ function renderDocumentosTable() {
       + (canEdit ? '<td class="doc-actions">' + docActionsHtml(rec.id) + '</td>' : '') + '</tr>';
   }).join('');
 
+  var soma = docSomaValorNf();
+
   wrap.innerHTML = '<div class="table-wrap">'
     + '<div class="table-info"><span>' + docFiltered.length.toLocaleString('pt-BR') + ' registro(s)</span>'
-    + '<span style="color:var(--muted)">Página ' + docPage + ' de ' + totalPages + '</span></div>'
+    + '<span style="display:flex;gap:18px;align-items:center">'
+      + '<span style="font-family:\'DM Mono\',monospace;color:var(--green)">Valor da NF: ' + esc(fmtBR(soma.total)) + '</span>'
+      + '<span style="color:var(--muted)">Página ' + docPage + ' de ' + totalPages + '</span></span></div>'
     + '<div class="doc-scroll" style="overflow-x:scroll"><table id="doc-tbl">'
-    + '<thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+    + '<thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody>'
+    + docTotalFootHtml(soma, canEdit) + '</table></div>'
     + docPaginationHtml(totalPages) + '</div>';
   setTimeout(docHBarSync, 0);
+}
+
+// Soma o Valor da NF de tudo que passou pelos filtros — a base inteira do
+// filtro, não só a página à vista. Valores que não são número (texto digitado
+// na célula) ficam de fora e são contados à parte, para a soma não mentir.
+function docSomaValorNf() {
+  var total = 0, ignorados = 0;
+  for (var i = 0; i < docFiltered.length; i++) {
+    var v = docFiltered[i].valorNf;
+    if (v === undefined || v === null || v === '') continue;
+    if (typeof v === 'number' && isFinite(v)) total += v;
+    else ignorados++;
+  }
+  return {total: total, ignorados: ignorados};
+}
+
+function docTotalFootHtml(soma, canEdit) {
+  var tds = DOC_FIELDS.map(function(c, i) {
+    var cls = (c.sticky ? 'doc-sticky ' : '') + (c.k === 'valorNf' ? 'doc-total-val' : '');
+    var conteudo = '';
+    if (i === 0) {
+      conteudo = '<span class="doc-total-rot">Total dos filtros · '
+        + docFiltered.length.toLocaleString('pt-BR') + ' registro(s)</span>'
+        + (soma.ignorados
+            ? '<span class="doc-total-obs">' + soma.ignorados + ' sem valor numérico, fora da soma</span>' : '');
+    } else if (c.k === 'valorNf') {
+      conteudo = esc(fmtBR(soma.total));
+    }
+    return '<td class="' + cls.trim() + '"' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + conteudo + '</td>';
+  }).join('');
+  return '<tfoot><tr>' + tds + (canEdit ? '<td></td>' : '') + '</tr></tfoot>';
 }
 
 function docPaginationHtml(total) {
