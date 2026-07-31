@@ -163,10 +163,12 @@ input:not([type=date]):not([type=number]):not([type=email]):not([type=password])
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .table-info{padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
 table{width:100%;border-collapse:collapse}
-th{background:var(--surface2);padding:11px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+/* Conteúdo das tabelas centralizado — vale para as colunas de hoje e para as
+   que forem acrescentadas depois, sem precisar marcar célula por célula. */
+th{background:var(--surface2);padding:11px 14px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
 th:hover{color:var(--text)}
 .sort-asc::after{content:' \u2191';color:var(--accent)}.sort-desc::after{content:' \u2193';color:var(--accent)}
-td{padding:10px 14px;border-bottom:1px solid rgba(31,45,69,.6);font-size:12px;white-space:nowrap;vertical-align:middle}
+td{padding:10px 14px;border-bottom:1px solid rgba(31,45,69,.6);font-size:12px;white-space:nowrap;vertical-align:middle;text-align:center}
 tr:hover td{background:rgba(59,130,246,.04)}
 tr:last-child td{border-bottom:none}
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
@@ -233,7 +235,7 @@ tr:last-child td{border-bottom:none}
 .del-confirm p{font-size:14px;color:var(--text);margin-bottom:8px}
 .del-confirm .del-name{font-weight:700;color:#f87171;font-family:'DM Mono',monospace;font-size:15px;margin-bottom:20px}
 .user-table{width:100%;border-collapse:collapse}
-.user-table th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)}
+.user-table th{background:var(--surface2);padding:10px 14px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)}
 .user-table td{padding:10px 14px;border-bottom:1px solid rgba(31,45,69,.5);font-size:13px;vertical-align:middle}
 .user-table tr:last-child td{border-bottom:none}
 .role-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
@@ -313,7 +315,7 @@ tr:last-child td{border-bottom:none}
 #cv-tabela th.cv-g2{background:rgba(245,158,11,.14);color:var(--amber)}
 .cv-inp{width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 6px;outline:none;transition:border-color .15s}
 .cv-inp:focus{border-color:var(--accent);background:var(--bg)}
-.cv-calc{font-family:'DM Mono',monospace;text-align:right;white-space:nowrap;color:var(--text)}
+.cv-calc{font-family:'DM Mono',monospace;text-align:center;white-space:nowrap;color:var(--text)}
 .cv-calc.vazio{color:var(--muted);opacity:.45}
 .cv-erro{color:#f87171;font-weight:700;font-size:10px}
 .cv-del{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:5px;color:#f87171;font-size:11px;padding:3px 7px;cursor:pointer;font-family:'Sora',sans-serif}
@@ -323,7 +325,7 @@ tr.cv-tem-erro td{background:rgba(239,68,68,.07)}
 #doc-hbar-thumb{position:absolute;top:4px;left:0;height:10px;min-width:44px;border-radius:5px;background:var(--accent);cursor:grab}
 #doc-hbar-thumb:hover{background:#60a5fa}
 #doc-hbar-thumb.arrastando{cursor:grabbing;background:#60a5fa}
-.doc-inp{width:100%;min-width:96px;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--accent);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 7px;outline:none}
+.doc-inp{width:100%;min-width:96px;text-align:center;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--accent);border-radius:5px;color:var(--text);font-family:'Sora',sans-serif;font-size:11.5px;padding:5px 7px;outline:none}
 select.doc-inp{cursor:pointer}
 .doc-mono{font-family:'DM Mono',monospace}
 .doc-empty{color:var(--muted);opacity:.5}
@@ -1556,8 +1558,8 @@ function renderTable() {
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px">'+fmtDate(d['INÍCIO DO CONTRATO'])+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px">'+fmtDate(d['TÉRMINO DA VIGÊNCIA'])+'</td>'
       +'<td style="display:none"></td>'
-      +'<td style="font-family:\'DM Mono\',monospace;text-align:right">'+(mensal!=null?fmtBR(mensal):'—')+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;text-align:right">'+(anual!=null?fmtBR(anual):'—')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace">'+(mensal!=null?fmtBR(mensal):'—')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace">'+(anual!=null?fmtBR(anual):'—')+'</td>'
       +'</tr>';
   }).join('');
   renderPagination();
@@ -1900,11 +1902,11 @@ function searchContratoModal() {
     html += sec('Reajustes e Repactuações (' + reajustes.length + ')');
     html += '<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'
       + '<thead><tr style="color:var(--muted);font-size:11px">'
-      + '<th style="text-align:left;padding:4px 8px">Ano</th>'
-      + '<th style="text-align:left;padding:4px 8px">Memória de Cálculo</th>'
-      + '<th style="text-align:left;padding:4px 8px">Período</th>'
-      + '<th style="text-align:left;padding:4px 8px">Origem</th>'
-      + '<th style="text-align:left;padding:4px 8px">Sit. NF</th>'
+      + '<th style="padding:4px 8px">Ano</th>'
+      + '<th style="padding:4px 8px">Memória de Cálculo</th>'
+      + '<th style="padding:4px 8px">Período</th>'
+      + '<th style="padding:4px 8px">Origem</th>'
+      + '<th style="padding:4px 8px">Sit. NF</th>'
       + '</tr></thead><tbody>';
     reajustes.forEach(function(r) {
       var nfSt = (r.situacaoNf || '').toUpperCase().trim();
@@ -3625,8 +3627,9 @@ function renderContasTable() {
       +'<td style="white-space:nowrap">'+esc(c.empresa)+'</td>'
       +'<td style="font-size:12px">'+esc(c.pedido)+'</td>'
       +'<td style="text-align:center">'+esc(c.comprovantePg)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap;text-align:right">'+esc(c.valor)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(c.folhaInfo)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+esc(c.valor)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'
+        +seiLinkHtml(c.folhaInfo, 'cvSeiMenu(event,\''+esc(c.id)+'\',\'folhaInfo\')')+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(c.comprovanteResgate)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+sitStyle+'">'+esc(c.situacao)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
@@ -3919,12 +3922,9 @@ function buildReajustesTable() {
   renderReajustesTable();
 }
 
-// Número da OB clicável: menu com "Editar registro" ou "Abrir documento no SEI".
-function rrOrdemBancariaHtml(r) {
-  var v = r.ordemBancaria;
-  if (!docSeiNumeros(v).length) return esc(v);
-  return '<span class="doc-ob" title="Clique para editar ou abrir o documento no SEI"'
-    + ' onclick="rrObMenu(event,\'' + esc(r.id) + '\')">' + esc(v) + '</span>';
+// Número de documento clicável: menu com "Editar registro" ou "Abrir no SEI".
+function rrSeiHtml(r, k) {
+  return seiLinkHtml(r[k], 'rrSeiMenu(event,\'' + esc(r.id) + '\',\'' + k + '\')');
 }
 
 function renderReajustesTable() {
@@ -3959,9 +3959,9 @@ function renderReajustesTable() {
       +'<td style="font-size:12px">'+esc(r.periodo)+'</td>'
       +'<td style="font-size:11px;white-space:nowrap">'+esc(r.origem)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.nf)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap;text-align:right">'+esc(r.valorNf)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.folhaInfo)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrOrdemBancariaHtml(r)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+esc(r.valorNf)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrSeiHtml(r,'folhaInfo')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrSeiHtml(r,'ordemBancaria')+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'">'+esc(r.situacaoNf)+'</td>'
       +'<td style="font-size:11px;color:var(--muted)">'+esc(r.observacao)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(sitColor[sit]||'var(--muted)')+'">'+esc(r.situacao)+'</td>'
@@ -4374,8 +4374,8 @@ var DOC_FIELDS = [
   {k:'nfRecebida',       label:'NF Recebida',          type:'date'},
   {k:'notaFiscal',       label:'Nota Fiscal',          type:'text',   mono:true},
   {k:'emissao',          label:'Emissão',              type:'date'},
-  {k:'valorNf',          label:'Valor da NF',          type:'money',  mono:true, align:'right'},
-  {k:'valorContratado',  label:'Valor Contratado',     type:'money',  mono:true, align:'right'},
+  {k:'valorNf',          label:'Valor da NF',          type:'money',  mono:true},
+  {k:'valorContratado',  label:'Valor Contratado',     type:'money',  mono:true},
   {k:'atesto',           label:'Atesto',               type:'date'},
   {k:'documentacao',     label:'Documentação',         type:'date'},
   {k:'contaVinculada',   label:'Conta Vinculada',      type:'date'},
@@ -4659,7 +4659,8 @@ function docCellDisplay(col, rec) {
   if (col.type === 'money') return typeof v === 'number' ? esc(fmtBR(v)) : esc(v);
   if (col.type === 'date')  return esc(docFmtDate(v));
   if (col.badge) return '<span class="doc-badge ' + docBadgeClass(col.k, v) + '">' + esc(v) + '</span>';
-  if (col.k === 'ordemBancaria') {
+  // o menu é aberto pelo listener da tabela, então aqui não vai onclick
+  if (SEI_COLUNAS[col.k]) {
     return docSeiNumeros(v).length
       ? '<span class="doc-ob" title="Clique para editar ou abrir o documento no SEI">' + esc(v) + '</span>'
       : esc(v);
@@ -4804,10 +4805,20 @@ function docSeiNumeros(v) {
     .filter(function(t) { return (t.replace(/\D/g, '').length >= 4); });
 }
 
+// Colunas cujo conteúdo é número de documento do SEI: viram link com menu.
+var SEI_COLUNAS = {ordemBancaria: 'Ordem bancária', folhaInfo: 'Folha de informação'};
+
+// Marca o número como clicável. `onclick` é o código do menu de cada tela.
+function seiLinkHtml(valor, onclick) {
+  if (!docSeiNumeros(valor).length) return esc(valor);
+  return '<span class="doc-ob" title="Clique para editar ou abrir o documento no SEI"'
+    + ' onclick="' + onclick + '">' + esc(valor) + '</span>';
+}
+
 function docAbrirSei(num) {
   var n = String(num == null ? '' : num).trim();
   docFecharObMenu();
-  if (!n) { docToast('Sem número de ordem bancária para pesquisar no SEI.', true); return; }
+  if (!n) { docToast('Sem número de documento para pesquisar no SEI.', true); return; }
   var copiou = docCopiar(n);
   window.open(docSeiUrl(n), '_blank', 'noopener');
   docToast(copiou
@@ -4832,9 +4843,9 @@ function _docObEsc(e) {
   if (e.key === 'Escape') docFecharObMenu();
 }
 
-// Menu do número da OB — usado pela tabela de Documentos (edita a célula) e
-// pela de Reajustes/Retroativos (abre o modal do registro).
-// cfg: {rotuloEditar, podeEditar, aoEditar}
+// Menu do número de documento — usado pela tabela de Documentos (edita a
+// célula) e pelas de Reajustes e Retirada Conta Vinculada (abrem o modal).
+// cfg: {titulo, rotuloEditar, podeEditar, aoEditar}
 function obMenu(ev, num, cfg) {
   docFecharObMenu();
   num = String(num == null ? '' : num).trim();
@@ -4847,7 +4858,7 @@ function obMenu(ev, num, cfg) {
           + '<span class="ico">↗</span>Abrir ' + (docs.length > 1 ? esc(d) : 'documento') + ' no SEI</button>';
       }).join('')
     : '<button type="button" disabled><span class="ico">↗</span>Sem documento no SEI</button>';
-  m.innerHTML = '<div class="ob-cab">Ordem bancária<b>' + esc(num || '—') + '</b></div>'
+  m.innerHTML = '<div class="ob-cab">' + esc(cfg.titulo || 'Ordem bancária') + '<b>' + esc(num || '—') + '</b></div>'
     + '<button type="button"' + (cfg.podeEditar ? '' : ' disabled') + ' data-acao="editar">'
     + '<span class="ico">✎</span>' + esc(cfg.rotuloEditar) + '</button>'
     + btnsSei;
@@ -4877,23 +4888,42 @@ function obMenu(ev, num, cfg) {
 function docObMenu(td, ev) {
   var rec = docFind(td.getAttribute('data-id'));
   if (!rec) return;
-  obMenu(ev, rec.ordemBancaria, {
+  var k = td.getAttribute('data-k');
+  obMenu(ev, rec[k], {
+    titulo: SEI_COLUNAS[k],
     rotuloEditar: 'Editar célula',
     podeEditar: docCanEdit(),
     aoEditar: function() { docEditCell(td); }
   });
 }
 
-// Tabela de Reajustes/Retroativos: lá a edição é pelo modal do registro.
-function rrObMenu(ev, id) {
+function seiAcharPorId(lista, id) {
+  for (var i = 0; i < lista.length; i++) if (lista[i].id === id) return lista[i];
+  return null;
+}
+
+// Reajustes/Retroativos e Retirada Conta Vinculada: a edição é pelo modal.
+function rrSeiMenu(ev, id, k) {
   ev.stopPropagation();
-  var r = null;
-  for (var i = 0; i < REAJUSTES.length; i++) if (REAJUSTES[i].id === id) { r = REAJUSTES[i]; break; }
+  var r = seiAcharPorId(REAJUSTES, id);
   if (!r) return;
-  obMenu(ev, r.ordemBancaria, {
+  obMenu(ev, r[k], {
+    titulo: SEI_COLUNAS[k],
     rotuloEditar: 'Editar registro',
     podeEditar: (currentRole === 'admin' || currentRole === 'editor'),
     aoEditar: function() { openEditReajusteModal(id); }
+  });
+}
+
+function cvSeiMenu(ev, id, k) {
+  ev.stopPropagation();
+  var c = seiAcharPorId(CONTAS, id);
+  if (!c) return;
+  obMenu(ev, c[k], {
+    titulo: SEI_COLUNAS[k],
+    rotuloEditar: 'Editar registro',
+    podeEditar: (currentRole === 'admin' || currentRole === 'editor'),
+    aoEditar: function() { openEditContaModal(id); }
   });
 }
 
@@ -5049,7 +5079,7 @@ function initDocumentos() {
       var td = e.target;
       while (td && td.nodeName !== 'TD') td = td.parentNode;
       if (!td || !td.classList || !td.classList.contains('doc-cell')) return;
-      if (td.getAttribute('data-k') !== 'ordemBancaria') return;
+      if (!SEI_COLUNAS[td.getAttribute('data-k')]) return;
       if (td.classList.contains('doc-editing')) return;
       e.stopPropagation();
       docObMenu(td, e);
@@ -5138,7 +5168,6 @@ function renderDocumentosTable() {
     var tds = DOC_FIELDS.map(function(c) {
       return '<td class="doc-cell' + (c.sticky ? ' doc-sticky' : '') + (c.mono ? ' doc-mono' : '') + '"'
         + ' data-id="' + esc(rec.id) + '" data-k="' + c.k + '"'
-        + (c.align ? ' style="text-align:' + c.align + '"' : '')
         + ' title="Duplo clique para editar">' + docCellDisplay(c, rec) + '</td>';
     }).join('');
     return '<tr data-id="' + esc(rec.id) + '">' + tds
@@ -5185,7 +5214,7 @@ function docTotalFootHtml(soma, canEdit) {
     } else if (c.k === 'valorNf') {
       conteudo = esc(fmtBR(soma.total));
     }
-    return '<td class="' + cls.trim() + '"' + (c.align ? ' style="text-align:' + c.align + '"' : '') + '>' + conteudo + '</td>';
+    return '<td class="' + cls.trim() + '">' + conteudo + '</td>';
   }).join('');
   return '<tfoot><tr>' + tds + (canEdit ? '<td></td>' : '') + '</tr></tfoot>';
 }
@@ -5689,7 +5718,7 @@ function cvCampoHtml(col, l, podeEditar) {
   if (col.tipo === 'data') return '<input type="date" class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
   if (col.tipo === 'lista') return '<input class="cv-inp" list="'+col.lista+'" value="'+esc(v)+'"'+dis+ev+'>';
   if (col.tipo === 'numero') return '<input type="number" min="0" max="30" step="1" class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
-  if (col.tipo === 'dinheiro') return '<input class="cv-inp" style="text-align:right" placeholder="0,00" value="'+esc(v)+'"'+dis+ev+'>';
+  if (col.tipo === 'dinheiro') return '<input class="cv-inp" placeholder="0,00" value="'+esc(v)+'"'+dis+ev+'>';
   return '<input class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
 }
 
@@ -5737,7 +5766,7 @@ function cvRender() {
   var linhas = cvFiltradas.map(function(l, i) {
     var c = cvCalc(l, cvPercSub());
     var tds = CV_COLS.map(function(col) {
-      if (col.calc) return '<td data-k="'+col.k+'" style="text-align:right">'+cvCelulaCalc(col, c)+'</td>';
+      if (col.calc) return '<td data-k="'+col.k+'">'+cvCelulaCalc(col, c)+'</td>';
       return '<td data-k="'+col.k+'">'+cvCampoHtml(col, l, podeEditar)+'</td>';
     }).join('');
     return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro':'')+'">'
