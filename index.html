@@ -607,6 +607,9 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
           <select class="sel" id="doc-f-empresa" onchange="buildDocumentosTable()"><option value="">Todas</option></select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="doc-f-contrato" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
+        </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Ano</span>
           <select class="sel" id="doc-f-ano" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
         </div>
@@ -619,7 +622,7 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
           <select class="sel" id="doc-f-resp" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
         </div>
-        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Status</span>
           <select class="sel" id="doc-f-status" onchange="buildDocumentosTable()"><option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="ENCERRADO">Encerrado</option></select>
         </div>
         <button class="btn clear" onclick="clearDocFilters()">Limpar</button>
@@ -5019,11 +5022,13 @@ function initDocumentos() {
   var sits = docDistinct('situacao').sort();
   var resps = docDistinct('responsavel').sort();
   var empresas = docDistinct('empresa').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  var contratos = docDistinct('contrato').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   docFillSelect('doc-f-ano', anos, 'Todos');
   docFillSelect('doc-f-mes', meses, 'Todos');
   docFillSelect('doc-f-sit', sits, 'Todas');
   docFillSelect('doc-f-resp', resps, 'Todos');
   docFillSelect('doc-f-empresa', empresas, 'Todas');
+  docFillSelect('doc-f-contrato', contratos, 'Todos');
   DOC_FIELD_MAP.responsavel.options = resps;
   DOC_FIELD_MAP.situacao.options = Array.from(new Set(DOC_FIELD_MAP.situacao.options.concat(sits))).sort();
   if (!_docInit) {
@@ -5049,7 +5054,7 @@ function initDocumentos() {
 }
 
 function clearDocFilters() {
-  ['doc-q','doc-f-empresa','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
+  ['doc-q','doc-f-empresa','doc-f-contrato','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -5065,9 +5070,11 @@ function buildDocumentosTable(manterPagina) {
   if (!DOCUMENTOS.length) docRebuild();
   var q = docVal('doc-q').toLowerCase().trim();
   var fAno = docVal('doc-f-ano'), fMes = docVal('doc-f-mes'), fSit = docVal('doc-f-sit'),
-      fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status'), fEmp = docVal('doc-f-empresa');
+      fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status'), fEmp = docVal('doc-f-empresa'),
+      fCtr = docVal('doc-f-contrato');
   docFiltered = DOCUMENTOS.filter(function(r) {
     if (fEmp  && String(r.empresa || '') !== fEmp) return false;
+    if (fCtr  && String(r.contrato || '') !== fCtr) return false;
     if (fAno  && String(r.ano || '') !== fAno) return false;
     if (fMes  && String(r.mes || '') !== fMes) return false;
     if (fSit  && String(r.situacao || '') !== fSit) return false;
@@ -5262,6 +5269,20 @@ function docUnidadeOpcoesHtml(contrato, atual) {
         + docOpcoesHtml(demais, atual) + '</optgroup>' : '');
 }
 
+// Contratos do cadastro primeiro; depois os que só aparecem em registros
+// antigos de Documentos, para continuar sendo possível lançar sobre eles.
+function docContratoOpcoesHtml(atual) {
+  var cadastrados = Array.from(new Set(DADOS.map(function(d) { return String(d['CONTRATO'] || '').trim(); }).filter(Boolean)))
+    .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  var noCadastro = {};
+  cadastrados.forEach(function(c) { noCadastro[c] = 1; });
+  var antigos = docDistinct('contrato').filter(function(c) { return !noCadastro[c]; })
+    .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  return '<option value="">— Selecione —</option>'
+    + (cadastrados.length ? '<optgroup label="Contratos cadastrados">' + docOpcoesHtml(cadastrados, atual) + '</optgroup>' : '')
+    + (antigos.length ? '<optgroup label="Outros contratos com registros">' + docOpcoesHtml(antigos, atual) + '</optgroup>' : '');
+}
+
 function docNovoContratoMudou() {
   var num = (document.getElementById('ef-doc-contrato') || {}).value || '';
   var sel = document.getElementById('ef-doc-unidade');
@@ -5291,15 +5312,10 @@ function docNovoContratoMudou() {
 function openNewDocumentoModal() {
   if (!docCanEdit()) return;
   if (!DOCUMENTOS.length) docRebuild();
-  var contratos = Array.from(new Set(DADOS.map(function(d) { return d['CONTRATO'] || ''; }).filter(Boolean)))
-    .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   var html = '<div class="eform">'
     + '<div class="ef full"><label>Contrato *</label>'
-      + '<input id="ef-doc-contrato" list="doc-contrato-list" placeholder="Ex: 01/24"'
-        + ' oninput="docNovoContratoMudou()" onchange="docNovoContratoMudou()">'
-      + '<datalist id="doc-contrato-list">'
-        + contratos.map(function(x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
-      + '<div class="doc-auto" id="ef-doc-info">Informe o contrato para trazer empresa, responsável e situação.</div>'
+      + '<select id="ef-doc-contrato" onchange="docNovoContratoMudou()">' + docContratoOpcoesHtml('') + '</select>'
+      + '<div class="doc-auto" id="ef-doc-info">Escolha o contrato para trazer empresa, responsável e situação.</div>'
     + '</div>'
     + '<div class="ef"><label>Mês / Referência</label><select id="ef-doc-mes">' + docMesOpcoesHtml('') + '</select></div>'
     + '<div class="ef"><label>Unidade</label><select id="ef-doc-unidade">' + docUnidadeOpcoesHtml('', '') + '</select></div>'
