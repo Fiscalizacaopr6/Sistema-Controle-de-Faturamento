@@ -279,6 +279,7 @@ tr:last-child td{border-bottom:none}
 #doc-table td{padding:6px 10px;font-size:11.5px}
 #doc-table td.doc-cell{cursor:cell}
 #doc-table td.doc-cell:hover{box-shadow:inset 0 0 0 1px rgba(59,130,246,.35)}
+#doc-table td.doc-calc{cursor:default}
 #doc-table td.doc-editing{padding:3px 5px;background:rgba(59,130,246,.10)}
 #doc-table .doc-sticky{position:sticky;left:0;z-index:2;background:var(--surface)}
 #doc-table th.doc-sticky{background:var(--surface2);z-index:3}
@@ -4368,7 +4369,7 @@ var DOC_FIELDS = [
   {k:'ano',              label:'Ano',                  type:'text',   mono:true},
   {k:'mes',              label:'Mês / Referência',     type:'text',   upper:true},
   {k:'unidade',          label:'Unidade',              type:'text',   upper:true},
-  {k:'situacao',         label:'Situação',             type:'select', badge:true, upper:true, options:['PAGO','AGUARDANDO IMR','AUTORIZAR NOTA','NOTA AUTORIZADA','DENTRO DO PRAZO','EM ATRASO','ENVIADO À PR3','NÃO HOUVE SERVIÇO']},
+  {k:'situacao',         label:'Situação',             type:'text',   badge:true, upper:true, calc:function(r){ return docSituacao(r); }},
   {k:'imrRecebido',      label:'IMR Recebido',         type:'date'},
   {k:'nfAutorizada',     label:'NF Autorizada',        type:'date'},
   {k:'nfRecebida',       label:'NF Recebida',          type:'date'},
@@ -4529,7 +4530,9 @@ function docParseValue(col, raw) {
 
 function docBadgeClass(k, v) {
   var s = String(v).toUpperCase();
-  if (k === 'situacao')         return s === 'PAGO' ? 'doc-b-ok' : (s === 'EM ATRASO' ? 'doc-b-red' : 'doc-b-warn');
+  if (k === 'situacao')         return s === 'PAGO' ? 'doc-b-ok'
+                                       : s === 'EM ATRASO' ? 'doc-b-red'
+                                       : s === 'NÃO HOUVE SERVIÇO' ? 'doc-b-mut' : 'doc-b-warn';
   if (k === 'situacaoContrato') return s === 'VIGENTE' ? 'doc-b-ok' : 'doc-b-mut';
   if (k === 'semPrestacao') return 'doc-b-red';
   return 'doc-b-ok';
@@ -4649,9 +4652,49 @@ function calAbrir(anchor, valorISO, onEscolher) {
   window.addEventListener('resize', calReposicionar);
 }
 
+// ── Situação: calculada, não digitada ──
+// A ordem é a do fluxo do faturamento lido de trás para frente: a primeira
+// regra que casar decide, e as de baixo só valem se nenhuma acima casou.
+var DOC_PRAZO_DIAS = 30;   // até aqui é "dentro do prazo"; acima, "em atraso"
+
+// Dias corridos entre a data informada e hoje. null quando não é uma data
+// (a célula aceita avisos como "NÃO SE APLICA").
+function docDiasDesde(v) {
+  var iso = docParseDate(v);
+  if (!iso) return null;
+  var p = iso.split('-');
+  var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  return Math.floor((hoje - new Date(+p[0], +p[1] - 1, +p[2])) / 86400000);
+}
+
+function docSituacao(rec) {
+  if (!rec) return '';
+  function tem(k) { return String(rec[k] == null ? '' : rec[k]).trim() !== ''; }
+  if (tem('semPrestacao'))  return 'NÃO HOUVE SERVIÇO';
+  if (tem('ordemBancaria')) return 'PAGO';
+  if (tem('envioPr3'))      return 'ENVIADO À PR3';
+  if (tem('folhaInfo'))     return 'BLOCO 743';
+  if (tem('emissao')) {
+    // data ilegível não decide nada: segue para as regras seguintes
+    var dias = docDiasDesde(rec.emissao);
+    if (dias !== null) return dias > DOC_PRAZO_DIAS ? 'EM ATRASO' : 'DENTRO DO PRAZO';
+  }
+  if (tem('nfAutorizada'))  return 'NOTA AUTORIZADA';
+  if (tem('imrRecebido'))   return 'AUTORIZAR NOTA';
+  return 'AGUARDANDO IMR';
+}
+
+// Valor de uma coluna: calculado quando a coluna tem regra, guardado quando não.
+// Passa por aqui tudo que olha para a célula — tela, filtro, ordenação e
+// exportação — para os quatro nunca discordarem entre si.
+function docValor(col, rec) {
+  if (col && col.calc) return col.calc(rec);
+  return rec ? rec[col.k] : '';
+}
+
 // ── Células (leitura / edição) ──
 function docCellDisplay(col, rec) {
-  var v = rec ? rec[col.k] : '';
+  var v = docValor(col, rec);
   if (v === undefined || v === null || v === '') return '<span class="doc-empty">—</span>';
   if (col.simbolo) return '<span class="doc-simbolo" style="color:' + col.cor + '">' + esc(v) + '</span>';
   if (col.type === 'money') return typeof v === 'number' ? esc(fmtBR(v)) : esc(v);
@@ -4925,6 +4968,13 @@ function cvSeiMenu(ev, id, k) {
   });
 }
 
+// Coluna calculada: só muda preenchendo as colunas que a alimentam.
+function docAvisoCalculada(col) {
+  if (!col) return;
+  docToast('"' + col.label + '" é preenchida sozinha pelo andamento do documento — '
+    + 'para mudá-la, preencha as colunas que a determinam.', true);
+}
+
 // ── Edição de uma célula (duplo clique) ──
 function docEditCell(td) {
   if (!td) return;
@@ -4934,6 +4984,7 @@ function docEditCell(td) {
   var rec = docFind(td.getAttribute('data-id'));
   var col = DOC_FIELD_MAP[td.getAttribute('data-k')];
   if (!rec || !col) return;
+  if (col.calc) { docAvisoCalculada(col); return; }
   td.classList.add('doc-editing');
   td.innerHTML = docEditorHtml(col, rec[col.k]);
   var inp = td.querySelector('.doc-inp');
@@ -4985,8 +5036,19 @@ function docCommitCell(td, move) {
   }
   td.classList.remove('doc-editing');
   td.innerHTML = docCellDisplay(col, rec);
-  if (mudou) { docToast('✔ Alteração salva em "' + col.label + '".'); }
+  if (mudou) { docRefrescarCalculadas(td.parentNode, rec); docToast('✔ Alteração salva em "' + col.label + '".'); }
   if (move) docEditVizinha(td, move);
+}
+
+// Preencher a Ordem Bancária muda a Situação da mesma linha: as colunas
+// calculadas são refeitas na hora, sem esperar um redesenho da tabela.
+function docRefrescarCalculadas(tr, rec) {
+  if (!tr || !rec) return;
+  DOC_FIELDS.forEach(function(c) {
+    if (!c.calc) return;
+    var td = tr.querySelector('td[data-k="' + c.k + '"]');
+    if (td) td.innerHTML = docCellDisplay(c, rec);
+  });
 }
 
 function docCancelCell(td) {
@@ -5025,6 +5087,19 @@ function docConfirmDelete(id) {
 var docFiltered = [], docPage = 1, docPer = 50, docSort = {k:'', dir:1}, _docInit = false;
 var _docCalTd = null;   // célula com o calendário aberto: o blur não pode encerrar a edição
 
+// Valores distintos de uma coluna calculada — o filtro precisa oferecer o que
+// aparece na tela, não o que está guardado no registro.
+function docDistinctCalc(col) {
+  var vistos = {}, out = [];
+  DOCUMENTOS.forEach(function(r) {
+    var v = docValor(col, r);
+    if (v === undefined || v === null || v === '') return;
+    v = String(v);
+    if (!vistos[v]) { vistos[v] = 1; out.push(v); }
+  });
+  return out;
+}
+
 function docDistinct(k) {
   var vistos = {}, out = [];
   DOCUMENTOS.forEach(function(r) {
@@ -5053,7 +5128,7 @@ function initDocumentos() {
     if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     return a.localeCompare(b, 'pt-BR', {numeric:true});
   });
-  var sits = docDistinct('situacao').sort();
+  var sits = docDistinctCalc(DOC_FIELD_MAP.situacao).sort();
   var resps = docDistinct('responsavel').sort();
   var empresas = docDistinct('empresa').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   var contratos = docDistinct('contrato').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
@@ -5064,13 +5139,14 @@ function initDocumentos() {
   docFillSelect('doc-f-empresa', empresas, 'Todas');
   docFillSelect('doc-f-contrato', contratos, 'Todos');
   DOC_FIELD_MAP.responsavel.options = resps;
-  DOC_FIELD_MAP.situacao.options = Array.from(new Set(DOC_FIELD_MAP.situacao.options.concat(sits))).sort();
   if (!_docInit) {
     var cont = document.getElementById('doc-table');
     if (cont) cont.addEventListener('dblclick', function(e) {
       var td = e.target;
       while (td && td.nodeName !== 'TD') td = td.parentNode;
-      if (td && td.classList && td.classList.contains('doc-cell')) docEditCell(td);
+      if (!td || !td.classList) return;
+      if (td.classList.contains('doc-cell')) docEditCell(td);
+      else if (td.classList.contains('doc-calc')) docAvisoCalculada(DOC_FIELD_MAP[td.getAttribute('data-k')]);
     });
     // clique simples na Ordem Bancária: escolher entre editar a célula ou abrir no SEI
     if (cont) cont.addEventListener('click', function(e) {
@@ -5111,7 +5187,7 @@ function buildDocumentosTable(manterPagina) {
     if (fCtr  && String(r.contrato || '') !== fCtr) return false;
     if (fAno  && String(r.ano || '') !== fAno) return false;
     if (fMes  && String(r.mes || '') !== fMes) return false;
-    if (fSit  && String(r.situacao || '') !== fSit) return false;
+    if (fSit  && docSituacao(r) !== fSit) return false;
     if (fResp && String(r.responsavel || '') !== fResp) return false;
     if (fSt   && String(r.situacaoContrato || '') !== fSt) return false;
     if (!q) return true;
@@ -5121,7 +5197,7 @@ function buildDocumentosTable(manterPagina) {
   if (docSort.k) {
     var col = DOC_FIELD_MAP[docSort.k];
     docFiltered.sort(function(a, b) {
-      var va = a[docSort.k], vb = b[docSort.k];
+      var va = docValor(col, a), vb = docValor(col, b);
       var ea = (va === undefined || va === null || va === ''), eb = (vb === undefined || vb === null || vb === '');
       if (ea && eb) return 0;
       if (ea) return 1;
@@ -5164,9 +5240,13 @@ function renderDocumentosTable() {
 
   var rows = slice.map(function(rec) {
     var tds = DOC_FIELDS.map(function(c) {
-      return '<td class="doc-cell' + (c.sticky ? ' doc-sticky' : '') + (c.mono ? ' doc-mono' : '') + '"'
+      // coluna calculada não leva a classe doc-cell: é ela que abre a edição
+      return '<td class="' + (c.calc ? 'doc-calc' : 'doc-cell')
+        + (c.sticky ? ' doc-sticky' : '') + (c.mono ? ' doc-mono' : '') + '"'
         + ' data-id="' + esc(rec.id) + '" data-k="' + c.k + '"'
-        + ' title="Duplo clique para editar">' + docCellDisplay(c, rec) + '</td>';
+        + ' title="' + (c.calc ? 'Preenchida automaticamente pelo andamento do documento'
+                               : 'Duplo clique para editar') + '">'
+        + docCellDisplay(c, rec) + '</td>';
     }).join('');
     return '<tr data-id="' + esc(rec.id) + '">' + tds
       + (canEdit ? '<td class="doc-actions">' + docActionsHtml(rec.id) + '</td>' : '') + '</tr>';
@@ -5428,7 +5508,7 @@ function saveNewDocumento() {
 function docExportRows() {
   return docFiltered.map(function(r) {
     return DOC_FIELDS.map(function(c) {
-      var v = r[c.k];
+      var v = docValor(c, r);
       if (v === undefined || v === null) return '';
       if (c.type === 'date') return docFmtDate(v);
       return v;
