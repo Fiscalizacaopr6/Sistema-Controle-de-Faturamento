@@ -2769,6 +2769,7 @@ function calcOne(d) {
 }
 
 function refreshAll() {
+  docInvalidarContratos();
   buildDashboard(); applyFilters(); updateSidebar();
 }
 
@@ -4427,8 +4428,8 @@ var DOC_FIELDS = [
   {k:'ordemBancaria',    label:'Ordem Bancária',       type:'text',   mono:true},
   {k:'semPrestacao',     label:'Não Houve Prestação',  type:'select', simbolo:'X', cor:'var(--amber)', options:['X']},
   {k:'observacao',       label:'Observação',           type:'text'},
-  {k:'responsavel',      label:'Responsável',          type:'select', upper:true, options:[]},
-  {k:'situacaoContrato', label:'Contrato',             type:'select', badge:true, options:['VIGENTE','ENCERRADO']}
+  {k:'responsavel',      label:'Responsável',          type:'text',   upper:true, calc:function(r){ return docResponsavel(r); }},
+  {k:'situacaoContrato', label:'Contrato',             type:'text',   badge:true, calc:function(r){ return docStatusContrato(r); }}
 ];
 var DOC_FIELD_MAP = {};
 DOC_FIELDS.forEach(function(c) {
@@ -5164,6 +5165,7 @@ function docFillSelect(id, valores, placeholder) {
 
 function initDocumentos() {
   if (!DOCUMENTOS.length) docRebuild();
+  docInvalidarContratos();
   var anos = docDistinct('ano').sort(function(a, b) { return b.localeCompare(a); });
   var meses = docDistinct('mes').sort(function(a, b) {
     var ia = MESES_ORDEM.indexOf(a), ib = MESES_ORDEM.indexOf(b);
@@ -5171,7 +5173,7 @@ function initDocumentos() {
     return a.localeCompare(b, 'pt-BR', {numeric:true});
   });
   var sits = docDistinctCalc(DOC_FIELD_MAP.situacao).sort();
-  var resps = docDistinct('responsavel').sort();
+  var resps = docDistinctCalc(DOC_FIELD_MAP.responsavel).sort();
   var empresas = docDistinct('empresa').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   var contratos = docDistinct('contrato').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   docFillSelect('doc-f-ano', anos, 'Todos');
@@ -5180,7 +5182,6 @@ function initDocumentos() {
   docFillSelect('doc-f-resp', resps, 'Todos');
   docFillSelect('doc-f-empresa', empresas, 'Todas');
   docFillSelect('doc-f-contrato', contratos, 'Todos');
-  DOC_FIELD_MAP.responsavel.options = resps;
   if (!_docInit) {
     var cont = document.getElementById('doc-table');
     if (cont) cont.addEventListener('dblclick', function(e) {
@@ -5230,8 +5231,8 @@ function buildDocumentosTable(manterPagina) {
     if (fAno  && String(r.ano || '') !== fAno) return false;
     if (fMes  && String(r.mes || '') !== fMes) return false;
     if (fSit  && docSituacao(r) !== fSit) return false;
-    if (fResp && String(r.responsavel || '') !== fResp) return false;
-    if (fSt   && String(r.situacaoContrato || '') !== fSt) return false;
+    if (fResp && docResponsavel(r) !== fResp) return false;
+    if (fSt   && docStatusContrato(r) !== fSt) return false;
     if (!q) return true;
     return ['empresa','contrato','unidade','notaFiscal','folhaInfo','ordemBancaria','observacao','responsavel','mes']
       .some(function(k) { return String(r[k] || '').toLowerCase().indexOf(q) !== -1; });
@@ -5371,23 +5372,94 @@ var DOC_NOVO_CAMPOS = ['contrato','mes','unidade','valorNf'];
 // Por isso vale o ano corrente, que é quando o registro está sendo criado.
 function docAnoNovo() { return String(new Date().getFullYear()); }
 
+// ── Responsável: vem do contrato, do termo mais recente ──
+// Em Contratos, cada termo é uma entrada própria com o seu responsável. Um
+// contrato pode trocar de responsável no meio do caminho (13/23 passou de
+// RENAN para JONI), e o que vale é o do termo mais novo.
+//
+// A ordenação é pela data de início do termo, que é comparável entre tipos
+// diferentes. O número do termo é só desempate: cada tipo tem a sua própria
+// contagem (o APOSTILA 06/26 e o TERMO ADITIVO 07/24 são séries diferentes),
+// então comparar números soltos não diria qual veio depois.
+function docPosicaoTermo(d) {
+  var m = String(d['TERMO ATUAL'] || '').match(/N[°ºo]?\s*(\d+)\s*\/\s*(\d+)/i);
+  var ano = m ? parseInt(m[2], 10) : -1;
+  if (ano > 100) ano = ano % 100;                       // "nº 04/2025" e "05/26"
+  return {inicio: String(d['INÍCIO DO CONTRATO'] || ''), ano: ano, num: m ? parseInt(m[1], 10) : -1};
+}
+
+function docTermoMaisNovo(a, b) {
+  if (a.inicio !== b.inicio) return a.inicio > b.inicio;
+  if (a.ano !== b.ano) return a.ano > b.ano;
+  return a.num > b.num;
+}
+
+// Índice contrato → dados do termo mais recente. Refeito só quando os
+// contratos mudam: sem ele, cada linha da tabela varreria DADOS inteiro.
+var _docContratoMapa = null;
+function docInvalidarContratos() { _docContratoMapa = null; }
+
+function docContratoMapa() {
+  if (_docContratoMapa) return _docContratoMapa;
+  var curtos = {};   // forma curta usada em Documentos, por nome em maiúsculas
+  docDistinct('responsavel').forEach(function(v) { curtos[String(v).trim().toUpperCase()] = v; });
+  var melhor = {};
+  DADOS.forEach(function(d) {
+    var n = String(d['CONTRATO'] || '').trim().toUpperCase();
+    if (!n) return;
+    var pos = docPosicaoTermo(d);
+    if (!melhor[n]) melhor[n] = {pos: pos, d: d, vigente: false, encerrado: false};
+    else if (docTermoMaisNovo(pos, melhor[n].pos)) { melhor[n].pos = pos; melhor[n].d = d; }
+    // o status olha TODOS os termos, não só o mais recente
+    if (d._st === 'VIGENTE') melhor[n].vigente = true;
+    else if (d._st === 'ENCERRADO') melhor[n].encerrado = true;
+  });
+  _docContratoMapa = {};
+  Object.keys(melhor).forEach(function(n) {
+    var m = melhor[n], d = m.d;
+    _docContratoMapa[n] = {
+      empresa: String(d['EMPRESA'] || '').trim(),
+      responsavel: docRespComoNaBase(d['RESPONSÁVEL NO FATURAMENTO'], curtos),
+      // basta um termo vigente para o contrato estar vigente
+      situacaoContrato: m.vigente ? 'VIGENTE' : (m.encerrado ? 'ENCERRADO' : ''),
+      termo: String(d['TERMO ATUAL'] || '').trim()
+    };
+  });
+  return _docContratoMapa;
+}
+
 // Contratos guarda o nome completo (MICHELLI DELFINO) e Documentos usa a forma
 // curta (MICHELLI, e WERNECK para RAFAEL WERNECK). Converte para a forma já em
 // uso em Documentos: gravar o nome completo criaria uma segunda entrada no
 // filtro de Responsável, e o registro novo sumiria do filtro antigo.
-function docRespComoNaBase(nome) {
+function docRespComoNaBase(nome, curtos) {
   var v = String(nome || '').trim().toUpperCase();
   if (!v) return '';
-  var usados = docDistinct('responsavel');
-  var i;
-  for (i = 0; i < usados.length; i++) {
-    if (String(usados[i]).trim().toUpperCase() === v) return usados[i];
+  if (!curtos) {
+    curtos = {};
+    docDistinct('responsavel').forEach(function(x) { curtos[String(x).trim().toUpperCase()] = x; });
   }
+  if (curtos[v]) return curtos[v];
   var partes = v.split(/\s+/);
-  for (i = 0; i < usados.length; i++) {
-    if (partes.indexOf(String(usados[i]).trim().toUpperCase()) !== -1) return usados[i];
-  }
+  for (var i = 0; i < partes.length; i++) if (curtos[partes[i]]) return curtos[partes[i]];
   return v;
+}
+
+// Contrato que não está no cadastro (registro antigo) mantém o que foi gravado.
+function docResponsavel(rec) {
+  if (!rec) return '';
+  var c = docContratoMapa()[String(rec.contrato || '').trim().toUpperCase()];
+  if (c && c.responsavel) return c.responsavel;
+  return String(rec.responsavel == null ? '' : rec.responsavel).trim();
+}
+
+// Vigente se o contrato tem ao menos um termo vigente; encerrado se todos
+// os termos já venceram.
+function docStatusContrato(rec) {
+  if (!rec) return '';
+  var c = docContratoMapa()[String(rec.contrato || '').trim().toUpperCase()];
+  if (c && c.situacaoContrato) return c.situacaoContrato;
+  return String(rec.situacaoContrato == null ? '' : rec.situacaoContrato).trim();
 }
 
 // Dados que o contrato traz consigo. Procura primeiro no cadastro de Contratos;
@@ -5396,11 +5468,11 @@ function docRespComoNaBase(nome) {
 function docDadosDoContrato(numero) {
   var n = String(numero || '').trim().toUpperCase();
   if (!n) return null;
-  var d = DADOS.find(function(x) { return String(x['CONTRATO'] || '').trim().toUpperCase() === n; });
-  if (d) return {
-    empresa: String(d['EMPRESA'] || '').trim(),
-    responsavel: docRespComoNaBase(d['RESPONSÁVEL NO FATURAMENTO']),
-    situacaoContrato: d._st || '',
+  var c = docContratoMapa()[n];
+  if (c) return {
+    empresa: c.empresa,
+    responsavel: c.responsavel,
+    situacaoContrato: c.situacaoContrato,
     origem: 'contratos'
   };
   for (var i = DOCUMENTOS.length - 1; i >= 0; i--) {
