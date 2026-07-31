@@ -221,6 +221,12 @@ tr:last-child td{border-bottom:none}
 .ef textarea{resize:vertical;min-height:70px}
 .eform{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .eform .full{grid-column:1/-1}
+/* Retorno do preenchimento automático a partir do contrato */
+.doc-auto{margin-top:5px;font-size:11px;line-height:1.55;color:var(--muted)}
+.doc-auto.ok{color:var(--green)}
+.doc-auto.alerta{color:var(--amber)}
+.doc-auto b{color:var(--text);font-weight:600}
+.doc-auto-src{color:var(--muted);font-style:italic}
 .btn-new{background:var(--accent);border:none;border-radius:7px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;padding:8px 16px;cursor:pointer;transition:all .15s}
 .btn-new:hover{opacity:.85}
 .del-confirm{text-align:center;padding:24px 0}
@@ -5157,25 +5163,150 @@ function docGoPage(p) {
 }
 
 // ── Novo registro ──
+// O formulário pede só o que não dá para deduzir. Empresa, responsável e
+// situação do contrato vêm do cadastro de Contratos assim que o número é
+// informado; o ano é o do momento do cadastro (ver docAnoNovo).
+var DOC_NOVO_CAMPOS = ['contrato','mes','unidade','situacao','valorNf'];
+
+// O "ano" do registro é o do período faturado, não o do contrato: 76% da base
+// tem ano diferente do contrato (ex.: contrato 93/22 com registros de 2023).
+// Por isso vale o ano corrente, que é quando o registro está sendo criado.
+function docAnoNovo() { return String(new Date().getFullYear()); }
+
+// Contratos guarda o nome completo (MICHELLI DELFINO) e Documentos usa a forma
+// curta (MICHELLI, e WERNECK para RAFAEL WERNECK). Converte para a forma já em
+// uso em Documentos: gravar o nome completo criaria uma segunda entrada no
+// filtro de Responsável, e o registro novo sumiria do filtro antigo.
+function docRespComoNaBase(nome) {
+  var v = String(nome || '').trim().toUpperCase();
+  if (!v) return '';
+  var usados = docDistinct('responsavel');
+  var i;
+  for (i = 0; i < usados.length; i++) {
+    if (String(usados[i]).trim().toUpperCase() === v) return usados[i];
+  }
+  var partes = v.split(/\s+/);
+  for (i = 0; i < usados.length; i++) {
+    if (partes.indexOf(String(usados[i]).trim().toUpperCase()) !== -1) return usados[i];
+  }
+  return v;
+}
+
+// Dados que o contrato traz consigo. Procura primeiro no cadastro de Contratos;
+// se não achar, cai nos registros anteriores do mesmo contrato em Documentos
+// (contratos antigos podem já ter saído do cadastro).
+function docDadosDoContrato(numero) {
+  var n = String(numero || '').trim().toUpperCase();
+  if (!n) return null;
+  var d = DADOS.find(function(x) { return String(x['CONTRATO'] || '').trim().toUpperCase() === n; });
+  if (d) return {
+    empresa: String(d['EMPRESA'] || '').trim(),
+    responsavel: docRespComoNaBase(d['RESPONSÁVEL NO FATURAMENTO']),
+    situacaoContrato: d._st || '',
+    origem: 'contratos'
+  };
+  for (var i = DOCUMENTOS.length - 1; i >= 0; i--) {
+    var r = DOCUMENTOS[i];
+    if (String(r.contrato || '').trim().toUpperCase() !== n) continue;
+    if (!String(r.empresa || '').trim()) continue;
+    return {
+      empresa: String(r.empresa || '').trim(),
+      responsavel: String(r.responsavel || '').trim(),
+      situacaoContrato: String(r.situacaoContrato || '').trim(),
+      origem: 'documentos'
+    };
+  }
+  return null;
+}
+
+function docUnidadesDoContrato(numero) {
+  var n = String(numero || '').trim().toUpperCase();
+  if (!n) return [];
+  var vistas = {}, out = [];
+  DOCUMENTOS.forEach(function(r) {
+    if (String(r.contrato || '').trim().toUpperCase() !== n) return;
+    var u = String(r.unidade || '').trim();
+    if (!u || vistas[u]) return;
+    vistas[u] = 1; out.push(u);
+  });
+  return out.sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+}
+
+function docOpcoesHtml(valores, atual) {
+  return valores.map(function(v) {
+    return '<option value="' + esc(v) + '"' + (v === atual ? ' selected' : '') + '>' + esc(v) + '</option>';
+  }).join('');
+}
+
+// Meses do ano na ordem do calendário; as demais referências usadas na base
+// (medições, parcelas) vêm depois, em um grupo à parte.
+function docMesOpcoesHtml(atual) {
+  var outras = docDistinct('mes').filter(function(m) { return MESES_ORDEM.indexOf(m) === -1; })
+    .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  return '<option value="">— Selecione —</option>'
+    + '<optgroup label="Meses">' + docOpcoesHtml(MESES_ORDEM, atual) + '</optgroup>'
+    + (outras.length ? '<optgroup label="Outras referências">' + docOpcoesHtml(outras, atual) + '</optgroup>' : '');
+}
+
+// As unidades já usadas pelo contrato ficam no topo; as demais continuam
+// acessíveis logo abaixo, para não travar uma unidade nova.
+function docUnidadeOpcoesHtml(contrato, atual) {
+  var doContrato = docUnidadesDoContrato(contrato);
+  var noContrato = {};
+  doContrato.forEach(function(u) { noContrato[u] = 1; });
+  var demais = docDistinct('unidade').filter(function(u) { return !noContrato[u]; })
+    .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  return '<option value="">— Selecione —</option>'
+    + (doContrato.length ? '<optgroup label="Unidades deste contrato">' + docOpcoesHtml(doContrato, atual) + '</optgroup>' : '')
+    + (demais.length ? '<optgroup label="' + (doContrato.length ? 'Outras unidades' : 'Todas as unidades') + '">'
+        + docOpcoesHtml(demais, atual) + '</optgroup>' : '');
+}
+
+function docNovoContratoMudou() {
+  var num = (document.getElementById('ef-doc-contrato') || {}).value || '';
+  var sel = document.getElementById('ef-doc-unidade');
+  if (sel) {
+    var doContrato = docUnidadesDoContrato(num);
+    sel.innerHTML = docUnidadeOpcoesHtml(num, sel.value);
+    if (!sel.value && doContrato.length === 1) sel.value = doContrato[0];
+  }
+  var info = document.getElementById('ef-doc-info');
+  if (!info) return;
+  var dados = docDadosDoContrato(num);
+  if (!String(num).trim()) {
+    info.className = 'doc-auto';
+    info.textContent = 'Informe o contrato para trazer empresa, responsável e situação.';
+  } else if (!dados) {
+    info.className = 'doc-auto alerta';
+    info.textContent = 'Contrato não encontrado no cadastro de Contratos — confira o número.';
+  } else {
+    info.className = 'doc-auto ok';
+    info.innerHTML = 'Empresa <b>' + esc(dados.empresa || '—') + '</b> · Responsável <b>'
+      + esc(dados.responsavel || '—') + '</b> · Ano <b>' + esc(docAnoNovo()) + '</b>'
+      + (dados.origem === 'documentos'
+          ? ' <span class="doc-auto-src">(de registros anteriores deste contrato)</span>' : '');
+  }
+}
+
 function openNewDocumentoModal() {
   if (!docCanEdit()) return;
-  var contratos = Array.from(new Set(DADOS.map(function(d) { return d['CONTRATO'] || ''; }).filter(Boolean))).sort();
-  var campos = ['empresa','contrato','ano','mes','unidade','situacao','valorNf','valorContratado','responsavel','situacaoContrato'];
-  var html = '<div class="eform">' + campos.map(function(k) {
-    var c = DOC_FIELD_MAP[k];
-    var input;
-    if (c.type === 'select') {
-      input = '<select id="ef-doc-' + k + '"><option value="">— Selecione —</option>'
-        + (c.options || []).map(function(o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') + '</select>';
-    } else if (k === 'contrato') {
-      input = '<input id="ef-doc-contrato" list="doc-contrato-list" placeholder="Ex: 01/24">'
-        + '<datalist id="doc-contrato-list">' + contratos.map(function(x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>';
-    } else {
-      input = '<input id="ef-doc-' + k + '">';
-    }
-    return '<div class="ef' + (k === 'empresa' || k === 'unidade' ? ' full' : '') + '"><label>' + esc(c.label)
-      + (k === 'empresa' || k === 'contrato' ? ' *' : '') + '</label>' + input + '</div>';
-  }).join('') + '</div>';
+  if (!DOCUMENTOS.length) docRebuild();
+  var contratos = Array.from(new Set(DADOS.map(function(d) { return d['CONTRATO'] || ''; }).filter(Boolean)))
+    .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  var html = '<div class="eform">'
+    + '<div class="ef full"><label>Contrato *</label>'
+      + '<input id="ef-doc-contrato" list="doc-contrato-list" placeholder="Ex: 01/24"'
+        + ' oninput="docNovoContratoMudou()" onchange="docNovoContratoMudou()">'
+      + '<datalist id="doc-contrato-list">'
+        + contratos.map(function(x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>'
+      + '<div class="doc-auto" id="ef-doc-info">Informe o contrato para trazer empresa, responsável e situação.</div>'
+    + '</div>'
+    + '<div class="ef"><label>Mês / Referência</label><select id="ef-doc-mes">' + docMesOpcoesHtml('') + '</select></div>'
+    + '<div class="ef"><label>Unidade</label><select id="ef-doc-unidade">' + docUnidadeOpcoesHtml('', '') + '</select></div>'
+    + '<div class="ef"><label>Situação</label><select id="ef-doc-situacao"><option value="">— Selecione —</option>'
+      + docOpcoesHtml(DOC_FIELD_MAP.situacao.options || [], '') + '</select></div>'
+    + '<div class="ef"><label>Valor da NF</label><input id="ef-doc-valorNf"></div>'
+    + '</div>';
   document.getElementById('mo-t').textContent = 'Novo Registro de Documento';
   document.getElementById('mo-s').textContent = 'Os demais campos podem ser preenchidos direto na linha, com duplo clique';
   document.getElementById('mo-b').innerHTML = html;
@@ -5186,20 +5317,28 @@ function openNewDocumentoModal() {
 }
 
 function saveNewDocumento() {
-  var campos = ['empresa','contrato','ano','mes','unidade','situacao','valorNf','valorContratado','responsavel','situacaoContrato'];
   var rec = {id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)};
-  campos.forEach(function(k) {
+  DOC_NOVO_CAMPOS.forEach(function(k) {
     var el = document.getElementById('ef-doc-' + k);
     if (!el) return;
     var v = docParseValue(DOC_FIELD_MAP[k], el.value);
     if (v !== '') rec[k] = v;
   });
-  if (!rec.empresa || !rec.contrato) { alert('Empresa e Contrato são obrigatórios.'); return; }
+  if (!rec.contrato) { alert('Informe o número do contrato.'); return; }
+  var dados = docDadosDoContrato(rec.contrato);
+  if (!dados || !dados.empresa) {
+    alert('Contrato ' + rec.contrato + ' não encontrado.\n\nA empresa vem do cadastro de Contratos — confira o número ou cadastre o contrato primeiro.');
+    return;
+  }
+  rec.empresa = dados.empresa;
+  rec.ano = docAnoNovo();
+  if (dados.responsavel) rec.responsavel = dados.responsavel;
+  if (dados.situacaoContrato) rec.situacaoContrato = dados.situacaoContrato;
   docPersist(rec);
   docRebuild();
   closeMo();
   buildDocumentosTable();
-  docToast('✔ Registro criado. Use o duplo clique para completar as demais colunas.');
+  docToast('✔ Registro criado para ' + rec.empresa + ' (ano ' + rec.ano + '). Use o duplo clique para completar as demais colunas.');
 }
 
 // ── Exportação ──
