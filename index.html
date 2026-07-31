@@ -5640,11 +5640,21 @@ function saveNewDocumento() {
 // avulso, só que criado aos montes.
 var _lote = {unidades: []};
 
+// Início no último dia do mês: esse mês não conta, a contagem começa no
+// mês seguinte.
+function loteInicioPulaMes(ini) {
+  var a = docParseDate(ini);
+  if (!a) return false;
+  var y = +a.slice(0, 4), mo = +a.slice(5, 7), d = +a.slice(8, 10);
+  return d === new Date(y, mo, 0).getDate();      // dia 0 do mês seguinte = último deste
+}
+
 // Meses do período, do mês de início ao mês de término, inclusive.
 function loteMeses(ini, fim) {
   var a = docParseDate(ini), b = docParseDate(fim);
   if (!a || !b) return [];
   var ya = +a.slice(0, 4), ma = +a.slice(5, 7) - 1;
+  if (loteInicioPulaMes(a)) ma += 1;              // vira 12 em dezembro; a conta abaixo resolve
   var yb = +b.slice(0, 4), mb = +b.slice(5, 7) - 1;
   var total = (yb - ya) * 12 + (mb - ma);
   if (total < 0 || total > 600) return [];        // período invertido ou absurdo
@@ -5699,6 +5709,8 @@ function loteResumo() {
     + 'De <b>' + esc(meses[0].mes) + '/' + meses[0].ano + '</b> a <b>'
     + esc(meses[meses.length - 1].mes) + '/' + meses[meses.length - 1].ano + '</b>'
     + ' &middot; ano ' + (anos.length > 1 ? 'de ' + anos[0] + ' a ' + anos[anos.length - 1] : anos[0])
+    + (loteInicioPulaMes(loteVal('lote-inicio'))
+        ? '<br>O início é o último dia do mês, então a contagem começa no mês seguinte.' : '')
     + '<br><b>' + novos + '</b> serão criadas'
     + (repetidos ? ' &middot; <b>' + repetidos + '</b> já existem e serão puladas' : '');
 }
@@ -5824,20 +5836,27 @@ function salvarLoteDocumentos() {
   var ini = loteVal('lote-inicio'), fim = loteVal('lote-fim');
   if (!ini || !fim) { alert('Informe o início e o término da vigência.'); return; }
   var meses = loteMeses(ini, fim);
-  if (!meses.length) { alert('Período inválido: o término não pode ser anterior ao início.'); return; }
+  if (!meses.length) {
+    alert(docParseDate(fim) < docParseDate(ini)
+      ? 'Período inválido: o término não pode ser anterior ao início.'
+      : 'Nenhum mês a gerar: o início cai no último dia do mês, então a contagem começa no mês seguinte — e o término é antes disso.');
+    return;
+  }
   var unis = loteUnidadesValidas();
   if (!unis.length) { alert('Informe ao menos uma unidade.'); return; }
 
   var existentes = {};
   DOCUMENTOS.forEach(function(r) { existentes[loteChave(r.contrato, r.unidade, r.mes, r.ano)] = 1; });
 
+  // Mês por fora, unidade por dentro: sai todo o primeiro mês, depois todo o
+  // segundo, e assim por diante. É a ordem em que as parcelas aparecem na tela.
   var novos = [], repetidos = 0, i = 0;
-  unis.forEach(function(u) {
-    var valor = docParseNumber(u.valor);
-    meses.forEach(function(m) {
+  meses.forEach(function(m) {
+    unis.forEach(function(u) {
       var chave = loteChave(contrato, u.unidade, m.mes, m.ano);
       if (existentes[chave]) { repetidos++; return; }
       existentes[chave] = 1;
+      var valor = docParseNumber(u.valor);
       var rec = {
         id: 'L' + Date.now().toString(36) + (i++).toString(36) + Math.random().toString(36).slice(2, 5),
         empresa: dados.empresa, contrato: contrato,
