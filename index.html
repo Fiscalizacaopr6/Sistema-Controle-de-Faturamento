@@ -237,6 +237,8 @@ tr:last-child td{border-bottom:none}
 .ef textarea{resize:vertical;min-height:70px}
 .eform{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .eform .full{grid-column:1/-1}
+#cv-tbl tr.cv-da-empresa td{background:rgba(148,163,184,.10)}
+#cv-tbl tr.cv-da-empresa td:first-child{font-size:12px}
 /* ── Formulário da empresa (link público) ── */
 .ret-url{display:flex;gap:6px;align-items:center}
 .ret-url input{flex:1;font-family:'DM Mono',monospace;font-size:11px;text-transform:none}
@@ -851,6 +853,8 @@ select.doc-inp{cursor:pointer}
         <div class="ef full"><label>Objeto</label><textarea id="cv-objeto" rows="2" oninput="cvCampoCab()"></textarea></div>
       </div>
 
+      <div class="doc-auto ok" id="cv-aviso-emp" style="display:none;margin-bottom:12px"></div>
+
       <div class="cv-paineis">
         <div class="cv-box">
           <div class="cv-box-t">Percentuais incidentes sobre a remuneração — IN 05, Anexo XII</div>
@@ -1284,7 +1288,7 @@ function showView(v) {
   if (v === 'empresas') buildEmpresasTable();
   if (v === 'contas') buildContasTable();
   if (v === 'retencao') buildRetencaoTable();
-  if (v !== 'cvform') sessionStorage.removeItem('ufrj_cvform');
+  if (v !== 'cvform') { sessionStorage.removeItem('ufrj_cvform'); cvDesligarEmpresa(); }
   if (v === 'reajustes') buildReajustesTable();
   if (v === 'fiscais') buildFiscaisCards();
   var m = document.querySelector('.main');
@@ -6354,7 +6358,10 @@ function cvSalvar(imediato) {
     _cvGravouEm = Date.now();
     var el = document.getElementById('cv-status');
     if (el) el.textContent = 'salvando...';
-    fbdb.ref('retencao_form/' + CV_REG_ID).set(CV_ATUAL).then(function() {
+    var pacote = {contrato: CV_ATUAL.contrato, objeto: CV_ATUAL.objeto,
+                  perc: CV_ATUAL.perc, linhas: cvLinhasProprias()};
+    CV_PROPRIAS = pacote.linhas;
+    fbdb.ref('retencao_form/' + CV_REG_ID).set(pacote).then(function() {
       if (el) { el.textContent = '✔ salvo'; setTimeout(function(){ if (el.textContent === '✔ salvo') el.textContent=''; }, 2500); }
     }).catch(function(e) {
       console.error('cvSalvar:', e);
@@ -6362,6 +6369,60 @@ function cvSalvar(imediato) {
     });
   }
   if (imediato) grava(); else _cvSalvarTimer = setTimeout(grava, 700);
+}
+
+// ── O que a empresa preencheu entra na totalizadora ──
+// As linhas do formulário da empresa não são copiadas para cá: são lidas ao
+// vivo de retencao_empresa/<token> e mescladas na exibição. Assim a
+// totalizadora acompanha o preenchimento sem ninguém ter que importar nada, e
+// os dois lados nunca sobrescrevem um ao outro — a PR6 grava só o que é seu.
+var CV_PROPRIAS = [];        // lançamentos da PR6 (o que vai para retencao_form)
+var _cvEmpRef = null;        // escuta ativa no formulário da empresa
+
+function cvLinhasProprias() {
+  return (CV_ATUAL ? CV_ATUAL.linhas : []).filter(function(l) { return !l._emp; });
+}
+
+function cvMesclarEmpresa(linhasEmpresa) {
+  var doEmp = (linhasEmpresa || []).map(function(l, i) {
+    var c = {};
+    Object.keys(l).forEach(function(k) { c[k] = l[k]; });
+    c.id = 'emp' + i;
+    c.tipo = 'Retenção';
+    c._emp = true;
+    c.s = ''; c.t = ''; c.u = ''; c.v = '';   // retirada é lançamento da PR6
+    return c;
+  });
+  CV_ATUAL.linhas = CV_PROPRIAS.concat(doEmp);
+  cvAtualizarAvisoEmpresa(doEmp.length);
+}
+
+function cvAtualizarAvisoEmpresa(qtd) {
+  var el = document.getElementById('cv-aviso-emp');
+  if (!el) return;
+  if (!qtd) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = '<b>' + qtd + '</b> lançamento(s) vieram do formulário da empresa e aparecem aqui '
+    + 'automaticamente, em cinza. Eles são mantidos por lá — para corrigi-los, fale com a empresa '
+    + 'ou lance a retirada correspondente.';
+}
+
+function cvDesligarEmpresa() {
+  if (_cvEmpRef) { try { _cvEmpRef.off(); } catch (e) {} _cvEmpRef = null; }
+}
+
+function cvLigarEmpresa(reg) {
+  cvDesligarEmpresa();
+  if (!reg || !reg.token) { cvMesclarEmpresa([]); return; }
+  _cvEmpRef = fbdb.ref('retencao_empresa/' + reg.token);
+  _cvEmpRef.on('value', function(snap) {
+    var val = snap.val() || {};
+    var linhas = Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : []);
+    cvMesclarEmpresa(linhas);
+    // sempre redesenha: a primeira leitura chega depois da montagem da tela,
+    // e sem isso a totalizadora abriria sem os lançamentos da empresa
+    if (CV_ATUAL) cvRender();
+  }, function(e) { console.error('cvLigarEmpresa:', e); });
 }
 
 function cvAbrirFormulario(regId) {
@@ -6378,8 +6439,10 @@ function cvAbrirFormulario(regId) {
       perc:     (typeof val.perc === 'number') ? val.perc : CV_PERC_SUB_PADRAO,
       linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : [])
     };
+    CV_PROPRIAS = CV_ATUAL.linhas;
     hideLoadingOverlay();
     cvMontarTela(reg);
+    cvLigarEmpresa(reg);
     showView('cvform');
   }).catch(function(e) {
     hideLoadingOverlay();
@@ -6449,6 +6512,7 @@ function cvAddLinha() {
     mes: CV_MESES[hoje.getMonth()], ano: String(hoje.getFullYear()),
     dias: '30', remuneracao:'', s:'', t:'', u:'', v:''
   });
+  CV_PROPRIAS = cvLinhasProprias();
   cvSalvar();
   cvRender();
   var linhas = document.querySelectorAll('#cv-tabela tbody tr');
@@ -6464,6 +6528,7 @@ function cvRemoverLinha(id) {
   if (!CV_ATUAL) return;
   var l = CV_ATUAL.linhas.find(function(x){ return x.id === id; });
   if (!l) return;
+  if (l._emp) { alert('Este lançamento veio do formulário da empresa e é mantido por lá.'); return; }
   if (!confirm('Excluir o lançamento' + (l.nome ? ' de ' + l.nome : '') + '?')) return;
   CV_ATUAL.linhas = CV_ATUAL.linhas.filter(function(x){ return x.id !== id; });
   cvSalvar(true);
@@ -6473,7 +6538,7 @@ function cvRemoverLinha(id) {
 // ── Edição das células ──
 function cvSetCampo(id, campo, valor, el) {
   var l = CV_ATUAL && CV_ATUAL.linhas.find(function(x){ return x.id === id; });
-  if (!l) return;
+  if (!l || l._emp) return;
   if (campo === 'cpf') { valor = cvCPF(valor); if (el) el.value = valor; }
   l[campo] = valor;
   cvAtualizarLinha(id);
@@ -6567,12 +6632,14 @@ function cvRender() {
     var c = cvCalc(l, cvPercSub());
     var tds = CV_COLS.map(function(col) {
       if (col.calc) return '<td data-k="'+col.k+'">'+cvCelulaCalc(col, c)+'</td>';
-      return '<td data-k="'+col.k+'">'+cvCampoHtml(col, l, podeEditar)+'</td>';
+      return '<td data-k="'+col.k+'">'+cvCampoHtml(col, l, podeEditar && !l._emp)+'</td>';
     }).join('');
-    return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro':'')+'">'
-      + '<td style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px">'+(i+1)+'</td>'
+    return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro ':'')+(l._emp?'cv-da-empresa':'')+'">'
+      + '<td style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px"'
+        + (l._emp ? ' title="Lançado pela empresa no formulário mensal">🏢' : '>'+(i+1))+'</td>'
       + tds
-      + (podeEditar ? '<td><button class="cv-del" onclick="cvRemoverLinha(\''+l.id+'\')" title="Excluir lançamento">✕</button></td>' : '')
+      + (podeEditar ? '<td>' + (l._emp ? ''
+          : '<button class="cv-del" onclick="cvRemoverLinha(\''+l.id+'\')" title="Excluir lançamento">✕</button>') + '</td>' : '')
       + '</tr>';
   }).join('');
 
