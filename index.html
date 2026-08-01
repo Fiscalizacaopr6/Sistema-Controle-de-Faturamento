@@ -237,6 +237,20 @@ tr:last-child td{border-bottom:none}
 .ef textarea{resize:vertical;min-height:70px}
 .eform{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .eform .full{grid-column:1/-1}
+/* ── Formulário da empresa (link público) ── */
+.ret-url{display:flex;gap:6px;align-items:center}
+.ret-url input{flex:1;font-family:'DM Mono',monospace;font-size:11px;text-transform:none}
+.ret-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ret-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 6px 4px 11px;font-size:11.5px;color:var(--text)}
+.ret-chip.cheio{border-color:rgba(16,185,129,.5)}
+.ret-chip b{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--green);background:rgba(16,185,129,.12);border-radius:10px;padding:1px 7px}
+.ret-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+.ret-chip button:hover{color:#f87171}
+.ret-vazio{font-size:11.5px;color:var(--amber)}
+.ret-periodo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ret-periodo input{width:auto;flex:0 0 auto}
+.ret-check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);text-transform:none;letter-spacing:0;font-weight:400}
+.ret-check input{width:auto}
 /* ── Cadastro em lote ── */
 .lote-uni{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .lote-lin{display:grid;grid-template-columns:1fr 150px 32px;gap:8px;align-items:center}
@@ -3410,7 +3424,8 @@ function renderRetencaoTable() {
   var rows = slice.map(function(r) {
     var hasLink = !!r.link;
     var rowClick = 'onclick="cvAbrirFormulario(\''+r.id+'\')" style="cursor:pointer"';
-    var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Formulário</button>'
+    var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Totalizador</button>'
+      + ' <button class="btn-usr-edit" onclick="event.stopPropagation();openRetencaoLinkModal(\''+r.id+'\')">🔗 Formulário da empresa</button>'
       + (canEdit
       ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
         +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteRetencao(\''+r.id+'\')">Excluir</button>'
@@ -3448,6 +3463,201 @@ function retGoPage(p) {
   var total = Math.ceil(retFiltered.length / retPer);
   if (p < 1 || p > total) return;
   retPage = p; renderRetencaoTable();
+}
+
+// ── Formulário da empresa (conta-vinculada.html) ──
+// A empresa declara a folha do mês por um link próprio, sem login. O que o
+// sistema controla aqui: o token do link, os meses liberados e o fechamento.
+// Os dados ficam em retencao_empresa/<token> — o único ramo que a página
+// pública alcança.
+var RET_LINK = null;   // {reg, token, meses:[{mes,ano}], linhas:[], fechado}
+
+function retNovoToken() {
+  var s = '';
+  for (var i = 0; i < 4; i++) s += Math.random().toString(36).slice(2, 10);
+  return s.slice(0, 28);
+}
+
+function retLinkUrl(token) {
+  var base = location.href.split('#')[0].split('?')[0];
+  base = base.slice(0, base.lastIndexOf('/') + 1);
+  return base + 'conta-vinculada.html?f=' + token;
+}
+
+function retMesesDoPeriodo(ini, fim) {
+  if (!ini || !fim) return [];
+  var a = ini.split('-'), b = fim.split('-');
+  var ya = +a[0], ma = +a[1] - 1, yb = +b[0], mb = +b[1] - 1;
+  var total = (yb - ya) * 12 + (mb - ma);
+  if (total < 0 || total > 120) return [];
+  var out = [];
+  for (var i = 0; i <= total; i++) {
+    var m = ma + i;
+    out.push({mes: CV_MESES[((m % 12) + 12) % 12], ano: String(ya + Math.floor(m / 12))});
+  }
+  return out;
+}
+
+function openRetencaoLinkModal(id) {
+  var reg = RETENCAO.find(function(x) { return x.id === id; });
+  if (!reg) return;
+  showLoadingOverlay('Abrindo o formulário da empresa...');
+  var token = reg.token || '';
+  var pronto = function(val) {
+    hideLoadingOverlay();
+    RET_LINK = {
+      reg: reg,
+      token: token || retNovoToken(),
+      novo: !token,
+      meses: (val && (Array.isArray(val.meses) ? val.meses : (val.meses ? Object.values(val.meses) : []))) || [],
+      linhas: (val && (Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : []))) || [],
+      fechado: !!(val && val.fechado),
+      atualizadoEm: (val && val.atualizadoEm) || ''
+    };
+    document.getElementById('mo-t').textContent = 'Formulário da empresa';
+    document.getElementById('mo-s').textContent =
+      (reg.contrato || '') + (reg.empresa ? ' · ' + reg.empresa : '') + ' — retenção mensal';
+    document.getElementById('mo-b').innerHTML = '<div id="ret-link-corpo"></div>';
+    document.getElementById('mo-actions').innerHTML =
+      '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>'
+      + '<button class="btn-save" onclick="retLinkSalvar()">Salvar e gerar link</button>';
+    document.getElementById('mo').classList.add('open');
+    retLinkRender();
+  };
+  if (!token) { pronto(null); return; }
+  fbdb.ref('retencao_empresa/' + token).once('value')
+    .then(function(snap) { pronto(snap.val()); })
+    .catch(function(e) { hideLoadingOverlay(); alert('Não foi possível ler o formulário: ' + e.message); });
+}
+
+function retLinkRender() {
+  var el = document.getElementById('ret-link-corpo');
+  if (!el || !RET_LINK) return;
+  var url = retLinkUrl(RET_LINK.token);
+  var porMes = {};
+  RET_LINK.linhas.forEach(function(l) {
+    var k = l.mes + '/' + l.ano;
+    porMes[k] = (porMes[k] || 0) + 1;
+  });
+  var chips = RET_LINK.meses.map(function(m, i) {
+    var qtd = porMes[m.mes + '/' + m.ano] || 0;
+    return '<span class="ret-chip' + (qtd ? ' cheio' : '') + '">' + esc(m.mes) + '/' + esc(m.ano)
+      + '<b>' + qtd + '</b>'
+      + '<button type="button" title="Remover este mês" onclick="retLinkRemoverMes(' + i + ')">&times;</button></span>';
+  }).join('');
+
+  el.innerHTML = '<div class="eform">'
+    + '<div class="ef full"><label>Link para enviar à empresa</label>'
+      + '<div class="ret-url">'
+        + '<input id="ret-link-url" readonly value="' + esc(url) + '" onclick="this.select()">'
+        + '<button type="button" class="btn-doc" onclick="retLinkCopiar(this)">Copiar</button>'
+        + '<button type="button" class="btn-doc" onclick="window.open(document.getElementById(\'ret-link-url\').value,\'_blank\',\'noopener\')">Abrir</button>'
+      + '</div>'
+      + '<div class="doc-auto' + (RET_LINK.novo ? '' : ' ok') + '">'
+        + (RET_LINK.novo
+            ? 'O link passa a valer depois de <b>Salvar e gerar link</b>.'
+            : 'Link ativo' + (RET_LINK.atualizadoEm
+                ? ' · última alteração da empresa em <b>' + esc(retDataHora(RET_LINK.atualizadoEm)) + '</b>'
+                : ' · a empresa ainda não preencheu nada'))
+      + '</div>'
+    + '</div>'
+    + '<div class="ef full"><label>Meses liberados para a empresa</label>'
+      + '<div class="ret-chips">' + (chips || '<span class="ret-vazio">Nenhum mês liberado — a empresa não conseguirá lançar nada.</span>') + '</div>'
+      + '<div class="ret-periodo">'
+        + '<span class="fl">De</span><input type="month" id="ret-mes-ini">'
+        + '<span class="fl">até</span><input type="month" id="ret-mes-fim">'
+        + '<button type="button" class="btn-doc" onclick="retLinkGerarMeses()">Liberar meses</button>'
+      + '</div>'
+    + '</div>'
+    + '<div class="ef full"><label>Situação</label>'
+      + '<label class="ret-check"><input type="checkbox" id="ret-fechado"' + (RET_LINK.fechado ? ' checked' : '')
+        + ' onchange="RET_LINK.fechado=this.checked"> Fechado para edição — a empresa só consulta</label>'
+      + '<div class="doc-auto">' + RET_LINK.linhas.length + ' funcionário(s) declarados no total &middot; '
+        + 'total para depósito <b>' + esc(fmtBR(retLinkTotal())) + '</b></div>'
+    + '</div>'
+    + '</div>';
+}
+
+function retDataHora(iso) {
+  var d = new Date(iso);
+  return isNaN(d) ? iso : d.toLocaleString('pt-BR');
+}
+
+// Mesmas fórmulas da página pública e da planilha modelo.
+function retLinkTotal() {
+  var perc = CV_PERC_SUB_PADRAO, t = 0;
+  RET_LINK.linhas.forEach(function(l) {
+    var m = cvNum(l.remuneracao), dias = cvNum(l.dias);
+    var base = (m || 0) * ((dias === null ? 0 : dias) / 30);
+    t += base * (CV_PERC.n + CV_PERC.o + CV_PERC.p + perc);
+  });
+  return t;
+}
+
+function retLinkGerarMeses() {
+  var ini = document.getElementById('ret-mes-ini').value;
+  var fim = document.getElementById('ret-mes-fim').value;
+  var novos = retMesesDoPeriodo(ini, fim);
+  if (!novos.length) { alert('Informe um período válido (o fim não pode ser antes do início).'); return; }
+  var tem = {};
+  RET_LINK.meses.forEach(function(m) { tem[m.mes + '/' + m.ano] = 1; });
+  novos.forEach(function(m) { if (!tem[m.mes + '/' + m.ano]) RET_LINK.meses.push(m); });
+  RET_LINK.meses.sort(function(a, b) {
+    return (Number(a.ano) - Number(b.ano)) || (CV_MESES.indexOf(a.mes) - CV_MESES.indexOf(b.mes));
+  });
+  retLinkRender();
+}
+
+function retLinkRemoverMes(i) {
+  var m = RET_LINK.meses[i];
+  if (!m) return;
+  var qtd = RET_LINK.linhas.filter(function(l) { return l.mes === m.mes && String(l.ano) === String(m.ano); }).length;
+  if (qtd && !confirm('O mês ' + m.mes + '/' + m.ano + ' tem ' + qtd
+      + ' funcionário(s) declarados pela empresa.\n\nRemover o mês esconde esses lançamentos do formulário. Continuar?')) return;
+  RET_LINK.meses.splice(i, 1);
+  retLinkRender();
+}
+
+function retLinkCopiar(btn) {
+  var el = document.getElementById('ret-link-url');
+  el.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) {}
+  if (!ok && navigator.clipboard) navigator.clipboard.writeText(el.value);
+  var txt = btn.textContent;
+  btn.textContent = '✔ copiado';
+  setTimeout(function() { btn.textContent = txt; }, 1600);
+}
+
+function retLinkSalvar() {
+  if (!RET_LINK) return;
+  var reg = RET_LINK.reg;
+  var pacote = {
+    contrato: reg.contrato || '',
+    empresa: reg.empresa || '',
+    unidade: reg.unidade || '',
+    perc: CV_PERC_SUB_PADRAO,
+    meses: RET_LINK.meses,
+    fechado: !!RET_LINK.fechado
+  };
+  showLoadingOverlay('Gerando o link...');
+  // update preserva as linhas que a empresa já lançou
+  fbdb.ref('retencao_empresa/' + RET_LINK.token).update(pacote).then(function() {
+    if (reg.token !== RET_LINK.token) {
+      reg.token = RET_LINK.token;
+      reg.link = retLinkUrl(RET_LINK.token);
+      saveRetencaoToStorage();
+    }
+    hideLoadingOverlay();
+    RET_LINK.novo = false;
+    buildRetencaoTable();
+    retLinkRender();
+    alert('Link pronto para enviar à empresa:\n\n' + retLinkUrl(RET_LINK.token));
+  }).catch(function(e) {
+    hideLoadingOverlay();
+    alert('Não foi possível gerar o link: ' + e.message
+      + '\n\nSe a mensagem falar em permissão, o ramo "retencao_empresa" precisa ser liberado nas regras do Firebase.');
+  });
 }
 
 function retencaoFormHtml(r) {

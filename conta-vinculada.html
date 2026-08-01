@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conta Vinculada — Retenção Mensal</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;background:#e8e8e8;color:#000}
+.page{background:#fff;width:1280px;max-width:98vw;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35)}
+.cab{border-bottom:2px solid #1f3864;padding-bottom:10px;margin-bottom:12px}
+.cab h1{font-size:15px;color:#1f3864;letter-spacing:.5px}
+.cab h2{font-size:12px;font-weight:normal;color:#555;margin-top:2px}
+.ident{display:flex;flex-wrap:wrap;gap:18px;margin-top:10px;font-size:12px}
+.ident div span{color:#777;text-transform:uppercase;font-size:10px;letter-spacing:.5px;display:block}
+.ident div b{font-size:13px;color:#1f3864}
+.aviso{background:#fff8e1;border:1px solid #ffe08a;border-left:4px solid #f0ad00;border-radius:3px;padding:9px 12px;margin-bottom:12px;font-size:11.5px;line-height:1.5}
+.tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#1f3864;border-radius:4px;margin-bottom:10px}
+.tab-btn{flex:0 0 auto;min-width:78px;padding:5px 10px;font-size:10px;border:1px solid #2e74b5;background:#2e74b5;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.3}
+.tab-btn.active{background:#fff;color:#1f3864;font-weight:bold;border-color:#fff}
+.tab-btn b{display:block;font-size:11px}
+.tab-btn small{font-size:9.5px;opacity:.95}
+.tab-btn:hover{opacity:.92}
+table{width:100%;border-collapse:collapse}
+th{background:#1f3864;color:#fff;font-size:10px;padding:6px 4px;text-align:center;font-weight:bold;border:1px solid #14264a}
+th.g1{background:#2e74b5}
+td{border:1px solid #c9c9c9;padding:2px;text-align:center;font-size:11px}
+tr:nth-child(even) td{background:#f6f8fb}
+td input,td select{width:100%;border:1px solid transparent;background:transparent;font-family:Arial;font-size:11px;padding:4px 3px;text-align:center;border-radius:2px}
+td input:focus,td select:focus{outline:none;border-color:#2e74b5;background:#fff}
+td.calc{background:#eef3f9;font-weight:bold;color:#1f3864;white-space:nowrap}
+tr:nth-child(even) td.calc{background:#e6edf7}
+.rm{border:1px solid #d9534f;background:#fff;color:#d9534f;border-radius:3px;cursor:pointer;font-size:12px;line-height:1;padding:3px 7px}
+.rm:hover{background:#d9534f;color:#fff}
+tfoot td{background:#1f3864;color:#fff;font-weight:bold;border-color:#14264a;white-space:nowrap}
+.barra{display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.btn{border:none;border-radius:3px;padding:7px 14px;font-size:11.5px;font-weight:bold;cursor:pointer;font-family:Arial}
+.btn-add{background:#2e74b5;color:#fff}
+.btn-salvar{background:#1e7e34;color:#fff}
+.btn-print{background:#6c757d;color:#fff}
+.btn:hover{opacity:.88}
+.status{font-size:11.5px;margin-left:auto;color:#555}
+.status.ok{color:#1e7e34;font-weight:bold}
+.status.erro{color:#d9534f;font-weight:bold}
+.resumo{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:2px solid #1f3864}
+.resumo div{background:#eef3f9;border:1px solid #cfdcea;border-radius:4px;padding:8px 14px;min-width:150px}
+.resumo span{display:block;font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.5px}
+.resumo b{font-size:14px;color:#1f3864}
+.vazio{text-align:center;padding:26px;color:#888;font-style:italic}
+.carregando{text-align:center;padding:60px;color:#1f3864;font-size:14px}
+@media print{
+  body{background:#fff}
+  .page{width:auto;box-shadow:none;margin:0;padding:0}
+  .tabbar,.barra,.rm,.aviso{display:none!important}
+  td input,td select{border:none}
+}
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <div class="carregando" id="carregando">Abrindo o formulário…</div>
+  <div id="conteudo" style="display:none">
+    <div class="cab">
+      <h1>UNIVERSIDADE FEDERAL DO RIO DE JANEIRO</h1>
+      <h2>Pró-Reitoria de Gestão e Governança &middot; PR6 — Conta Vinculada: retenção mensal</h2>
+      <div class="ident">
+        <div><span>Contrato</span><b id="i-contrato">—</b></div>
+        <div><span>Empresa</span><b id="i-empresa">—</b></div>
+        <div><span>Unidade</span><b id="i-unidade">—</b></div>
+        <div><span>Incidência sobre o submódulo 4.1</span><b id="i-perc">—</b></div>
+      </div>
+    </div>
+
+    <div class="aviso" id="aviso">
+      Preencha um funcionário por linha, na aba do mês de competência. As colunas em azul são
+      calculadas pelo sistema a partir da remuneração e dos dias trabalhados — não precisam ser
+      preenchidas. O preenchimento é salvo automaticamente; o botão <b>Salvar</b> força o envio.
+    </div>
+
+    <div class="tabbar" id="tabbar"></div>
+
+    <div class="barra">
+      <button class="btn btn-add" onclick="addLinha()">+ Adicionar funcionário</button>
+      <button class="btn btn-salvar" onclick="salvar(true)">Salvar</button>
+      <button class="btn btn-print" onclick="window.print()">Imprimir / PDF (mês atual)</button>
+      <span class="status" id="status"></span>
+    </div>
+
+    <div id="tabela"></div>
+
+    <div class="resumo">
+      <div><span>13º salário</span><b id="t-n">R$ 0,00</b></div>
+      <div><span>Férias e adicional</span><b id="t-o">R$ 0,00</b></div>
+      <div><span>Rescisão e adicional do FGTS</span><b id="t-p">R$ 0,00</b></div>
+      <div><span>Incidência submódulo 4.1</span><b id="t-q">R$ 0,00</b></div>
+      <div><span>Total do mês para depósito</span><b id="t-r">R$ 0,00</b></div>
+      <div><span>Total de todos os meses</span><b id="t-geral">R$ 0,00</b></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+'use strict';
+
+// Página pública: a empresa abre pelo link e declara, mês a mês, a folha que
+// gera a retenção da conta vinculada. Grava sem login em um único ramo do
+// banco — retencao_empresa/<token> —, com o token vindo da URL. Nada mais do
+// sistema é alcançável a partir daqui.
+
+var firebaseConfig = {
+  apiKey: "AIzaSyCTgZv2JVWs5yNw4T_WjxElGwrGApMk_sQ",
+  authDomain: "fiscalizacao-d9a39.firebaseapp.com",
+  databaseURL: "https://fiscalizacao-d9a39-default-rtdb.firebaseio.com",
+  projectId: "fiscalizacao-d9a39",
+  messagingSenderId: "287091891377",
+  appId: "1:287091891377:web:dc9e307af79504bebd5690"
+};
+
+// Percentuais da IN 05, Anexo XII — os mesmos da planilha modelo
+var PERC = {n: 0.0833, o: 0.121, p: 0.04};
+var PERC_SUB_PADRAO = 0.0739;
+var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var SITUACOES = ['Admitido','Ativa','Demitido','Férias'];
+
+var COLS = [
+  {k:'cpf',              label:'CPF',                          tipo:'cpf',   w:'118px'},
+  {k:'nome',             label:'Nome do funcionário',          tipo:'texto', w:'190px'},
+  {k:'unidade',          label:'Unidade',                      tipo:'texto', w:'110px'},
+  {k:'funcao',           label:'Função',                       tipo:'texto', w:'140px'},
+  {k:'contratado',       label:'Contratado pela empresa',      tipo:'data',  w:'116px'},
+  {k:'disponibilizacao', label:'Data de disponibilização',     tipo:'data',  w:'116px'},
+  {k:'desligamento',     label:'Desligamento',                 tipo:'data',  w:'116px'},
+  {k:'situacao',         label:'Situação',                     tipo:'select', opts:SITUACOES, w:'100px'},
+  {k:'dias',             label:'Proporcionalidade (dias)',     tipo:'dias',  w:'74px'},
+  {k:'remuneracao',      label:'Remuneração',                  tipo:'dinheiro', w:'110px'}
+];
+var CALC = [
+  {k:'n', label:'13º salário'},
+  {k:'o', label:'Férias e adicional'},
+  {k:'p', label:'Rescisão e adicional do FGTS'},
+  {k:'q', label:'Incidência sobre o submódulo 4.1'},
+  {k:'r', label:'Total depositado'}
+];
+
+var TOKEN = '';
+var DADOS = null;          // {contrato, empresa, unidade, perc, meses:[{mes,ano}], linhas:[]}
+var MES_ATUAL = 0;
+var fbdb = null, _timer = null, _bloqueado = false;
+
+// ── Utilidades ──
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function num(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  if (typeof v === 'number') return v;
+  var t = String(v).replace(/R\$/gi,'').replace(/\s/g,'');
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g,'').replace(',','.');
+  var n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+function moeda(v) {
+  if (v === '' || v === null || v === undefined || isNaN(v)) return '';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function pctTexto(p) {
+  return (p * 100).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%';
+}
+function cpfMask(v) {
+  var d = String(v||'').replace(/\D/g,'').slice(0,11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return d.slice(0,3)+'.'+d.slice(3);
+  if (d.length <= 9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
+  return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
+}
+function percSub() {
+  return (DADOS && typeof DADOS.perc === 'number') ? DADOS.perc : PERC_SUB_PADRAO;
+}
+
+// Fórmulas da planilha modelo (aba Registro, colunas N a R), só o lado da
+// retenção: base = remuneração × dias/30.
+function calc(l) {
+  var m = num(l.remuneracao), dias = num(l.dias);
+  var base = (m || 0) * ((dias === null ? 0 : dias) / 30);
+  var o = {n: base * PERC.n, o: base * PERC.o, p: base * PERC.p, q: base * percSub()};
+  o.r = o.n + o.o + o.p + o.q;
+  return o;
+}
+
+function mesRotulo(m) { return m ? (m.mes + '/' + m.ano) : ''; }
+function linhasDoMes(i) {
+  var m = DADOS.meses[i];
+  if (!m) return [];
+  return DADOS.linhas.filter(function(l) { return l.mes === m.mes && String(l.ano) === String(m.ano); });
+}
+
+// ── Tela ──
+function renderTabs() {
+  var bar = document.getElementById('tabbar');
+  bar.innerHTML = DADOS.meses.map(function(m, i) {
+    var qtd = linhasDoMes(i).length;
+    return '<button class="tab-btn' + (i === MES_ATUAL ? ' active' : '') + '" onclick="trocarMes(' + i + ')">'
+      + '<b>' + esc(m.mes) + '</b><small>' + esc(m.ano) + ' &middot; ' + qtd + '</small></button>';
+  }).join('');
+  if (!DADOS.meses.length) bar.innerHTML = '<span style="color:#fff;font-size:11px;padding:4px">Nenhum mês liberado pela PR6 ainda.</span>';
+}
+
+function renderTabela() {
+  var alvo = document.getElementById('tabela');
+  var m = DADOS.meses[MES_ATUAL];
+  if (!m) { alvo.innerHTML = '<div class="vazio">Nenhum mês disponível.</div>'; return; }
+  var linhas = linhasDoMes(MES_ATUAL);
+  var ths = COLS.map(function(c) {
+    return '<th style="width:' + c.w + '">' + esc(c.label) + '</th>';
+  }).join('') + CALC.map(function(c) {
+    return '<th class="g1">' + esc(c.label) + '</th>';
+  }).join('') + '<th style="width:34px"></th>';
+
+  if (!linhas.length) {
+    alvo.innerHTML = '<table><thead><tr>' + ths + '</tr></thead><tbody><tr><td colspan="'
+      + (COLS.length + CALC.length + 1) + '" class="vazio">Nenhum funcionário lançado em '
+      + esc(mesRotulo(m)) + '. Use "+ Adicionar funcionário".</td></tr></tbody></table>';
+    atualizaTotais();
+    return;
+  }
+
+  var tot = {n:0, o:0, p:0, q:0, r:0};
+  var corpo = linhas.map(function(l) {
+    var idx = DADOS.linhas.indexOf(l);
+    var c = calc(l);
+    tot.n += c.n; tot.o += c.o; tot.p += c.p; tot.q += c.q; tot.r += c.r;
+    var tds = COLS.map(function(col) { return '<td>' + campoHtml(col, l, idx) + '</td>'; }).join('');
+    var tdc = CALC.map(function(col) { return '<td class="calc">' + esc(moeda(c[col.k])) + '</td>'; }).join('');
+    return '<tr>' + tds + tdc
+      + '<td><button class="rm" title="Remover" onclick="removerLinha(' + idx + ')">&times;</button></td></tr>';
+  }).join('');
+
+  alvo.innerHTML = '<table><thead><tr>' + ths + '</tr></thead><tbody>' + corpo + '</tbody>'
+    + '<tfoot><tr><td colspan="' + COLS.length + '">Total de ' + esc(mesRotulo(m))
+    + ' &middot; ' + linhas.length + ' funcionário(s)</td>'
+    + CALC.map(function(col) { return '<td>' + esc(moeda(tot[col.k])) + '</td>'; }).join('')
+    + '<td></td></tr></tfoot></table>';
+  atualizaTotais();
+}
+
+function campoHtml(col, l, idx) {
+  var v = l[col.k] === undefined || l[col.k] === null ? '' : l[col.k];
+  var dis = _bloqueado ? ' disabled' : '';
+  var ev = ' oninput="setCampo(' + idx + ',\'' + col.k + '\',this.value,this)"';
+  if (col.tipo === 'select') {
+    return '<select' + dis + ' onchange="setCampo(' + idx + ',\'' + col.k + '\',this.value)"><option value=""></option>'
+      + col.opts.map(function(o) {
+          return '<option value="' + esc(o) + '"' + (String(v) === o ? ' selected' : '') + '>' + esc(o) + '</option>';
+        }).join('') + '</select>';
+  }
+  if (col.tipo === 'data') return '<input type="date" value="' + esc(v) + '"' + dis + ev + '>';
+  if (col.tipo === 'dias') return '<input type="number" min="0" max="30" step="1" value="' + esc(v) + '"' + dis + ev + '>';
+  if (col.tipo === 'dinheiro') return '<input value="' + esc(v) + '" placeholder="0,00"' + dis + ev + '>';
+  if (col.tipo === 'cpf') return '<input value="' + esc(v) + '" placeholder="000.000.000-00"' + dis + ev + '>';
+  return '<input value="' + esc(v) + '"' + dis + ev + '>';
+}
+
+// Redesenha só o necessário: mexer na remuneração ou nos dias muda os
+// calculados da linha, mas redesenhar a tabela inteira tiraria o foco.
+function setCampo(idx, k, valor, el) {
+  var l = DADOS.linhas[idx];
+  if (!l) return;
+  if (k === 'cpf' && el) { valor = cpfMask(valor); el.value = valor; }
+  l[k] = valor;
+  if (k === 'remuneracao' || k === 'dias') atualizaLinha(idx);
+  atualizaTotais();
+  salvar();
+}
+
+function atualizaLinha(idx) {
+  var l = DADOS.linhas[idx];
+  var tr = document.querySelectorAll('#tabela tbody tr')[linhasDoMes(MES_ATUAL).indexOf(l)];
+  if (!tr) return;
+  var c = calc(l);
+  CALC.forEach(function(col, i) {
+    var td = tr.querySelectorAll('td.calc')[i];
+    if (td) td.textContent = moeda(c[col.k]);
+  });
+}
+
+function atualizaTotais() {
+  var tot = {n:0, o:0, p:0, q:0, r:0}, geral = 0;
+  linhasDoMes(MES_ATUAL).forEach(function(l) {
+    var c = calc(l);
+    tot.n += c.n; tot.o += c.o; tot.p += c.p; tot.q += c.q; tot.r += c.r;
+  });
+  DADOS.linhas.forEach(function(l) { geral += calc(l).r; });
+  CALC.forEach(function(col) {
+    var el = document.getElementById('t-' + col.k);
+    if (el) el.textContent = moeda(tot[col.k]) || 'R$ 0,00';
+  });
+  var g = document.getElementById('t-geral');
+  if (g) g.textContent = moeda(geral) || 'R$ 0,00';
+  // o rodapé da tabela também acompanha
+  var tf = document.querySelectorAll('#tabela tfoot td');
+  if (tf.length) CALC.forEach(function(col, i) {
+    if (tf[i + 1]) tf[i + 1].textContent = moeda(tot[col.k]);
+  });
+}
+
+function trocarMes(i) {
+  MES_ATUAL = i;
+  renderTabs();
+  renderTabela();
+}
+
+function addLinha() {
+  var m = DADOS.meses[MES_ATUAL];
+  if (!m) { alert('Nenhum mês disponível para lançamento.'); return; }
+  DADOS.linhas.push({tipo:'Retenção', mes:m.mes, ano:String(m.ano), cpf:'', nome:'', unidade:'',
+                     funcao:'', contratado:'', disponibilizacao:'', desligamento:'', situacao:'',
+                     dias:'30', remuneracao:''});
+  renderTabs();
+  renderTabela();
+  salvar(true);      // linha nova grava na hora: fechar a aba logo depois não pode perdê-la
+  var inp = document.querySelectorAll('#tabela tbody tr');
+  if (inp.length) {
+    var ultimo = inp[inp.length - 1].querySelector('input');
+    if (ultimo) ultimo.focus();
+  }
+}
+
+function removerLinha(idx) {
+  var l = DADOS.linhas[idx];
+  if (!l) return;
+  if (!confirm('Remover ' + (l.nome ? '"' + l.nome + '"' : 'esta linha') + '?')) return;
+  DADOS.linhas.splice(idx, 1);
+  renderTabs();
+  renderTabela();
+  salvar(true);
+}
+
+// ── Gravação ──
+function status(txt, cls) {
+  var el = document.getElementById('status');
+  if (el) { el.textContent = txt; el.className = 'status' + (cls ? ' ' + cls : ''); }
+}
+
+function chaveLocal() { return 'cv_empresa_' + TOKEN; }
+
+function salvar(imediato) {
+  if (_bloqueado || !DADOS) return;
+  try { localStorage.setItem(chaveLocal(), JSON.stringify(DADOS)); } catch (e) {}
+  clearTimeout(_timer);
+  function grava() {
+    if (!fbdb) { status('Salvo só neste computador (sem conexão com o servidor)', 'erro'); return; }
+    status('salvando…');
+    // grava só o que é da empresa: os meses são definidos pela PR6
+    fbdb.ref('retencao_empresa/' + TOKEN).update({
+      linhas: DADOS.linhas,
+      atualizadoEm: new Date().toISOString()
+    }).then(function() {
+      status('✔ salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok');
+    }).catch(function(e) {
+      console.error(e);
+      status('❌ não foi possível salvar: ' + e.message, 'erro');
+    });
+  }
+  if (imediato) grava(); else _timer = setTimeout(grava, 800);
+}
+
+function erroFatal(msg) {
+  document.getElementById('carregando').innerHTML =
+    '<div style="color:#d9534f;font-weight:bold;margin-bottom:8px">Não foi possível abrir o formulário</div>'
+    + '<div style="color:#555;font-size:12px">' + esc(msg) + '</div>';
+}
+
+function iniciar() {
+  var m = location.search.match(/[?&]f=([A-Za-z0-9_-]+)/);
+  if (!m) { erroFatal('Link incompleto. Peça à PR6 o endereço completo do formulário.'); return; }
+  TOKEN = m[1];
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    fbdb = firebase.database();
+  } catch (e) { fbdb = null; }
+
+  var local = null;
+  try { local = JSON.parse(localStorage.getItem(chaveLocal()) || 'null'); } catch (e) {}
+
+  if (!fbdb) {
+    if (!local) { erroFatal('Sem conexão com o servidor e sem cópia local deste formulário.'); return; }
+    DADOS = local;
+    montar();
+    status('Sem conexão: mostrando a última cópia salva neste computador', 'erro');
+    return;
+  }
+
+  fbdb.ref('retencao_empresa/' + TOKEN).once('value').then(function(snap) {
+    var val = snap.val();
+    if (!val) {
+      erroFatal('Este formulário não existe ou foi removido. Confira o link com a PR6.');
+      return;
+    }
+    DADOS = {
+      contrato: val.contrato || '',
+      empresa:  val.empresa || '',
+      unidade:  val.unidade || '',
+      perc:     (typeof val.perc === 'number') ? val.perc : PERC_SUB_PADRAO,
+      meses:    Array.isArray(val.meses) ? val.meses : (val.meses ? Object.values(val.meses) : []),
+      linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : [])
+    };
+    _bloqueado = !!val.fechado;
+    montar();
+  }).catch(function(e) {
+    if (local) {
+      DADOS = local;
+      montar();
+      status('Sem acesso ao servidor: mostrando a cópia deste computador (' + e.message + ')', 'erro');
+    } else {
+      erroFatal('Sem acesso ao servidor: ' + e.message);
+    }
+  });
+}
+
+function montar() {
+  document.getElementById('carregando').style.display = 'none';
+  document.getElementById('conteudo').style.display = '';
+  document.getElementById('i-contrato').textContent = DADOS.contrato || '—';
+  document.getElementById('i-empresa').textContent = DADOS.empresa || '—';
+  document.getElementById('i-unidade').textContent = DADOS.unidade || '—';
+  document.getElementById('i-perc').textContent = pctTexto(percSub());
+  document.title = 'Conta Vinculada — ' + (DADOS.contrato || '') + (DADOS.empresa ? ' · ' + DADOS.empresa : '');
+  if (_bloqueado) {
+    document.getElementById('aviso').innerHTML =
+      '<b>Este formulário está fechado para edição.</b> Os dados abaixo são apenas para consulta. '
+      + 'Se precisar corrigir algo, fale com a PR6.';
+    document.querySelectorAll('.btn-add,.btn-salvar').forEach(function(b) { b.style.display = 'none'; });
+  }
+  renderTabs();
+  renderTabela();
+}
+
+document.addEventListener('DOMContentLoaded', iniciar);
+</script>
+</body>
+</html>
