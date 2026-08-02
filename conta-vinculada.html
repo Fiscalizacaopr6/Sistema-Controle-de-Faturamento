@@ -191,6 +191,12 @@ function calc(l) {
   return o;
 }
 
+// Cada lançamento leva um id próprio: é por ele que a totalizadora reconhece
+// a linha mesmo depois de a empresa reordenar ou apagar outras.
+function novoId() {
+  return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 function mesRotulo(m) { return m ? (m.mes + '/' + m.ano) : ''; }
 function linhasDoMes(i) {
   var m = DADOS.meses[i];
@@ -316,9 +322,9 @@ function trocarMes(i) {
 function addLinha() {
   var m = DADOS.meses[MES_ATUAL];
   if (!m) { alert('Nenhum mês disponível para lançamento.'); return; }
-  DADOS.linhas.push({tipo:'Retenção', mes:m.mes, ano:String(m.ano), cpf:'', nome:'', unidade:'',
-                     funcao:'', contratado:'', disponibilizacao:'', desligamento:'', situacao:'',
-                     dias:'30', remuneracao:''});
+  DADOS.linhas.push({id: novoId(), tipo:'Retenção', mes:m.mes, ano:String(m.ano), cpf:'', nome:'',
+                     unidade:'', funcao:'', contratado:'', disponibilizacao:'', desligamento:'',
+                     situacao:'', dias:'30', remuneracao:''});
   renderTabs();
   renderTabela();
   salvar(true);      // linha nova grava na hora: fechar a aba logo depois não pode perdê-la
@@ -410,7 +416,10 @@ function iniciar() {
       linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : [])
     };
     _bloqueado = !!val.fechado;
+    var faltando = DADOS.linhas.filter(function(l) { return !l.id; });
+    faltando.forEach(function(l) { l.id = novoId(); });
     montar();
+    if (faltando.length && !_bloqueado) salvar(true);   // grava os ids que faltavam
   }).catch(function(e) {
     if (local) {
       DADOS = local;

@@ -238,6 +238,7 @@ tr:last-child td{border-bottom:none}
 .eform{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .eform .full{grid-column:1/-1}
 #cv-tbl tr.cv-da-empresa td{background:rgba(148,163,184,.10)}
+#cv-tbl tr.cv-adotada td:first-child{color:var(--amber)}
 #cv-tbl tr.cv-da-empresa td:first-child{font-size:12px}
 /* ── Formulário da empresa (link público) ── */
 .ret-url{display:flex;gap:6px;align-items:center}
@@ -6359,7 +6360,8 @@ function cvSalvar(imediato) {
     var el = document.getElementById('cv-status');
     if (el) el.textContent = 'salvando...';
     var pacote = {contrato: CV_ATUAL.contrato, objeto: CV_ATUAL.objeto,
-                  perc: CV_ATUAL.perc, linhas: cvLinhasProprias()};
+                  perc: CV_ATUAL.perc, linhas: cvLinhasProprias(),
+                  adotadas: cvAdotadas()};
     CV_PROPRIAS = pacote.linhas;
     fbdb.ref('retencao_form/' + CV_REG_ID).set(pacote).then(function() {
       if (el) { el.textContent = '✔ salvo'; setTimeout(function(){ if (el.textContent === '✔ salvo') el.textContent=''; }, 2500); }
@@ -6377,24 +6379,71 @@ function cvSalvar(imediato) {
 // totalizadora acompanha o preenchimento sem ninguém ter que importar nada, e
 // os dois lados nunca sobrescrevem um ao outro — a PR6 grava só o que é seu.
 var CV_PROPRIAS = [];        // lançamentos da PR6 (o que vai para retencao_form)
+var CV_REG = null;           // registro de Retenção aberto
 var _cvEmpRef = null;        // escuta ativa no formulário da empresa
 
 function cvLinhasProprias() {
   return (CV_ATUAL ? CV_ATUAL.linhas : []).filter(function(l) { return !l._emp; });
 }
 
+// Identidade durável de um lançamento da empresa. Usa o id quando existe;
+// para os lançados antes de os ids passarem a ser gravados, cai no conteúdo.
+function cvChaveEmp(l) {
+  return l.id ? 'e:' + l.id : 'k:' + [l.cpf, l.nome, l.mes, l.ano].join('|');
+}
+
+function cvAdotadas() {
+  return (CV_ATUAL && Array.isArray(CV_ATUAL.adotadas)) ? CV_ATUAL.adotadas : [];
+}
+
 function cvMesclarEmpresa(linhasEmpresa) {
-  var doEmp = (linhasEmpresa || []).map(function(l, i) {
+  var adot = cvAdotadas();
+  var doEmp = [];
+  (linhasEmpresa || []).forEach(function(l, i) {
+    var chave = cvChaveEmp(l);
+    // já virou retirada na totalizadora: quem manda agora é a linha da PR6
+    if (adot.indexOf(chave) !== -1) return;
     var c = {};
     Object.keys(l).forEach(function(k) { c[k] = l[k]; });
     c.id = 'emp' + i;
+    c._empKey = chave;
     c.tipo = 'Retenção';
     c._emp = true;
     c.s = ''; c.t = ''; c.u = ''; c.v = '';   // retirada é lançamento da PR6
-    return c;
+    doEmp.push(c);
   });
   CV_ATUAL.linhas = CV_PROPRIAS.concat(doEmp);
   cvAtualizarAvisoEmpresa(doEmp.length);
+}
+
+// Mudar o Tipo para Retirada traz a linha para a PR6: ela sai do formulário
+// da empresa e passa a ser editável e gravada aqui. Sem isso a edição se
+// perderia na próxima vez que a empresa salvasse, porque a lista é remontada.
+function cvAdotarLinha(l) {
+  if (!CV_ATUAL) return;
+  if (!Array.isArray(CV_ATUAL.adotadas)) CV_ATUAL.adotadas = [];
+  var chave = l._empKey || cvChaveEmp(l);
+  if (CV_ATUAL.adotadas.indexOf(chave) === -1) CV_ATUAL.adotadas.push(chave);
+  var nova = {};
+  Object.keys(l).forEach(function(k) { if (k !== '_emp' && k !== '_empKey') nova[k] = l[k]; });
+  nova.id = 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  nova.tipo = 'Retirada';
+  nova._origem = chave;      // de onde veio, para poder devolver ao excluir
+  CV_PROPRIAS = cvLinhasProprias().concat([nova]);
+  CV_ATUAL.linhas = CV_PROPRIAS.concat(CV_ATUAL.linhas.filter(function(x) {
+    return x._emp && (x._empKey || cvChaveEmp(x)) !== chave;
+  }));
+  cvAtualizarAvisoEmpresa(CV_ATUAL.linhas.filter(function(x){ return x._emp; }).length);
+  cvSalvar(true);
+  cvRender();
+  cvToastAdocao(nova.nome);
+}
+
+function cvToastAdocao(nome) {
+  var el = document.getElementById('cv-status');
+  if (!el) return;
+  el.textContent = 'Lançamento' + (nome ? ' de ' + nome : '') + ' virou retirada e agora é editável aqui.';
+  setTimeout(function() { if (el.textContent.indexOf('virou retirada') !== -1) el.textContent = ''; }, 5000);
 }
 
 function cvAtualizarAvisoEmpresa(qtd) {
@@ -6437,9 +6486,11 @@ function cvAbrirFormulario(regId) {
       contrato: val.contrato || reg.contrato || '',
       objeto:   val.objeto   || '',
       perc:     (typeof val.perc === 'number') ? val.perc : CV_PERC_SUB_PADRAO,
-      linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : [])
+      linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : []),
+      adotadas: Array.isArray(val.adotadas) ? val.adotadas : (val.adotadas ? Object.values(val.adotadas) : [])
     };
     CV_PROPRIAS = CV_ATUAL.linhas;
+    CV_REG = reg;
     hideLoadingOverlay();
     cvMontarTela(reg);
     cvLigarEmpresa(reg);
@@ -6530,15 +6581,24 @@ function cvRemoverLinha(id) {
   if (!l) return;
   if (l._emp) { alert('Este lançamento veio do formulário da empresa e é mantido por lá.'); return; }
   if (!confirm('Excluir o lançamento' + (l.nome ? ' de ' + l.nome : '') + '?')) return;
+  if (l._origem && Array.isArray(CV_ATUAL.adotadas)) {
+    CV_ATUAL.adotadas = CV_ATUAL.adotadas.filter(function(k){ return k !== l._origem; });
+  }
   CV_ATUAL.linhas = CV_ATUAL.linhas.filter(function(x){ return x.id !== id; });
+  CV_PROPRIAS = cvLinhasProprias();
   cvSalvar(true);
-  cvRender();
+  if (l._origem) cvLigarEmpresa(CV_REG); else cvRender();
 }
 
 // ── Edição das células ──
 function cvSetCampo(id, campo, valor, el) {
   var l = CV_ATUAL && CV_ATUAL.linhas.find(function(x){ return x.id === id; });
-  if (!l || l._emp) return;
+  if (!l) return;
+  if (l._emp) {
+    if (campo !== 'tipo' || valor === 'Retenção') { cvRender(); return; }
+    cvAdotarLinha(l);
+    return;
+  }
   if (campo === 'cpf') { valor = cvCPF(valor); if (el) el.value = valor; }
   l[campo] = valor;
   cvAtualizarLinha(id);
@@ -6632,11 +6692,16 @@ function cvRender() {
     var c = cvCalc(l, cvPercSub());
     var tds = CV_COLS.map(function(col) {
       if (col.calc) return '<td data-k="'+col.k+'">'+cvCelulaCalc(col, c)+'</td>';
-      return '<td data-k="'+col.k+'">'+cvCampoHtml(col, l, podeEditar && !l._emp)+'</td>';
+      // o Tipo é a saída da linha da empresa: fica sempre editável
+      return '<td data-k="'+col.k+'">'
+        + cvCampoHtml(col, l, podeEditar && (!l._emp || col.k === 'tipo')) + '</td>';
     }).join('');
-    return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro ':'')+(l._emp?'cv-da-empresa':'')+'">'
+    return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro ':'')
+      + (l._emp?'cv-da-empresa':(l._origem?'cv-adotada':''))+'">'
       + '<td style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px"'
-        + (l._emp ? ' title="Lançado pela empresa no formulário mensal">🏢' : '>'+(i+1))+'</td>'
+        + (l._emp ? ' title="Lançado pela empresa no formulário mensal. Mude o Tipo para Retirada para trazê-lo para cá.">🏢'
+                  : l._origem ? ' title="Veio do formulário da empresa e foi convertido em retirada">↩'
+                  : '>'+(i+1))+'</td>'
       + tds
       + (podeEditar ? '<td>' + (l._emp ? ''
           : '<button class="cv-del" onclick="cvRemoverLinha(\''+l.id+'\')" title="Excluir lançamento">✕</button>') + '</td>' : '')
