@@ -540,21 +540,24 @@ select.doc-inp{cursor:pointer}
           <option value="">Todos os subtipos</option>
         </select>
         <button onclick="clearDashFilters()" id="db-clear-btn"
-          style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:var(--red);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">✕ Limpar filtros</button>
+          style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:var(--red);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">✕ Limpar filtros</button>
       </div>
-      <div class="kpi-grid" id="kpi-grid"></div>
-      <div class="chart-tabs">
-        <button class="chart-tab active" data-chart="resp" onclick="showChart('resp')">Valor mensal por responsável (vigentes)</button>
-        <button class="chart-tab" data-chart="tipo" onclick="showChart('tipo')">Contratos vigentes por tipo</button>
-        <button class="chart-tab" data-chart="cont-resp" onclick="showChart('cont-resp')">Qtd. de contratos por responsável</button>
-        <button class="chart-tab" data-chart="func-resp" onclick="showChart('func-resp')">Funcionários vigentes por responsável</button>
-        <button class="chart-tab" data-chart="de-resp" onclick="showChart('de-resp')">Dedicação exclusiva por responsável</button>
-        <button class="chart-tab" data-chart="imr-resp" onclick="showChart('imr-resp')">IMR por responsável</button>
+      <div id="db-charts-area">
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-chart="resp" onclick="showChart('resp')">Valor mensal por responsável (vigentes)</button>
+          <button class="chart-tab" data-chart="tipo" onclick="showChart('tipo')">Contratos vigentes por tipo</button>
+          <button class="chart-tab" data-chart="cont-resp" onclick="showChart('cont-resp')">Qtd. de contratos por responsável</button>
+          <button class="chart-tab" data-chart="func-resp" onclick="showChart('func-resp')">Funcionários vigentes por responsável</button>
+          <button class="chart-tab" data-chart="de-resp" onclick="showChart('de-resp')">Dedicação exclusiva por responsável</button>
+          <button class="chart-tab" data-chart="imr-resp" onclick="showChart('imr-resp')">IMR por responsável</button>
+        </div>
+        <div class="chart-card" id="single-chart-card">
+          <div class="chart-title" id="single-chart-title"></div>
+          <div class="bar-chart" id="single-chart"></div>
+        </div>
       </div>
-      <div class="chart-card" id="single-chart-card">
-        <div class="chart-title" id="single-chart-title"></div>
-        <div class="bar-chart" id="single-chart"></div>
-      </div>
+      <div id="db-contrato-detail" style="display:none"></div>
     </div>
 
     <!-- CONTRATOS -->
@@ -1357,14 +1360,11 @@ function clearDashFilters() {
   currentYearFilter = '';
   currentTipoFilter = '';
   currentSubtipoFilter = '';
+  hideContratoDetail();
   buildDashboard();
 }
 
-function updateClearBtn() {
-  var btn = document.getElementById('db-clear-btn');
-  if (!btn) return;
-  btn.style.display = (currentYearFilter || currentTipoFilter || currentSubtipoFilter) ? '' : 'none';
-}
+function updateClearBtn() {}
 
 // Extrai o ano completo (4 dígitos) do número do contrato (ex: "61/22" → "2022", "01/2022" → "2022")
 function anoDoContrato(contrato) {
@@ -1885,139 +1885,193 @@ function openModal(idx) {
 }
 function closeMo() { document.getElementById('mo').classList.remove('open'); }
 
+function hideContratoDetail() {
+  var det = document.getElementById('db-contrato-detail');
+  var area = document.getElementById('db-charts-area');
+  if (det) { det.style.display = 'none'; det.innerHTML = ''; }
+  if (area) area.style.display = '';
+  var sel = document.getElementById('db-contrato-filter');
+  if (sel) sel.value = '';
+}
+
 function openContratoModal(num) {
   var q = (num || '').trim().toUpperCase();
   if (!q) return;
 
-  // Todos os termos deste contrato
   var termos = DADOS.filter(function(d) {
     return (d['CONTRATO'] || '').toUpperCase() === q;
   });
-  if (!termos.length) {
-    alert('Nenhum contrato encontrado para: ' + q);
-    return;
-  }
+  if (!termos.length) { alert('Nenhum contrato encontrado para: ' + q); return; }
 
-  // Número canônico do contrato (pode haver vários termos do mesmo contrato)
   var numContrato = termos[0]['CONTRATO'];
-
-  // Info geral: usar o termo mais recente (último da lista)
   var d = termos[termos.length - 1];
   var st = d._st || '—';
+  var empresaNome = (d['EMPRESA'] || '').trim();
   var isDedExcl = (d['SUBTIPO'] || '').indexOf('DEDICAÇÃO EXCLUSIVA') !== -1;
+  var nImr = d['Nº DE  IMR'];
+  if (nImr == null || nImr === '') nImr = d['N° IMR'];
 
-  // Fiscais deste contrato
-  var fiscais = FISCAIS.filter(function(f) {
-    return (f.contrato || '') === numContrato;
+  // ── Fontes relacionadas ──
+  var fiscais = FISCAIS.filter(function(f) { return (f.contrato || '') === numContrato; });
+  var contas  = CONTAS.filter(function(c) { return (c.contrato || '') === numContrato; });
+  var empContatos = EMPRESAS.filter(function(e) {
+    return (e.empresa || '').trim().toUpperCase() === empresaNome.toUpperCase();
   });
-
-  // Reajustes deste contrato
-  var reajustes = REAJUSTES.filter(function(r) {
+  var docs = (typeof DOCUMENTOS !== 'undefined' ? DOCUMENTOS : []).filter(function(r){
     return (r.contrato || '') === numContrato;
   });
 
-  // Contas vinculadas deste contrato
-  var contas = CONTAS.filter(function(c) {
-    return (c.contrato || '') === numContrato;
-  });
-
   // ── Helpers ──
-  function sec(title) {
-    return '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border)">' + title + '</div>';
+  function esc2(s){ return esc(String(s == null ? '' : s)); }
+  function card(title, body) {
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">'
+      + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">' + esc2(title) + '</div>'
+      + body + '</div>';
   }
   function row2(l, v) {
     if (v == null || v === '' || v === undefined) return '';
     return '<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px">'
-      + '<span style="color:var(--muted);min-width:160px;flex-shrink:0">' + l + '</span>'
-      + '<span style="color:var(--text);font-weight:500">' + esc(String(v)) + '</span></div>';
+      + '<span style="color:var(--muted);min-width:180px;flex-shrink:0">' + esc2(l) + '</span>'
+      + '<span style="color:var(--text);font-weight:500">' + esc2(String(v)) + '</span></div>';
   }
-
-  var html = '<div style="padding:16px 24px 8px">';
-
-  // Status + info geral
-  html += '<div style="margin-bottom:12px"><span class="badge ' + (st === 'VIGENTE' ? 'bg' : 'br') + '">' + st + '</span></div>';
-  html += row2('Empresa', (d['EMPRESA'] || '').trim());
-  html += row2('Responsável no Faturamento', d['RESPONSÁVEL NO FATURAMENTO']);
-  html += row2('Tipo', (d['TIPO'] || '') + (d['SUBTIPO'] ? ' › ' + d['SUBTIPO'] : ''));
-  html += row2('Proc. Contratação', d['PROCESSO CONTRATAÇÃO']);
-  html += row2('Proc. Pagamento', d['PROCESSO PAGAMENTO']);
-  html += row2('Proc. Conta Vinculada', d['PROCESSO CONTA VINCULADA']);
-  html += row2('Qtd. Itens', d['QTD ITEM']);
-  html += row2('N° Unidades', d['N° DE UNIDADES']);
-  if (isDedExcl) html += row2('N° Funcionários', d['N° FUNCIONÁRIO']);
-
-  // ── Termos ──
-  html += sec('Termos (' + termos.length + ')');
-  termos.forEach(function(t) {
-    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">'
-      + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;margin-bottom:6px">'
-      + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--accent)">' + esc(t['TERMO ATUAL'] || '—') + '</span>'
-      + '<span style="font-size:11px;color:var(--muted)">Início: ' + fmtDate(t['INÍCIO DO CONTRATO']) + '</span>'
-      + '<span style="font-size:11px;color:var(--muted)">Término: ' + fmtDate(t['TÉRMINO DA VIGÊNCIA']) + '</span>'
-      + (t['TOTAL MENSAL'] != null ? '<span style="font-size:12px;color:var(--text)">Mensal: ' + fmtBR(t['TOTAL MENSAL']) + '</span>' : '')
-      + '</div>'
-      + (t['OBJETO'] ? '<div style="font-size:12px;color:var(--text);line-height:1.6;margin-top:4px">' + esc((t['OBJETO'] || '').trim()) + '</div>' : '')
-      + '</div>';
-  });
-
-  // ── Fiscais ──
-  if (fiscais.length) {
-    html += sec('Fiscais (' + fiscais.length + ')');
-    fiscais.forEach(function(f) {
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">'
-        + '<span style="font-size:13px;font-weight:500">' + esc(f.nome || '—') + '</span>'
-        + '<span style="font-size:11px;color:var(--muted)">' + esc(f.unidade || '') + '</span>'
-        + '</div>';
+  function uniqNonEmpty(arr) {
+    var seen = {}, out = [];
+    arr.forEach(function(v){
+      var k = String(v == null ? '' : v).trim();
+      if (!k) return;
+      k.split(/[;,\/\n]+/).forEach(function(p){
+        var t = p.trim();
+        if (!t) return;
+        var key = t.toUpperCase();
+        if (seen[key]) return;
+        seen[key] = true; out.push(t);
+      });
     });
+    return out;
   }
 
-  // ── Reajustes ──
-  if (reajustes.length) {
-    var nfColors = { 'PAGO': 'var(--green)', 'PENDENTE': 'var(--amber)', 'CANCELADO': 'var(--red)' };
-    html += sec('Reajustes e Repactuações (' + reajustes.length + ')');
-    html += '<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'
-      + '<thead><tr style="color:var(--muted);font-size:11px">'
-      + '<th style="padding:4px 8px">Ano</th>'
-      + '<th style="padding:4px 8px">Memória de Cálculo</th>'
-      + '<th style="padding:4px 8px">Período</th>'
-      + '<th style="padding:4px 8px">Origem</th>'
-      + '<th style="padding:4px 8px">Sit. NF</th>'
+  // ── 1. Contrato ──
+  var termoAtual = d['TERMO ATUAL'] || '—';
+  var objeto = (d['OBJETO'] || '').trim();
+  var contratoHtml = ''
+    + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px">'
+    + '<span class="badge ' + (st === 'VIGENTE' ? 'bg' : 'br') + '">' + esc2(st) + '</span>'
+    + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:16px;color:var(--accent)">' + esc2(numContrato) + '</span>'
+    + '<span style="font-size:14px;font-weight:600">' + esc2(empresaNome) + '</span>'
+    + '</div>'
+    + row2('Termo Atual', termoAtual)
+    + row2('Término da Vigência', fmtDate(d['TÉRMINO DA VIGÊNCIA']))
+    + row2('Responsável no Faturamento', d['RESPONSÁVEL NO FATURAMENTO'])
+    + row2('Tipo', d['TIPO'])
+    + row2('Subtipo', d['SUBTIPO'])
+    + row2('N° de Unidades', d['N° DE UNIDADES'])
+    + row2('N° de IMR', nImr)
+    + (isDedExcl ? row2('N° de Funcionários', d['N° FUNCIONÁRIO']) : '')
+    + row2('Processo de Pagamento', d['PROCESSO PAGAMENTO'])
+    + row2('Processo de Contratação', d['PROCESSO CONTRATAÇÃO'])
+    + row2('Processo de Conta Vinculada', d['PROCESSO CONTA VINCULADA'])
+    + (objeto ? '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Objeto do Termo</div>'
+        + '<div style="font-size:13px;line-height:1.6;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">' + esc2(objeto) + '</div></div>' : '');
+
+  // ── 2. Empresa ──
+  var emails = uniqNonEmpty(empContatos.map(function(e){ return e.email; }));
+  var telefones = uniqNonEmpty(empContatos.map(function(e){ return e.telefone; }));
+  var empresaHtml;
+  if (!empContatos.length) {
+    empresaHtml = '<div style="font-size:13px;color:var(--muted)">Nenhum contato cadastrado para "' + esc2(empresaNome) + '".</div>';
+  } else {
+    empresaHtml = ''
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:6px">E-mails (' + emails.length + ')</div>'
+      +   (emails.length
+            ? emails.map(function(m){ return '<div style="font-size:13px;padding:4px 0;color:var(--text)"><a href="mailto:' + esc2(m) + '" style="color:var(--accent);text-decoration:none">' + esc2(m) + '</a></div>'; }).join('')
+            : '<div style="font-size:13px;color:var(--muted)">—</div>')
+      + '</div>'
+      + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:6px">Telefones (' + telefones.length + ')</div>'
+      +   (telefones.length
+            ? telefones.map(function(t){ return '<div style="font-size:13px;padding:4px 0;font-family:\'DM Mono\',monospace">' + esc2(t) + '</div>'; }).join('')
+            : '<div style="font-size:13px;color:var(--muted)">—</div>')
+      + '</div>'
+      + '</div>';
+  }
+
+  // ── 3. Fiscais ──
+  var fiscaisHtml;
+  if (!fiscais.length) {
+    fiscaisHtml = '<div style="font-size:13px;color:var(--muted)">Nenhum fiscal cadastrado para este contrato.</div>';
+  } else {
+    fiscaisHtml = '<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse">'
+      + '<thead><tr style="color:var(--muted);font-size:11px;text-align:left">'
+      + '<th style="padding:6px 8px">Nome</th>'
+      + '<th style="padding:6px 8px">Unidade</th>'
+      + '<th style="padding:6px 8px">Situação</th>'
+      + '<th style="padding:6px 8px">E-mail</th>'
+      + '<th style="padding:6px 8px">Telefone</th>'
+      + '<th style="padding:6px 8px">Endereço SEI</th>'
+      + '<th style="padding:6px 8px">Portaria</th>'
       + '</tr></thead><tbody>';
-    reajustes.forEach(function(r) {
-      var nfSt = (r.situacaoNf || '').toUpperCase().trim();
-      html += '<tr style="border-top:1px solid var(--border)">'
-        + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc(r.ano || '—') + '</td>'
-        + '<td style="padding:7px 8px">' + esc(r.memoriaCalculo || '—') + '</td>'
-        + '<td style="padding:7px 8px">' + esc(r.periodo || '—') + '</td>'
-        + '<td style="padding:7px 8px">' + esc(r.origem || '—') + '</td>'
-        + '<td style="padding:7px 8px;font-weight:600;color:' + (nfColors[nfSt] || 'var(--muted)') + '">' + esc(r.situacaoNf || '—') + '</td>'
+    fiscais.forEach(function(f) {
+      fiscaisHtml += '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:7px 8px;font-weight:500">' + esc2(f.nome || '—') + '</td>'
+        + '<td style="padding:7px 8px">' + esc2(f.unidade || '—') + '</td>'
+        + '<td style="padding:7px 8px">' + esc2(f.situacao || '—') + '</td>'
+        + '<td style="padding:7px 8px">' + (f.email ? '<a href="mailto:' + esc2(f.email) + '" style="color:var(--accent);text-decoration:none">' + esc2(f.email) + '</a>' : '—') + '</td>'
+        + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.telefone || '—') + '</td>'
+        + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.enderecoSei || '—') + '</td>'
+        + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.portaria || '—') + '</td>'
         + '</tr>';
     });
-    html += '</tbody></table></div>';
+    fiscaisHtml += '</tbody></table></div>';
   }
 
-  // ── Contas Vinculadas ──
-  if (contas.length) {
-    var sitColors = { 'ATIVA': 'var(--green)', 'ENCERRADA': 'var(--red)', 'PENDENTE': 'var(--amber)' };
-    html += sec('Conta Vinculada (' + contas.length + ')');
-    contas.forEach(function(c) {
-      var sit = (c.situacao || '').toUpperCase().trim();
-      html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;font-size:13px">';
-      if (c.pedido) html += row2('Pedido', c.pedido);
-      if (c.situacao) html += '<div style="display:flex;gap:8px;font-size:13px"><span style="color:var(--muted);min-width:160px">Situação</span><span style="font-weight:600;color:' + (sitColors[sit] || 'var(--text)') + '">' + esc(c.situacao) + '</span></div>';
-      html += '</div>';
-    });
-  }
+  // ── 4. Documentos: pago vs. total do período ──
+  var totalPago = 0;
+  docs.forEach(function(r) {
+    if ((r.situacao || '').toUpperCase() === 'PAGO') totalPago += (+r.valorNf || 0);
+  });
+  var totalPeriodo = 0;
+  termos.forEach(function(t) { totalPeriodo += (+t['TOTAL GLOBAL'] || 0); });
+  var maxV = Math.max(totalPago, totalPeriodo, 1);
+  var pctPago = Math.round((totalPago / maxV) * 100);
+  var pctPer  = Math.round((totalPeriodo / maxV) * 100);
+  var razao = totalPeriodo > 0 ? Math.round((totalPago / totalPeriodo) * 100) : 0;
+  var docsHtml = ''
+    + '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:center;margin-bottom:14px">'
+    + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total pago (desde o início)</div>'
+    +   '<div style="font-size:20px;font-weight:700;color:var(--green)">' + fmtBR(totalPago) + '</div></div>'
+    + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total do período (todos os termos)</div>'
+    +   '<div style="font-size:20px;font-weight:700;color:var(--accent)">' + fmtBR(totalPeriodo) + '</div></div>'
+    + '<div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">% Executado</div>'
+    +   '<div style="font-size:20px;font-weight:700;color:var(--text)">' + razao + '%</div></div>'
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:10px">'
+    +   '<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Pago</span><span>' + fmtBR(totalPago) + '</span></div>'
+    +     '<div style="background:var(--surface2);border-radius:6px;height:22px;overflow:hidden"><div style="height:100%;width:' + pctPago + '%;background:var(--green);transition:width .3s"></div></div></div>'
+    +   '<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Total do período</span><span>' + fmtBR(totalPeriodo) + '</span></div>'
+    +     '<div style="background:var(--surface2);border-radius:6px;height:22px;overflow:hidden"><div style="height:100%;width:' + pctPer + '%;background:var(--accent);transition:width .3s"></div></div></div>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:10px">Baseado em ' + docs.length + ' registro' + (docs.length === 1 ? '' : 's') + ' de documentos e ' + termos.length + ' termo' + (termos.length === 1 ? '' : 's') + ' de contrato.</div>';
 
-  html += '</div>';
+  // ── Monta o painel ──
+  var actions = ''
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">'
+    +   '<div style="font-size:14px;color:var(--muted)">Detalhes do contrato</div>'
+    +   '<div style="display:flex;gap:8px">'
+    +     '<button onclick="exportContratoPDF(\'' + numContrato.replace(/'/g,"\\'") + '\')" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer">⬇ Exportar PDF</button>'
+    +     '<button onclick="hideContratoDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer">← Voltar ao dashboard</button>'
+    +   '</div>'
+    + '</div>';
 
-  document.getElementById('mo-t').textContent = 'Contrato ' + numContrato;
-  document.getElementById('mo-s').textContent = (d['EMPRESA'] || '').trim();
-  document.getElementById('mo-b').innerHTML = html;
-  document.getElementById('mo-actions').innerHTML =
-    '<button class="btn-cancel-e" onclick="closeMo()">Fechar</button>'
-    +'<button onclick="exportContratoPDF(\''+numContrato+'\')" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">⬇ Exportar PDF</button>';
-  document.getElementById('mo').classList.add('open');
+  var html = actions
+    + card('Contrato', contratoHtml)
+    + card('Empresa — Contatos', empresaHtml)
+    + card('Fiscais (' + fiscais.length + ')', fiscaisHtml)
+    + card('Documentos — Executado vs. Total do Período', docsHtml);
+
+  var area = document.getElementById('db-charts-area');
+  var det = document.getElementById('db-contrato-detail');
+  if (area) area.style.display = 'none';
+  if (det) { det.innerHTML = html; det.style.display = ''; det.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
 
 function exportContratoPDF(numContrato) {
