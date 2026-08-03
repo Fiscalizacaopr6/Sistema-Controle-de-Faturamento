@@ -95,7 +95,6 @@ tfoot td{background:#1f3864;color:#fff;font-weight:bold;border-color:#14264a;whi
       <div><span>Rescisão e adicional do FGTS</span><b id="t-p">R$ 0,00</b></div>
       <div><span>Incidência submódulo 4.1</span><b id="t-q">R$ 0,00</b></div>
       <div><span>Total do mês para depósito</span><b id="t-r">R$ 0,00</b></div>
-      <div><span>Total de todos os meses</span><b id="t-geral">R$ 0,00</b></div>
     </div>
   </div>
 </div>
@@ -294,18 +293,15 @@ function atualizaLinha(idx) {
 }
 
 function atualizaTotais() {
-  var tot = {n:0, o:0, p:0, q:0, r:0}, geral = 0;
+  var tot = {n:0, o:0, p:0, q:0, r:0};
   linhasDoMes(MES_ATUAL).forEach(function(l) {
     var c = calc(l);
     tot.n += c.n; tot.o += c.o; tot.p += c.p; tot.q += c.q; tot.r += c.r;
   });
-  DADOS.linhas.forEach(function(l) { geral += calc(l).r; });
   CALC.forEach(function(col) {
     var el = document.getElementById('t-' + col.k);
     if (el) el.textContent = moeda(tot[col.k]) || 'R$ 0,00';
   });
-  var g = document.getElementById('t-geral');
-  if (g) g.textContent = moeda(geral) || 'R$ 0,00';
   // o rodapé da tabela também acompanha
   var tf = document.querySelectorAll('#tabela tfoot td');
   if (tf.length) CALC.forEach(function(col, i) {
