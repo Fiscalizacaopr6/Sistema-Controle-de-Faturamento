@@ -1366,6 +1366,24 @@ function clearDashFilters() {
 
 function updateClearBtn() {}
 
+// Meses entre INÍCIO DO CONTRATO e TÉRMINO DA VIGÊNCIA (fim exclusivo)
+function termoMeses(t) {
+  var ini = t && t['INÍCIO DO CONTRATO'];
+  var fim = t && t['TÉRMINO DA VIGÊNCIA'];
+  if (!ini || !fim) return 0;
+  var a = String(ini).slice(0,10).split('-');
+  var b = String(fim).slice(0,10).split('-');
+  if (a.length < 2 || b.length < 2) return 0;
+  var m = (parseInt(b[0],10) - parseInt(a[0],10)) * 12 + (parseInt(b[1],10) - parseInt(a[1],10));
+  return m > 0 ? m : 0;
+}
+// Valor total contratado de UM termo (TOTAL MENSAL × meses de vigência)
+function termoTotal(t) {
+  var mv = +t['TOTAL MENSAL'];
+  if (!mv || isNaN(mv)) return 0;
+  return mv * termoMeses(t);
+}
+
 // Extrai o ano completo (4 dígitos) do número do contrato (ex: "61/22" → "2022", "01/2022" → "2022")
 function anoDoContrato(contrato) {
   var m = (contrato || '').match(/\/(\d{2,4})$/);
@@ -2030,7 +2048,7 @@ function openContratoModal(num) {
     if ((r.situacao || '').toUpperCase() === 'PAGO') totalPago += (+r.valorNf || 0);
   });
   var totalPeriodo = 0;
-  termos.forEach(function(t) { totalPeriodo += (+t['TOTAL GLOBAL'] || 0); });
+  termos.forEach(function(t) { totalPeriodo += termoTotal(t); });
   var maxV = Math.max(totalPago, totalPeriodo, 1);
   var pctPago = Math.round((totalPago / maxV) * 100);
   var pctPer  = Math.round((totalPeriodo / maxV) * 100);
@@ -2223,7 +2241,7 @@ function exportContratoPDF(numContrato) {
   var totalPago = 0;
   docsC.forEach(function(r){ if ((r.situacao||'').toUpperCase() === 'PAGO') totalPago += (+r.valorNf || 0); });
   var totalPeriodo = 0;
-  termos.forEach(function(t){ totalPeriodo += (+t['TOTAL GLOBAL'] || 0); });
+  termos.forEach(function(t){ totalPeriodo += termoTotal(t); });
   var razao = totalPeriodo > 0 ? Math.round((totalPago/totalPeriodo)*100) : 0;
   secTitle('DOCUMENTOS — PAGO VS CONTRATADO');
   var barsH = 110;
