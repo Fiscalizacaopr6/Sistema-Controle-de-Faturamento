@@ -3587,6 +3587,7 @@ function buildRetencaoTable() {
 
 function renderRetencaoTable() {
   var canEdit = currentRole === 'admin' || currentRole === 'editor';
+  var isAdmin = currentRole === 'admin';
   var wrap = document.getElementById('ret-table');
   if (!wrap) return;
   if (!RETENCAO.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum formulário de retenção cadastrado.</div>'; return; }
@@ -3598,8 +3599,9 @@ function renderRetencaoTable() {
   var rows = slice.map(function(r) {
     var hasLink = !!r.link;
     var rowClick = 'onclick="cvAbrirFormulario(\''+r.id+'\')" style="cursor:pointer"';
-    var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Totalizador</button>'
-      + ' <button class="btn-usr-edit" onclick="event.stopPropagation();openRetencaoLinkModal(\''+r.id+'\')">🔗 Formulário da empresa</button>'
+    var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Totalizadora</button>'
+      + ' <button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirMensal(\''+r.id+'\')">📅 Mensal</button>'
+      + (isAdmin ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openRetencaoLinkModal(\''+r.id+'\')">🔗 Formulário da empresa</button>' : '')
       + (canEdit
       ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
         +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteRetencao(\''+r.id+'\')">Excluir</button>'
@@ -3670,6 +3672,18 @@ function retMesesDoPeriodo(ini, fim) {
     out.push({mes: CV_MESES[((m % 12) + 12) % 12], ano: String(ya + Math.floor(m / 12))});
   }
   return out;
+}
+
+// Abre o formulário mensal (link público) numa nova aba.
+// Requer token já criado — só admin pode gerar via "Formulário da empresa".
+function cvAbrirMensal(id) {
+  var reg = RETENCAO.find(function(x) { return x.id === id; });
+  if (!reg) return;
+  if (!reg.token) {
+    alert('Ainda não há link mensal para este contrato. Peça a um administrador para gerar o "Formulário da empresa".');
+    return;
+  }
+  window.open(retLinkUrl(reg.token), '_blank', 'noopener');
 }
 
 function openRetencaoLinkModal(id) {
