@@ -5227,6 +5227,31 @@ function docDiasDesde(v) {
   return Math.floor((hoje - new Date(+p[0], +p[1] - 1, +p[2])) / 86400000);
 }
 
+// Contrato é COM DEDICAÇÃO EXCLUSIVA se algum termo tiver SUBTIPO exatamente "COM DEDICAÇÃO EXCLUSIVA"
+function docContratoIsDE(numContrato) {
+  if (!numContrato || typeof DADOS === 'undefined') return false;
+  for (var i = 0; i < DADOS.length; i++) {
+    var t = DADOS[i];
+    if ((t['CONTRATO'] || '') !== numContrato) continue;
+    if ((t['SUBTIPO'] || '').toUpperCase() === 'COM DEDICAÇÃO EXCLUSIVA') return true;
+  }
+  return false;
+}
+
+// Regra: só marca "AGUARDANDO IMR" a partir do dia 25 do mês do documento (DE)
+// ou a partir do dia 1 do mês seguinte (não DE). Antes disso, célula fica vazia.
+function docAguardandoIMR(rec) {
+  var mesIdx = MESES_ORDEM.indexOf(String(rec.mes || '').toUpperCase());
+  var anoNum = parseInt(rec.ano, 10);
+  if (mesIdx === -1 || isNaN(anoNum)) return 'AGUARDANDO IMR';
+  var start = docContratoIsDE(rec.contrato)
+    ? new Date(anoNum, mesIdx, 25)
+    : new Date(anoNum, mesIdx + 1, 1);
+  var hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return hoje >= start ? 'AGUARDANDO IMR' : '';
+}
+
 function docSituacao(rec) {
   if (!rec) return '';
   function tem(k) { return String(rec[k] == null ? '' : rec[k]).trim() !== ''; }
@@ -5241,7 +5266,7 @@ function docSituacao(rec) {
   }
   if (tem('nfAutorizada'))  return 'NOTA AUTORIZADA';
   if (tem('imrRecebido'))   return 'AUTORIZAR NOTA';
-  return 'AGUARDANDO IMR';
+  return docAguardandoIMR(rec);
 }
 
 // Valor de uma coluna: calculado quando a coluna tem regra, guardado quando não.
