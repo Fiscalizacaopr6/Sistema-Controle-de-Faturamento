@@ -489,8 +489,8 @@ select.doc-inp{cursor:pointer}
       <div class="nav-item" id="nav-reajustes" title="Reajuste/Repactuação" onclick="showView('reajustes')"><span class="sb-ic">📈</span><span class="sb-tx">Reajuste/Repactuação</span></div>
       <div class="nav-item nav-group" id="nav-conta-grupo" title="Conta Vinculada" onclick="toggleContaMenu()"><span class="sb-ic">🔗</span><span class="sb-tx">Conta Vinculada</span><span class="nav-caret">▸</span></div>
       <div class="nav-sub" id="nav-conta-sub">
-        <div class="nav-item nav-sub-item" id="nav-contas" title="Retirada" onclick="showView('contas')"><span class="sb-ic">💸</span><span class="sb-tx">Retirada</span></div>
-        <div class="nav-item nav-sub-item" id="nav-retencao" title="Retenção" onclick="showView('retencao')"><span class="sb-ic">🔒</span><span class="sb-tx">Retenção</span></div>
+        <div class="nav-item nav-sub-item" id="nav-contas" title="Solicitação Empresa" onclick="showView('contas')"><span class="sb-ic">💸</span><span class="sb-tx">Solicitação Empresa</span></div>
+        <div class="nav-item nav-sub-item" id="nav-retencao" title="Retenção e Retirada" onclick="showView('retencao')"><span class="sb-ic">🔒</span><span class="sb-tx">Retenção e Retirada</span></div>
       </div>
       <div class="nav-item" id="nav-empresas" title="Empresas" onclick="showView('empresas')"><span class="sb-ic">🏭</span><span class="sb-tx">Empresas</span></div>
       <div class="nav-item" id="nav-unidades" title="Unidades" onclick="showView('unidades')"><span class="sb-ic">🏢</span><span class="sb-tx">Unidades</span></div>
@@ -755,7 +755,7 @@ select.doc-inp{cursor:pointer}
     <!-- CONTA VINCULADA -->
     <div class="view" id="view-contas">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Retirada Conta Vinculada</h2>
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Solicitação Empresa</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:500px">
           <input id="conta-q" type="text" placeholder="Buscar por contrato, processo, responsável, empresa ou situação..." oninput="buildContasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-export pdf" onclick="exportContasPDF()">⬇ PDF</button>
@@ -832,7 +832,7 @@ select.doc-inp{cursor:pointer}
     <!-- RETENÇÃO CONTA VINCULADA -->
     <div class="view" id="view-retencao">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Retenção Conta Vinculada</h2>
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Retenção e Retirada</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
           <input id="ret-q" type="text" placeholder="Buscar por contrato, empresa ou unidade..." oninput="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-new" id="btn-novo-retencao" onclick="openNewRetencaoModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
@@ -847,6 +847,7 @@ select.doc-inp{cursor:pointer}
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap;flex:1" id="cv-titulo">Conta Vinculada Mensal</h2>
         <span id="cv-status" style="font-size:11px;color:var(--muted)"></span>
         <button class="btn-export xlsx" onclick="cvExportarExcel()">⬇ Excel</button>
+        <button onclick="cvExportarPDF()" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer">⬇ PDF</button>
       </div>
 
       <div class="cv-cab">
@@ -1275,7 +1276,7 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Retirada Conta Vinculada', retencao:'Retenção Conta Vinculada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   // Conta Vinculada é um grupo: mantém o submenu aberto e o grupo destacado nas duas telas
   var ehConta = (v === 'contas' || v === 'retencao' || v === 'cvform');
@@ -6980,6 +6981,111 @@ function cvRenderTotais() {
 }
 
 // ── Exportação ──
+function cvExportarPDF() {
+  if (!CV_ATUAL) return;
+  cvFiltrar();
+  var perc = cvPercSub();
+  var reg = CV_REG || {};
+  var contrato = CV_ATUAL.contrato || reg.contrato || '';
+  var empresa  = reg.empresa || '';
+  var objeto   = CV_ATUAL.objeto || '';
+
+  var doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+  var margin = 24, footerH = 24;
+
+  function drawHeader() {
+    doc.setFillColor(30, 41, 59); doc.rect(0, 0, W, 56, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(255,255,255);
+    doc.text('Conta Vinculada Mensal — Totalizadora', margin, 22);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    var linha2 = 'Contrato: ' + contrato + (empresa ? '   ·   Empresa: ' + empresa : '');
+    doc.text(linha2, margin, 40);
+    doc.setFontSize(9); doc.setTextColor(203,213,225);
+    doc.text('Incidência sub. 4.1: ' + cvPercTexto(perc), W - margin, 22, { align:'right' });
+    doc.setTextColor(30, 41, 59);
+  }
+  drawHeader();
+  var y = 66;
+
+  if (objeto) {
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(100,116,139);
+    doc.text('Objeto:', margin, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,41,59);
+    var lines = doc.splitTextToSize(String(objeto), W - margin*2 - 44);
+    doc.text(lines, margin + 44, y);
+    y += Math.max(lines.length * 10, 12) + 6;
+  }
+
+  // Totais (retenção / retirada / depósito / saldo)
+  function totNumber(id) {
+    var el = document.getElementById(id);
+    return el ? el.textContent.trim() : '';
+  }
+  var totRetHtml = document.getElementById('cv-tot-retencao');
+  var totRetTxt = totRetHtml ? totRetHtml.innerText.replace(/\s+/g,' ').trim() : '';
+  var totRirHtml = document.getElementById('cv-tot-retirada');
+  var totRirTxt = totRirHtml ? totRirHtml.innerText.replace(/\s+/g,' ').trim() : '';
+  var deposito = totNumber('cv-deposito');
+  var saldo    = totNumber('cv-saldo');
+
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,116,139);
+  if (totRetTxt) { doc.text('Retenção: ' + totRetTxt, margin, y); y += 11; }
+  if (totRirTxt) { doc.text('Retirada: ' + totRirTxt, margin, y); y += 11; }
+  if (deposito)  { doc.text(deposito, margin, y); y += 11; }
+  if (saldo)     { doc.text(saldo,    margin, y); y += 11; }
+  doc.setTextColor(30, 41, 59);
+  y += 4;
+
+  // Tabela
+  var head = ['#'].concat(CV_COLS.map(function(c){ return c.label; }));
+  var body = cvFiltradas.map(function(l, i) {
+    var c = cvCalc(l, perc);
+    return [i+1].concat(CV_COLS.map(function(col) {
+      if (col.calc) {
+        if (col.k === 'erro') return c.erro || '';
+        return c[col.k] == null ? '' : cvMoeda(c[col.k]);
+      }
+      if (col.tipo === 'dinheiro') { var n = cvNum(l[col.k]); return n == null ? '' : cvMoeda(n); }
+      if (col.tipo === 'data') return l[col.k] ? cvFmtData(l[col.k]) : '';
+      return l[col.k] || '';
+    }));
+  });
+
+  doc.autoTable({
+    startY: y,
+    head: [head],
+    body: body,
+    margin: { left: margin, right: margin, bottom: footerH },
+    styles: { fontSize: 6.5, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
+    headStyles: { fillColor: [30,41,59], textColor: 255, fontSize: 6.5, halign:'center' },
+    bodyStyles: { textColor: [30,41,59] },
+    alternateRowStyles: { fillColor: [248,250,252] },
+    columnStyles: { 0: { cellWidth: 20, halign:'center' } },
+    didDrawPage: function() { drawHeader(); }
+  });
+
+  // Rodapé (todas as páginas)
+  var pageCount = doc.internal.getNumberOfPages();
+  for (var i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184);
+    doc.text('Sistema de Controle de Faturamento — UFRJ / PR6', margin, H - 10);
+    doc.text('Página ' + i + ' de ' + pageCount, W - margin, H - 10, { align:'right' });
+  }
+
+  var slug = (contrato || 'conta_vinculada').replace(/\//g,'-').replace(/[^A-Za-z0-9\-_.]/g,'_');
+  doc.save('Conta_Vinculada_' + slug + '.pdf');
+}
+
+function cvFmtData(v) {
+  if (!v) return '';
+  var s = String(v).slice(0,10);
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? (m[3] + '/' + m[2] + '/' + m[1]) : s;
+}
+
 function cvExportarExcel() {
   if (!CV_ATUAL) return;
   cvFiltrar();
