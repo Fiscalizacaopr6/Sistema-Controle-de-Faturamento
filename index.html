@@ -2039,15 +2039,15 @@ function openContratoModal(num) {
     + '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:center;margin-bottom:14px">'
     + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total pago (desde o início)</div>'
     +   '<div style="font-size:20px;font-weight:700;color:var(--green)">' + fmtBR(totalPago) + '</div></div>'
-    + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total do período (todos os termos)</div>'
+    + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Total contratado (todos os termos)</div>'
     +   '<div style="font-size:20px;font-weight:700;color:var(--accent)">' + fmtBR(totalPeriodo) + '</div></div>'
-    + '<div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">% Executado</div>'
+    + '<div style="text-align:right"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">% Pago</div>'
     +   '<div style="font-size:20px;font-weight:700;color:var(--text)">' + razao + '%</div></div>'
     + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:10px">'
     +   '<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Pago</span><span>' + fmtBR(totalPago) + '</span></div>'
     +     '<div style="background:var(--surface2);border-radius:6px;height:22px;overflow:hidden"><div style="height:100%;width:' + pctPago + '%;background:var(--green);transition:width .3s"></div></div></div>'
-    +   '<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Total do período</span><span>' + fmtBR(totalPeriodo) + '</span></div>'
+    +   '<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Total contratado</span><span>' + fmtBR(totalPeriodo) + '</span></div>'
     +     '<div style="background:var(--surface2);border-radius:6px;height:22px;overflow:hidden"><div style="height:100%;width:' + pctPer + '%;background:var(--accent);transition:width .3s"></div></div></div>'
     + '</div>'
     + '<div style="font-size:11px;color:var(--muted);margin-top:10px">Baseado em ' + docs.length + ' registro' + (docs.length === 1 ? '' : 's') + ' de documentos e ' + termos.length + ' termo' + (termos.length === 1 ? '' : 's') + ' de contrato.</div>';
@@ -2066,7 +2066,7 @@ function openContratoModal(num) {
     + card('Contrato', contratoHtml)
     + card('Empresa — Contatos', empresaHtml)
     + card('Fiscais (' + fiscais.length + ')', fiscaisHtml)
-    + card('Documentos — Executado vs. Total do Período', docsHtml);
+    + card('DOCUMENTOS — PAGO VS CONTRATADO', docsHtml);
 
   var area = document.getElementById('db-charts-area');
   var det = document.getElementById('db-contrato-detail');
@@ -2225,7 +2225,7 @@ function exportContratoPDF(numContrato) {
   var totalPeriodo = 0;
   termos.forEach(function(t){ totalPeriodo += (+t['TOTAL GLOBAL'] || 0); });
   var razao = totalPeriodo > 0 ? Math.round((totalPago/totalPeriodo)*100) : 0;
-  secTitle('Documentos — Executado vs. Total do Período');
+  secTitle('DOCUMENTOS — PAGO VS CONTRATADO');
   var barsH = 110;
   ensure(barsH + 30);
   var maxV = Math.max(totalPago, totalPeriodo, 1);
@@ -2240,7 +2240,7 @@ function exportContratoPDF(numContrato) {
   y += 26;
   // Total período
   doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
-  doc.text('Total do período:', margin, y + 12);
+  doc.text('Total contratado:', margin, y + 12);
   doc.setFillColor(226, 232, 240); doc.rect(barX, y + 2, barMaxW, 14, 'F');
   doc.setFillColor(59, 130, 246); doc.rect(barX, y + 2, barMaxW * (totalPeriodo/maxV), 14, 'F');
   doc.setTextColor(30, 41, 59); doc.setFont('helvetica','bold');
@@ -2248,7 +2248,7 @@ function exportContratoPDF(numContrato) {
   y += 26;
   // % executado
   doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139); doc.setFontSize(10);
-  doc.text('% Executado:', margin, y + 12);
+  doc.text('% Pago:', margin, y + 12);
   doc.setTextColor(30,41,59); doc.setFont('helvetica','bold'); doc.setFontSize(12);
   doc.text(razao + '%', barX, y + 12);
   y += 20;
