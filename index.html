@@ -851,7 +851,8 @@ select.doc-inp{cursor:pointer}
       </div>
 
       <div class="cv-cab">
-        <div class="ef"><label>Contrato</label><input id="cv-contrato" oninput="cvCampoCab()"></div>
+        <div class="ef"><label>Contrato</label><input id="cv-contrato" list="cv-dl-contratos" oninput="cvContratoDigitado()"></div>
+        <datalist id="cv-dl-contratos"></datalist>
         <div class="ef"><label>Incidência sobre o submódulo 4.1</label><input id="cv-perc" oninput="cvCampoCab()" placeholder="7,39%"></div>
         <div class="ef full"><label>Objeto</label><textarea id="cv-objeto" rows="2" oninput="cvCampoCab()"></textarea></div>
       </div>
@@ -895,7 +896,6 @@ select.doc-inp{cursor:pointer}
           <select class="sel" id="cv-f-unidade" onchange="cvRender()"><option value="">Todas</option></select>
         </div>
         <button class="btn clear" onclick="cvLimparFiltros()">Limpar</button>
-        <button class="btn-new" id="btn-cv-linha" onclick="cvAddLinha()" style="display:none">+ Adicionar lançamento</button>
       </div>
 
       <div id="cv-tabela"></div>
@@ -6728,12 +6728,11 @@ function cvMontarTela(reg) {
     _cvInit = true;
   }
   var podeEditar = (currentRole === 'admin' || currentRole === 'editor');
-  var btn = document.getElementById('btn-cv-linha');
-  if (btn) btn.style.display = podeEditar ? '' : 'none';
   ['cv-contrato','cv-objeto','cv-perc'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.disabled = !podeEditar;
   });
+  cvPreencherContratos();
   cvRender();
 }
 
@@ -6753,6 +6752,51 @@ function cvCampoCab() {
   cvRenderTotais();
   cvAtualizarCalculadas();
   cvSalvar();
+}
+
+// Objeto do termo do contrato — pega a linha vigente do contrato; se não houver,
+// usa o termo mais recente. Retorna string vazia se o contrato não estiver em DADOS.
+function cvObjetoDoContrato(numContrato) {
+  if (!numContrato || typeof DADOS === 'undefined') return '';
+  var termos = DADOS.filter(function(d){ return (d['CONTRATO']||'') === numContrato; });
+  if (!termos.length) return '';
+  var vig = termos.filter(function(t){ return t._st === 'VIGENTE'; });
+  var alvo = vig.length ? vig[vig.length - 1] : termos[termos.length - 1];
+  return (alvo && alvo['OBJETO'] || '').trim();
+}
+
+// Ao digitar/escolher o contrato, preenche o objeto automaticamente com o do termo.
+// Só sobrescreve o objeto quando o contrato passa a bater com um novo cadastro
+// (não fica reescrevendo enquanto o usuário digita).
+function cvContratoDigitado() {
+  var inp = document.getElementById('cv-contrato');
+  var val = inp.value.trim();
+  if (val && val !== CV_ATUAL._ultimoContratoOk) {
+    var obj = cvObjetoDoContrato(val);
+    if (obj) {
+      document.getElementById('cv-objeto').value = obj;
+      CV_ATUAL._ultimoContratoOk = val;
+    }
+  }
+  cvCampoCab();
+}
+
+// Popula a datalist com os contratos únicos de DADOS (ordenados ano desc, num asc).
+function cvPreencherContratos() {
+  var dl = document.getElementById('cv-dl-contratos');
+  if (!dl || typeof DADOS === 'undefined') return;
+  var seen = {}, lista = [];
+  DADOS.forEach(function(d){
+    var c = (d['CONTRATO']||'').trim();
+    if (c && !seen[c]) { seen[c] = 1; lista.push(c); }
+  });
+  lista.sort(function(a, b){
+    var ya = parseInt((anoDoContrato(a)||'0'), 10);
+    var yb = parseInt((anoDoContrato(b)||'0'), 10);
+    if (ya !== yb) return yb - ya;
+    return parseInt((a.split('/')[0]||'0'),10) - parseInt((b.split('/')[0]||'0'),10);
+  });
+  dl.innerHTML = lista.map(function(c){ return '<option value="'+esc(c)+'">'; }).join('');
 }
 
 function cvLimparFiltros() {
@@ -6919,7 +6963,7 @@ function cvRender() {
 
   if (!cvFiltradas.length) {
     linhas = '<tr><td colspan="40" style="text-align:center;color:var(--muted);padding:26px">'
-      + (CV_ATUAL.linhas.length ? 'Nenhum lançamento encontrado com os filtros atuais.' : 'Nenhum lançamento. Use “+ Adicionar lançamento” para começar.')
+      + (CV_ATUAL.linhas.length ? 'Nenhum lançamento encontrado com os filtros atuais.' : 'Nenhum lançamento cadastrado neste formulário.')
       + '</td></tr>';
   }
 
