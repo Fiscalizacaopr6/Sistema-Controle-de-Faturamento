@@ -672,6 +672,9 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
           <select class="sel" id="doc-f-contrato" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Unidade</span>
+          <select class="sel" id="doc-f-unidade" onchange="buildDocumentosTable()"><option value="">Todas</option></select>
+        </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Ano</span>
           <select class="sel" id="doc-f-ano" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
         </div>
@@ -5818,12 +5821,14 @@ function initDocumentos() {
   var resps = docDistinctCalc(DOC_FIELD_MAP.responsavel).sort();
   var empresas = docDistinct('empresa').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   var contratos = docDistinct('contrato').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
+  var unidades = docDistinct('unidade').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   docFillSelect('doc-f-ano', anos, 'Todos');
   docFillSelect('doc-f-mes', meses, 'Todos');
   docFillSelect('doc-f-sit', sits, 'Todas');
   docFillSelect('doc-f-resp', resps, 'Todos');
   docFillSelect('doc-f-empresa', empresas, 'Todas');
   docFillSelect('doc-f-contrato', contratos, 'Todos');
+  docFillSelect('doc-f-unidade', unidades, 'Todas');
   if (!_docInit) {
     var cont = document.getElementById('doc-table');
     if (cont) cont.addEventListener('dblclick', function(e) {
@@ -5849,7 +5854,7 @@ function initDocumentos() {
 }
 
 function clearDocFilters() {
-  ['doc-q','doc-f-empresa','doc-f-contrato','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
+  ['doc-q','doc-f-empresa','doc-f-contrato','doc-f-unidade','doc-f-ano','doc-f-mes','doc-f-sit','doc-f-resp','doc-f-status'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -5866,10 +5871,11 @@ function buildDocumentosTable(manterPagina) {
   var q = docVal('doc-q').toLowerCase().trim();
   var fAno = docVal('doc-f-ano'), fMes = docVal('doc-f-mes'), fSit = docVal('doc-f-sit'),
       fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status'), fEmp = docVal('doc-f-empresa'),
-      fCtr = docVal('doc-f-contrato');
+      fCtr = docVal('doc-f-contrato'), fUni = docVal('doc-f-unidade');
   docFiltered = DOCUMENTOS.filter(function(r) {
     if (fEmp  && String(r.empresa || '') !== fEmp) return false;
     if (fCtr  && String(r.contrato || '') !== fCtr) return false;
+    if (fUni  && String(r.unidade || '') !== fUni) return false;
     if (fAno  && String(r.ano || '') !== fAno) return false;
     if (fMes  && String(r.mes || '') !== fMes) return false;
     if (fSit  && docSituacao(r) !== fSit) return false;
