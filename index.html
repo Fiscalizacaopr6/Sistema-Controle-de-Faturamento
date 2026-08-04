@@ -531,19 +531,21 @@ select.doc-inp{cursor:pointer}
           style="min-width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;cursor:pointer;outline:none">
           <option value="">Selecione um contrato…</option>
         </select>
-        <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
-        <select id="db-year-filter" onchange="setYearFilter(this.value)"
-          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-          <option value="">Todos os anos</option>
-        </select>
-        <select id="db-tipo-filter" onchange="setTipoFilter(this.value)"
-          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-          <option value="">Todos os tipos</option>
-        </select>
-        <select id="db-subtipo-filter" onchange="setSubtipoFilter(this.value)"
-          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-          <option value="">Todos os subtipos</option>
-        </select>
+        <div id="db-extra-filters" style="display:flex;align-items:center;gap:10px">
+          <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+          <select id="db-year-filter" onchange="setYearFilter(this.value)"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+            <option value="">Todos os anos</option>
+          </select>
+          <select id="db-tipo-filter" onchange="setTipoFilter(this.value)"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+            <option value="">Todos os tipos</option>
+          </select>
+          <select id="db-subtipo-filter" onchange="setSubtipoFilter(this.value)"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+            <option value="">Todos os subtipos</option>
+          </select>
+        </div>
         <button onclick="clearDashFilters()" id="db-clear-btn"
           style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:var(--red);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">✕ Limpar filtros</button>
       </div>
@@ -1891,8 +1893,10 @@ function closeMo() { document.getElementById('mo').classList.remove('open'); }
 function hideContratoDetail() {
   var det = document.getElementById('db-contrato-detail');
   var area = document.getElementById('db-charts-area');
+  var extra = document.getElementById('db-extra-filters');
   if (det) { det.style.display = 'none'; det.innerHTML = ''; }
   if (area) area.style.display = '';
+  if (extra) extra.style.display = '';
   var sel = document.getElementById('db-contrato-filter');
   if (sel) sel.value = '';
 }
@@ -2059,10 +2063,7 @@ function openContratoModal(num) {
   var actions = ''
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">'
     +   '<div style="font-size:14px;color:var(--muted)">Detalhes do contrato</div>'
-    +   '<div style="display:flex;gap:8px">'
-    +     '<button onclick="exportContratoPDF(\'' + numContrato.replace(/'/g,"\\'") + '\')" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer">⬇ Exportar PDF</button>'
-    +     '<button onclick="hideContratoDetail()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer">← Voltar ao dashboard</button>'
-    +   '</div>'
+    +   '<button onclick="exportContratoPDF(\'' + numContrato.replace(/'/g,"\\'") + '\')" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer">⬇ Exportar PDF</button>'
     + '</div>';
 
   var html = actions
@@ -2073,7 +2074,9 @@ function openContratoModal(num) {
 
   var area = document.getElementById('db-charts-area');
   var det = document.getElementById('db-contrato-detail');
+  var extra = document.getElementById('db-extra-filters');
   if (area) area.style.display = 'none';
+  if (extra) extra.style.display = 'none';
   if (det) { det.innerHTML = html; det.style.display = ''; det.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
 
