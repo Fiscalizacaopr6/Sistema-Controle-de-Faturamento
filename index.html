@@ -3590,7 +3590,7 @@ function renderRetencaoTable() {
     var hasLink = !!r.link;
     var rowClick = 'onclick="cvAbrirFormulario(\''+r.id+'\')" style="cursor:pointer"';
     var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Totalizadora</button>'
-      + (canEdit ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirMensal(\''+r.id+'\')">📅 Mensal</button>' : '')
+      + ' <button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirMensal(\''+r.id+'\')">📅 Mensal</button>'
       + (isAdmin ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openRetencaoLinkModal(\''+r.id+'\')">🔗 Formulário da empresa</button>' : '')
       + (canEdit
       ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
@@ -6904,6 +6904,17 @@ function cvLimparFiltros() {
 
 function cvPodeEditar() { return currentRole === 'admin' || currentRole === 'editor'; }
 
+// Regra por célula: viewer pode editar TIPO sempre e as colunas de Retirada
+// (s/t/u/v) quando a linha estiver como Retirada. Linhas vindas da empresa
+// só permitem TIPO (para adotar como Retirada).
+function cvPodeEditarCelula(l, campo) {
+  if (l && l._emp) return campo === 'tipo';
+  if (cvPodeEditar()) return true;
+  if (campo === 'tipo') return true;
+  if (l && l.tipo === 'Retirada' && (campo === 's' || campo === 't' || campo === 'u' || campo === 'v')) return true;
+  return false;
+}
+
 function cvAddLinha() {
   if (!cvPodeEditar()) return;
   if (!CV_ATUAL) return;
@@ -6945,9 +6956,9 @@ function cvRemoverLinha(id) {
 
 // ── Edição das células ──
 function cvSetCampo(id, campo, valor, el) {
-  if (!cvPodeEditar()) return;
   var l = CV_ATUAL && CV_ATUAL.linhas.find(function(x){ return x.id === id; });
   if (!l) return;
+  if (!cvPodeEditarCelula(l, campo)) return;
   if (l._emp) {
     if (campo !== 'tipo' || valor === 'Retenção') { cvRender(); return; }
     cvAdotarLinha(l);
@@ -6955,6 +6966,9 @@ function cvSetCampo(id, campo, valor, el) {
   }
   if (campo === 'cpf') { valor = cvCPF(valor); if (el) el.value = valor; }
   l[campo] = valor;
+  // Ao mudar o Tipo, re-renderiza a tabela para que o viewer habilite/desabilite
+  // corretamente as colunas de Retirada (s/t/u/v).
+  if (campo === 'tipo' && !cvPodeEditar()) { cvRender(); cvRenderTotais(); cvSalvar(); return; }
   cvAtualizarLinha(id);
   cvRenderTotais();
   cvSalvar();
@@ -7046,9 +7060,8 @@ function cvRender() {
     var c = cvCalc(l, cvPercSub());
     var tds = CV_COLS.map(function(col) {
       if (col.calc) return '<td data-k="'+col.k+'">'+cvCelulaCalc(col, c)+'</td>';
-      // o Tipo é a saída da linha da empresa: fica sempre editável
       return '<td data-k="'+col.k+'">'
-        + cvCampoHtml(col, l, podeEditar && (!l._emp || col.k === 'tipo')) + '</td>';
+        + cvCampoHtml(col, l, cvPodeEditarCelula(l, col.k)) + '</td>';
     }).join('');
     return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro ':'')
       + (l._emp?'cv-da-empresa':(l._origem?'cv-adotada':''))+'">'
