@@ -4651,7 +4651,7 @@ function reajusteFormHtml(r) {
   }).join('');
   return '<div class="eform">'
     +'<div class="ef"><label>Contrato</label><input id="rf-contrato" value="'+esc(r.contrato||'')+'"></div>'
-    +'<div class="ef"><label>Responsável</label><input id="rf-resp" value="'+esc(r.responsavel||'')+'"></div>'
+    +'<div class="ef"><label>Responsável</label><select id="rf-resp"><option value="">—</option>'+selOpts(RESPS, normalizeResp(r.responsavel||''))+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="rf-empresa" value="'+esc(r.empresa||'')+'"></div>'
     +'<div class="ef"><label>Ano</label><input id="rf-ano" value="'+esc(r.ano||'')+'"></div>'
     +'<div class="ef"><label>Memória de Cálculo</label><input id="rf-memoria" value="'+esc(r.memoriaCalculo||'')+'"></div>'
