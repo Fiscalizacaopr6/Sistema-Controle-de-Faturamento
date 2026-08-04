@@ -3590,7 +3590,7 @@ function renderRetencaoTable() {
     var hasLink = !!r.link;
     var rowClick = 'onclick="cvAbrirFormulario(\''+r.id+'\')" style="cursor:pointer"';
     var actions = '<button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirFormulario(\''+r.id+'\')">📝 Totalizadora</button>'
-      + ' <button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirMensal(\''+r.id+'\')">📅 Mensal</button>'
+      + (canEdit ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();cvAbrirMensal(\''+r.id+'\')">📅 Mensal</button>' : '')
       + (isAdmin ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openRetencaoLinkModal(\''+r.id+'\')">🔗 Formulário da empresa</button>' : '')
       + (canEdit
       ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
@@ -6838,6 +6838,7 @@ function cvPreencher(id, valores, placeholder) {
 }
 
 function cvCampoCab() {
+  if (!cvPodeEditar()) return;
   if (!CV_ATUAL) return;
   CV_ATUAL.contrato = document.getElementById('cv-contrato').value.trim();
   CV_ATUAL.objeto   = document.getElementById('cv-objeto').value.trim();
@@ -6863,6 +6864,7 @@ function cvObjetoDoContrato(numContrato) {
 // Só sobrescreve o objeto quando o contrato passa a bater com um novo cadastro
 // (não fica reescrevendo enquanto o usuário digita).
 function cvContratoDigitado() {
+  if (!cvPodeEditar()) return;
   var inp = document.getElementById('cv-contrato');
   var val = inp.value.trim();
   if (val && val !== CV_ATUAL._ultimoContratoOk) {
@@ -6900,7 +6902,10 @@ function cvLimparFiltros() {
   cvRender();
 }
 
+function cvPodeEditar() { return currentRole === 'admin' || currentRole === 'editor'; }
+
 function cvAddLinha() {
+  if (!cvPodeEditar()) return;
   if (!CV_ATUAL) return;
   var hoje = new Date();
   CV_ATUAL.linhas.push({
@@ -6923,6 +6928,7 @@ function cvAddLinha() {
 }
 
 function cvRemoverLinha(id) {
+  if (!cvPodeEditar()) return;
   if (!CV_ATUAL) return;
   var l = CV_ATUAL.linhas.find(function(x){ return x.id === id; });
   if (!l) return;
@@ -6939,6 +6945,7 @@ function cvRemoverLinha(id) {
 
 // ── Edição das células ──
 function cvSetCampo(id, campo, valor, el) {
+  if (!cvPodeEditar()) return;
   var l = CV_ATUAL && CV_ATUAL.linhas.find(function(x){ return x.id === id; });
   if (!l) return;
   if (l._emp) {
