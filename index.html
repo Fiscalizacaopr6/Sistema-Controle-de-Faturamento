@@ -1500,7 +1500,7 @@ function buildDashboard() {
   var byT = {}; vig.forEach(function(d){ var t=d['TIPO']||'Outros'; byT[t]=(byT[t]||0)+1; });
   var byCR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byCR[r]=(byCR[r]||0)+1; });
   var byFR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byFR[r]=(byFR[r]||0)+(d['FUNCIONÁRIOS VIGENTES']||0); });
-  var byDE = {}; vig.filter(function(d){ return d['TIPO']==='DEDICAÇÃO EXCLUSIVA'; }).forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byDE[r]=(byDE[r]||0)+1; });
+  var byDE = {}; vig.filter(function(d){ return (d['SUBTIPO']||'').toUpperCase() === 'COM DEDICAÇÃO EXCLUSIVA'; }).forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byDE[r]=(byDE[r]||0)+1; });
   var byIMR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byIMR[r]=(byIMR[r]||0)+(d['Nº DE  IMR']||0); });
   CHART_DATA = {
     'resp':      { title:'Valor mensal por responsável (vigentes)',  html:barHtml(byR, fmtM) },
