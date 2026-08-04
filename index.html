@@ -863,6 +863,7 @@ select.doc-inp{cursor:pointer}
           <select class="sel" id="cv-f-unidade" onchange="cvRender()"><option value="">Todas</option></select>
         </div>
         <button class="btn clear" onclick="cvLimparFiltros()">Limpar</button>
+        <button class="btn-new" onclick="cvAddLinha()">+ Adicionar linha</button>
       </div>
 
       <div id="cv-tabela"></div>
@@ -6916,7 +6917,6 @@ function cvPodeEditarCelula(l, campo) {
 }
 
 function cvAddLinha() {
-  if (!cvPodeEditar()) return;
   if (!CV_ATUAL) return;
   var hoje = new Date();
   CV_ATUAL.linhas.push({
