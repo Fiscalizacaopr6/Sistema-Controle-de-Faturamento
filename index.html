@@ -378,6 +378,10 @@ tr.cv-tem-erro td{background:rgba(239,68,68,.07)}
 select.doc-inp{cursor:pointer}
 .doc-mono{font-family:'DM Mono',monospace}
 .doc-empty{color:var(--muted);opacity:.5}
+.doc-emp-clip{max-width:var(--doc-empresa-w,240px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+.doc-emp-resize{position:absolute;top:0;right:-3px;bottom:0;width:8px;cursor:col-resize;z-index:4;user-select:none}
+.doc-emp-resize:hover{background:var(--accent);opacity:.4}
+#doc-table th.doc-emp-th{position:relative;padding-right:14px}
 .doc-simbolo{font-weight:700;font-size:13px}
 .doc-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
 .doc-b-ok{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
@@ -5378,6 +5382,8 @@ function docCellDisplay(col, rec) {
       ? '<span class="doc-ob" title="Clique para editar ou abrir o documento no SEI">' + esc(v) + '</span>'
       : esc(v);
   }
+  // Coluna Empresa: encapsula no clip para permitir corte por drag do cabeçalho
+  if (col.k === 'empresa') return '<span class="doc-emp-clip" title="' + esc(v) + '">' + esc(v) + '</span>';
   return esc(v);
 }
 
@@ -5907,7 +5913,12 @@ function renderDocumentosTable() {
 
   var ths = DOC_FIELDS.map(function(c) {
     var cls = (c.sticky ? 'doc-sticky ' : '') + (docSort.k === c.k ? (docSort.dir === 1 ? 'sort-asc' : 'sort-desc') : '');
-    return '<th class="' + cls.trim() + '" onclick="docSortBy(\'' + c.k + '\')">' + esc(c.label) + '</th>';
+    if (c.k === 'empresa') cls += ' doc-emp-th';
+    var extra = c.k === 'empresa'
+      ? '<span class="doc-emp-resize" title="Arraste para redimensionar" onmousedown="docEmpresaDragStart(event)" onclick="event.stopPropagation()"></span>'
+      : '';
+    var inner = c.k === 'empresa' ? '<span class="doc-emp-clip">' + esc(c.label) + '</span>' : esc(c.label);
+    return '<th class="' + cls.trim() + '" onclick="docSortBy(\'' + c.k + '\')">' + inner + extra + '</th>';
   }).join('') + (canEdit ? '<th style="cursor:default">Ações</th>' : '');
 
   var rows = slice.map(function(rec) {
@@ -5936,6 +5947,31 @@ function renderDocumentosTable() {
     + docTotalFootHtml(soma, canEdit) + '</table></div>'
     + docPaginationHtml(totalPages) + '</div>';
   setTimeout(docHBarSync, 0);
+}
+
+// ── Redimensionamento da coluna Empresa (Documentos) ──
+var _docEmpW = parseInt(localStorage.getItem('doc-empresa-w') || '240', 10);
+if (!(_docEmpW >= 60 && _docEmpW <= 800)) _docEmpW = 240;
+document.documentElement.style.setProperty('--doc-empresa-w', _docEmpW + 'px');
+
+function docEmpresaDragStart(e) {
+  e.preventDefault(); e.stopPropagation();
+  var startX = e.clientX;
+  var startW = _docEmpW;
+  document.body.style.cursor = 'col-resize';
+  function mv(ev) {
+    var w = Math.max(60, Math.min(800, startW + (ev.clientX - startX)));
+    _docEmpW = w;
+    document.documentElement.style.setProperty('--doc-empresa-w', w + 'px');
+  }
+  function up() {
+    document.removeEventListener('mousemove', mv);
+    document.removeEventListener('mouseup', up);
+    document.body.style.cursor = '';
+    try { localStorage.setItem('doc-empresa-w', String(_docEmpW)); } catch(e){}
+  }
+  document.addEventListener('mousemove', mv);
+  document.addEventListener('mouseup', up);
 }
 
 // Soma o Valor da NF de tudo que passou pelos filtros — a base inteira do
