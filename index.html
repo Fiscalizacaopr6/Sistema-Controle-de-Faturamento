@@ -6924,7 +6924,8 @@ function cvAddLinha() {
     tipo: 'Retenção', cpf:'', nome:'', unidade:'', funcao:'',
     contratado:'', disponibilizacao:'', desligamento:'', situacao:'',
     mes: CV_MESES[hoje.getMonth()], ano: String(hoje.getFullYear()),
-    dias: '30', remuneracao:'', s:'', t:'', u:'', v:''
+    dias: '30', remuneracao:'', s:'', t:'', u:'', v:'',
+    _add: true
   });
   CV_PROPRIAS = cvLinhasProprias();
   cvSalvar();
@@ -6939,11 +6940,11 @@ function cvAddLinha() {
 }
 
 function cvRemoverLinha(id) {
-  if (!cvPodeEditar()) return;
   if (!CV_ATUAL) return;
   var l = CV_ATUAL.linhas.find(function(x){ return x.id === id; });
   if (!l) return;
   if (l._emp) { alert('Este lançamento veio do formulário da empresa e é mantido por lá.'); return; }
+  if (!cvPodeEditar() && !l._add) return;
   if (!confirm('Excluir o lançamento' + (l.nome ? ' de ' + l.nome : '') + '?')) return;
   if (l._origem && Array.isArray(CV_ATUAL.adotadas)) {
     CV_ATUAL.adotadas = CV_ATUAL.adotadas.filter(function(k){ return k !== l._origem; });
@@ -7049,12 +7050,13 @@ function cvRender() {
     + '<th class="cv-g1" colspan="'+CV_COLS.filter(function(c){ return c.grupo === 1; }).length+'">Retenções para depósito</th>'
     + '<th class="cv-g2" colspan="'+CV_COLS.filter(function(c){ return c.grupo === 2; }).length+'">Registro de retiradas</th>'
     + CV_COLS.filter(function(c){ return c.fim; }).map(thSimples).join('')
-    + (podeEditar ? '<th rowspan="2" style="width:44px"></th>' : '')
+    + (podeEditar || cvFiltradas.some(function(l){ return l._add; }) ? '<th rowspan="2" style="width:44px"></th>' : '')
     + '</tr>';
   var th2 = '<tr>'
     + CV_COLS.filter(function(c){ return c.grupo === 1; }).map(function(c){ return '<th class="cv-g1">'+esc(c.label)+'</th>'; }).join('')
     + CV_COLS.filter(function(c){ return c.grupo === 2; }).map(function(c){ return '<th class="cv-g2">'+esc(c.label)+'</th>'; }).join('')
     + '</tr>';
+  var mostraColAcoes = podeEditar || cvFiltradas.some(function(l){ return l._add; });
 
   var linhas = cvFiltradas.map(function(l, i) {
     var c = cvCalc(l, cvPercSub());
@@ -7063,6 +7065,7 @@ function cvRender() {
       return '<td data-k="'+col.k+'">'
         + cvCampoHtml(col, l, cvPodeEditarCelula(l, col.k)) + '</td>';
     }).join('');
+    var podeExcluir = !l._emp && (podeEditar || l._add);
     return '<tr data-id="'+esc(l.id)+'" class="'+(c.erro==='ERRO'?'cv-tem-erro ':'')
       + (l._emp?'cv-da-empresa':(l._origem?'cv-adotada':''))+'">'
       + '<td style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:10px"'
@@ -7070,8 +7073,9 @@ function cvRender() {
                   : l._origem ? ' title="Veio do formulário da empresa e foi convertido em retirada">↩'
                   : '>'+(i+1))+'</td>'
       + tds
-      + (podeEditar ? '<td>' + (l._emp ? ''
-          : '<button class="cv-del" onclick="cvRemoverLinha(\''+l.id+'\')" title="Excluir lançamento">✕</button>') + '</td>' : '')
+      + (mostraColAcoes ? '<td>' + (podeExcluir
+          ? '<button class="cv-del" onclick="cvRemoverLinha(\''+l.id+'\')" title="Excluir lançamento">✕</button>'
+          : '') + '</td>' : '')
       + '</tr>';
   }).join('');
 
