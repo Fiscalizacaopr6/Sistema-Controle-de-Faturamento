@@ -611,23 +611,6 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
           <select class="sel" id="f-re" onchange="applyFilters()">
             <option value="">Todos</option>
-<option value="A DESIGNAR">A DESIGNAR</option>
-<option value="ALINE">ALINE</option>
-<option value="ANDERSON">ANDERSON</option>
-<option value="DALTRO">DALTRO</option>
-<option value="EDILSON">EDILSON</option>
-<option value="ELTON">ELTON</option>
-<option value="ESDRAS">ESDRAS</option>
-<option value="ISMAEL">ISMAEL</option>
-<option value="JONI">JONI</option>
-<option value="LILIANE">LILIANE</option>
-<option value="MARCELO">MARCELO</option>
-<option value="MAYARA">MAYARA</option>
-<option value="MICHELLI">MICHELLI</option>
-<option value="RENAN">RENAN</option>
-<option value="RENATA">RENATA</option>
-<option value="ROBERTA">ROBERTA</option>
-<option value="WERNECK">WERNECK</option>
           </select>
         </div>
         <button class="btn clear" onclick="clearFilters()">Limpar</button>
@@ -1581,6 +1564,12 @@ var PER = 20;
 function populateContratoFilters() {
   fillSelectFilter('f-ct', distinctSorted(DADOS, function(d){ return d['CONTRATO']; }), 'Todos');
   fillSelectFilter('f-em', distinctSorted(DADOS, function(d){ return d['EMPRESA']; }), 'Todas');
+  // Responsável: usa distintos dos DADOS ∪ RESPS (mesmo que ninguém ainda esteja com aquele nome)
+  var setResp = {};
+  DADOS.forEach(function(d){ var v = String(d['RESPONSÁVEL NO FATURAMENTO']||'').trim(); if (v) setResp[v] = 1; });
+  (typeof RESPS !== 'undefined' ? RESPS : []).forEach(function(v){ if (v) setResp[v] = 1; });
+  var lista = Object.keys(setResp).sort(function(a, b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
+  fillSelectFilter('f-re', lista, 'Todos');
 }
 
 function applyFilters() {
