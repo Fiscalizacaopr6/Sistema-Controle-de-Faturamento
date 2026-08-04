@@ -1438,7 +1438,8 @@ function buildDashboard() {
   base.forEach(function(d){ var k=(d['CONTRATO']||'').trim(); if(k){if(!_grp[k])_grp[k]=[];_grp[k].push(d);} });
   var encCount = Object.keys(_grp).filter(function(k){ return _grp[k].every(function(d){ return d._st!=='VIGENTE'; }); }).length;
   var mensal = vig.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0);
-  var func = vig.reduce(function(s,d){ return s+(d['FUNCIONÁRIOS VIGENTES']||0); }, 0);
+  function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
+  var func = vig.reduce(function(s,d){ return s+funcDoTermo(d); }, 0);
   var v30 = vig.filter(function(d){ return d._dias !== null && d._dias <= 30; }).length;
   var totalG = base.reduce(function(s,d){ return s+(d['TOTAL GLOBAL']||0); }, 0);
   var empresas = new Set(base.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
@@ -1479,7 +1480,7 @@ function buildDashboard() {
   var byR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byR[r]=(byR[r]||0)+(d['TOTAL MENSAL']||0); });
   var byT = {}; vig.forEach(function(d){ var t=d['TIPO']||'Outros'; byT[t]=(byT[t]||0)+1; });
   var byCR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byCR[r]=(byCR[r]||0)+1; });
-  var byFR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byFR[r]=(byFR[r]||0)+(d['FUNCIONÁRIOS VIGENTES']||0); });
+  var byFR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byFR[r]=(byFR[r]||0)+funcDoTermo(d); });
   var byDE = {}; vig.filter(function(d){ return (d['SUBTIPO']||'').toUpperCase() === 'COM DEDICAÇÃO EXCLUSIVA'; }).forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byDE[r]=(byDE[r]||0)+1; });
   var byIMR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byIMR[r]=(byIMR[r]||0)+(d['Nº DE  IMR']||0); });
   CHART_DATA = {
