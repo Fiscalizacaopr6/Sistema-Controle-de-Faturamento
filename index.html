@@ -1071,8 +1071,9 @@ document.addEventListener('input', function(e) {
   var tag = el.tagName;
   var type = (el.type || '').toLowerCase();
   var skipTypes = ['email','password','date','number','checkbox','radio','search','file','url'];
-  var skipIds = ['lf-u','lf-p','ef-link-termo','uf-login','uf-nome'];
+  var skipIds = ['lf-u','lf-p','ef-link-termo','uf-login','uf-nome','cf-pedido'];
   if (skipIds.indexOf(el.id) !== -1) return;
+  if (el.hasAttribute && el.hasAttribute('data-nocaps')) return;
   if ((tag === 'INPUT' && skipTypes.indexOf(type) === -1) || tag === 'TEXTAREA') {
     var pos = el.selectionStart;
     el.value = el.value.toUpperCase();
@@ -4213,7 +4214,7 @@ function renderContasTable() {
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.processo)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.responsavel)+'</td>'
       +'<td style="white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.empresa)+'</td>'
-      +'<td style="font-size:12px">'+ed(c.id,'pedido',c.pedido)+'</td>'
+      +'<td style="font-size:12px">'+ed(c.id,'pedido',c.pedido,'data-nocaps="1"')+'</td>'
       +'<td style="text-align:center">'+edData(c.id, c.comprovantePg)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+ed(c.id,'valor',c.valor)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'folhaInfo',c.folhaInfo)+'</td>'
