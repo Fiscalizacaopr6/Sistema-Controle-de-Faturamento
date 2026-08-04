@@ -2614,8 +2614,15 @@ function fiscalFormHtml(f) {
   f = f || {};
   var sitOpts = '<option value="">— Selecione —</option>'
     + SITUACOES.map(function(s){ return '<option value="'+s+'"'+(s===(f.situacao||'')?' selected':'')+'>'+s+'</option>'; }).join('');
+  var contratosUnicos = Array.from(new Set(DADOS.map(function(d){ return d['CONTRATO']||''; }).filter(Boolean)));
+  contratosUnicos.sort(function(a, b){
+    var ya = parseInt((anoDoContrato(a)||'0'), 10);
+    var yb = parseInt((anoDoContrato(b)||'0'), 10);
+    if (ya !== yb) return yb - ya;
+    return parseInt((a.split('/')[0]||'0'),10) - parseInt((b.split('/')[0]||'0'),10);
+  });
   var contratoOpts = '<option value="">— Selecione —</option>'
-    + DADOS.map(function(d){ return '<option value="'+esc(d['CONTRATO'])+'"'+(d['CONTRATO']===f.contrato?' selected':'')+'>'+esc(d['CONTRATO'])+'</option>'; }).join('');
+    + contratosUnicos.map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   return '<div class="eform">'
     +'<div class="ef full"><label>Nome *</label><input id="ff-nome" value="'+esc(f.nome||'')+'"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
