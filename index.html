@@ -4143,6 +4143,37 @@ function buildContasTable() {
   renderContasTable();
 }
 
+// dd/mm/yyyy <-> yyyy-mm-dd
+function contaDataParaISO(v) {
+  if (!v) return '';
+  var s = String(v).trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1]+'-'+m[2]+'-'+m[3];
+  m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return m[3]+'-'+m[2]+'-'+m[1];
+  return '';
+}
+function contaDataParaBR(v) {
+  var iso = contaDataParaISO(v);
+  if (!iso) return v || '';
+  var p = iso.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+
+function contaInlineSalvar(id, campo, valor) {
+  var c = CONTAS.find(function(x){ return x.id === id; });
+  if (!c) return;
+  if (campo === 'comprovantePg') valor = contaDataParaBR(valor);
+  c[campo] = valor;
+  // Se mudou o contrato via inline (não acontece, mas por segurança), reaplica auto-fill
+  if (campo === 'contrato') {
+    var a = contaAutoFill(valor);
+    c.processo = a.processo; c.empresa = a.empresa; c.responsavel = a.responsavel;
+  }
+  saveContasToStorage();
+  if (campo === 'situacao') renderContasTable(); // atualiza cor
+}
+
 function renderContasTable() {
   var canEdit = currentRole === 'admin' || currentRole === 'editor';
   var wrap = document.getElementById('conta-table');
@@ -4163,24 +4194,43 @@ function renderContasTable() {
     'AGUARDANDO': 'var(--amber)',
     'CANCELADO': 'var(--red)'
   };
+  var sitList = ['','VALOR DEVOLVIDO','PENDENTE','AGUARDANDO','CANCELADO'];
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-transform:none';
+  var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
+  var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
+  function ed(id, campo, val, extra) {
+    if (!canEdit) return esc(val || '');
+    extra = extra || '';
+    return '<input value="'+esc(val||'')+'" '+extra
+      +' style="'+inpBase+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';contaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
+  }
+  function edData(id, val) {
+    if (!canEdit) return esc(contaDataParaBR(val));
+    return '<input type="date" value="'+esc(contaDataParaISO(val))+'"'
+      +' style="'+inpBase+';font-family:\'DM Mono\',monospace" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
+      +' onchange="contaInlineSalvar(\''+id+'\',\'comprovantePg\',this.value)">';
+  }
+  function edSit(id, val) {
+    var sitStyle = sitColor[val] || 'var(--muted)';
+    if (!canEdit) return '<span style="font-weight:600;color:'+sitStyle+'">'+esc(val||'')+'</span>';
+    var opts = sitList.map(function(s){ return '<option value="'+s+'"'+(s===(val||'')?' selected':'')+'>'+(s||'—')+'</option>'; }).join('');
+    return '<select style="'+inpBase+';font-weight:600;color:'+sitStyle+'" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
+      +' onchange="contaInlineSalvar(\''+id+'\',\'situacao\',this.value)">'+opts+'</select>';
+  }
   var rows = slice.map(function(c) {
-    var sitStyle = sitColor[c.situacao] || 'var(--muted)';
-    var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="openEditContaModal(\''+c.id+'\')">Editar</button>'
-        +' <button class="btn-usr-del" onclick="confirmDeleteConta(\''+c.id+'\')">Excluir</button>'
-      : '';
+    var actions = canEdit ? '<button class="btn-usr-del" onclick="confirmDeleteConta(\''+c.id+'\')">Excluir</button>' : '';
     return '<tr>'
-      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+esc(c.contrato)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(c.processo)+'</td>'
-      +'<td style="font-weight:600;white-space:nowrap">'+esc(c.responsavel)+'</td>'
-      +'<td style="white-space:nowrap">'+esc(c.empresa)+'</td>'
-      +'<td style="font-size:12px">'+esc(c.pedido)+'</td>'
-      +'<td style="text-align:center">'+esc(c.comprovantePg)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+esc(c.valor)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'
-        +seiLinkHtml(c.folhaInfo, 'cvSeiMenu(event,\''+esc(c.id)+'\',\'folhaInfo\')')+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(c.comprovanteResgate)+'</td>'
-      +'<td style="font-weight:600;white-space:nowrap;color:'+sitStyle+'">'+esc(c.situacao)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap" title="Auto do contrato">'+esc(c.contrato)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.processo)+'</td>'
+      +'<td style="font-weight:600;white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.responsavel)+'</td>'
+      +'<td style="white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.empresa)+'</td>'
+      +'<td style="font-size:12px">'+ed(c.id,'pedido',c.pedido)+'</td>'
+      +'<td style="text-align:center">'+edData(c.id, c.comprovantePg)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+ed(c.id,'valor',c.valor)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'folhaInfo',c.folhaInfo)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'comprovanteResgate',c.comprovanteResgate)+'</td>'
+      +'<td style="white-space:nowrap">'+edSit(c.id, c.situacao)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -4222,33 +4272,54 @@ function cvGoPage(p) {
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+// Retorna processo/empresa/responsavel do contrato (termo vigente; fallback: último)
+function contaAutoFill(contrato) {
+  var out = {processo:'', empresa:'', responsavel:''};
+  if (!contrato || typeof DADOS === 'undefined') return out;
+  var termos = DADOS.filter(function(d){ return (d['CONTRATO']||'') === contrato; });
+  if (!termos.length) return out;
+  var vig = termos.filter(function(t){ return t._st === 'VIGENTE'; });
+  var d = vig.length ? vig[vig.length-1] : termos[termos.length-1];
+  out.processo    = String(d['PROCESSO CONTA VINCULADA'] || '');
+  out.empresa     = (d['EMPRESA']||'').trim();
+  out.responsavel = String(d['RESPONSÁVEL NO FATURAMENTO'] || '');
+  return out;
+}
+
 function contaFormHtml(c) {
   c = c || {};
-  var situacoes = ['VALOR DEVOLVIDO','PENDENTE','AGUARDANDO','CANCELADO',''];
-  var sitOpts = situacoes.map(function(s){
-    return '<option value="'+s+'"'+(s===(c.situacao||'')?' selected':'')+'>'+( s||'— Selecione —')+'</option>';
+  var contratos = Array.from(new Set(DADOS.map(function(d){ return d['CONTRATO']||''; }).filter(Boolean)));
+  contratos.sort(function(a,b){
+    var ya = parseInt((anoDoContrato(a)||'0'), 10);
+    var yb = parseInt((anoDoContrato(b)||'0'), 10);
+    if (ya !== yb) return yb - ya;
+    return parseInt((a.split('/')[0]||'0'),10) - parseInt((b.split('/')[0]||'0'),10);
+  });
+  var opts = '<option value="">— Selecione —</option>' + contratos.map(function(x){
+    return '<option value="'+esc(x)+'"'+(x===(c.contrato||'')?' selected':'')+'>'+esc(x)+'</option>';
   }).join('');
   return '<div class="eform">'
-    +'<div class="ef"><label>Contrato</label><input id="cf-contrato" value="'+esc(c.contrato||'')+'"></div>'
-    +'<div class="ef"><label>Processo</label><input id="cf-processo" value="'+esc(c.processo||'')+'"></div>'
-    +'<div class="ef"><label>Responsável</label><input id="cf-resp" value="'+esc(c.responsavel||'')+'"></div>'
-    +'<div class="ef"><label>Empresa</label><input id="cf-empresa" value="'+esc(c.empresa||'')+'"></div>'
+    +'<div class="ef"><label>Contrato *</label><select id="cf-contrato">'+opts+'</select></div>'
     +'<div class="ef full"><label>Pedido</label><input id="cf-pedido" value="'+esc(c.pedido||'')+'"></div>'
-    +'<div class="ef"><label>Comprovante PG</label><input id="cf-comprovpg" value="'+esc(c.comprovantePg||'')+'"></div>'
-    +'<div class="ef"><label>Valor</label><input id="cf-valor" value="'+esc(c.valor||'')+'"></div>'
-    +'<div class="ef"><label>Folha de Informação</label><input id="cf-folha" value="'+esc(c.folhaInfo||'')+'"></div>'
-    +'<div class="ef"><label>Comprovante de Resgate</label><input id="cf-resgate" value="'+esc(c.comprovanteResgate||'')+'"></div>'
-    +'<div class="ef"><label>Situação do Pedido</label><select id="cf-sit">'+sitOpts+'</select></div>'
+    +'<div class="ef"><label>Valor</label><input id="cf-valor" value="'+esc(c.valor||'')+'" placeholder="R$ 0,00"></div>'
     +'</div>';
 }
 
 function readContaForm() {
-  function v(id){ return document.getElementById(id).value.trim(); }
+  function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  var contrato = v('cf-contrato');
+  var auto = contaAutoFill(contrato);
   return {
-    contrato: v('cf-contrato'), processo: v('cf-processo'), responsavel: v('cf-resp'),
-    empresa: v('cf-empresa'), pedido: v('cf-pedido'), comprovantePg: v('cf-comprovpg'),
-    valor: v('cf-valor'), folhaInfo: v('cf-folha'), comprovanteResgate: v('cf-resgate'),
-    situacao: v('cf-sit')
+    contrato: contrato,
+    processo: auto.processo,
+    responsavel: auto.responsavel,
+    empresa: auto.empresa,
+    pedido: v('cf-pedido'),
+    valor: v('cf-valor'),
+    comprovantePg: '',
+    folhaInfo: '',
+    comprovanteResgate: '',
+    situacao: ''
   };
 }
 
