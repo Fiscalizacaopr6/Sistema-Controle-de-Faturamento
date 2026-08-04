@@ -1480,7 +1480,12 @@ function buildDashboard() {
   var byCR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byCR[r]=(byCR[r]||0)+1; });
   var byFR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byFR[r]=(byFR[r]||0)+funcDoTermo(d); });
   var byDE = {}; vig.filter(function(d){ return (d['SUBTIPO']||'').toUpperCase() === 'COM DEDICAÇÃO EXCLUSIVA'; }).forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byDE[r]=(byDE[r]||0)+1; });
-  var byIMR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byIMR[r]=(byIMR[r]||0)+(d['Nº DE  IMR']||0); });
+  var byIMR = {}; vig.forEach(function(d){
+    var r = d['RESPONSÁVEL NO FATURAMENTO'] || '?';
+    var n = parseFloat(d['Nº DE  IMR']);
+    if (!isFinite(n)) n = 0;
+    byIMR[r] = (byIMR[r] || 0) + n;
+  });
   CHART_DATA = {
     'resp':      { title:'Valor mensal por responsável (vigentes)',  html:barHtml(byR, fmtM) },
     'tipo':      { title:'Contratos vigentes por tipo',              html:barHtml(byT) },
