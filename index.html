@@ -585,27 +585,6 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Tipo</span>
           <select class="sel" id="f-ti" onchange="applyFilters()">
             <option value="">Todos</option>
-<option value="ALIMENTAÇÃO">ALIMENTAÇÃO</option>
-<option value="BOMBEIRO CIVIL">BOMBEIRO CIVIL</option>
-<option value="COLETA DE RESÍDUOS">COLETA DE RESÍDUOS</option>
-<option value="COMPRA">COMPRA</option>
-<option value="CONCURSO">CONCURSO</option>
-<option value="DEDETIZAÇÃO">DEDETIZAÇÃO</option>
-<option value="LIMPEZA">LIMPEZA</option>
-<option value="DEMANDA">DEMANDA</option>
-<option value="GASES">GASES</option>
-<option value="GRAFICO">GRAFICO</option>
-<option value="GUARDANIA DE PISCINA">GUARDANIA DE PISCINA</option>
-<option value="INTÉRPRETE DE LIBRAS">INTÉRPRETE DE LIBRAS</option>
-<option value="LICENSA DE SOFTWARE">LICENSA DE SOFTWARE</option>
-<option value="LOCAÇÃO">LOCAÇÃO</option>
-<option value="MANUTENÇÃO">MANUTENÇÃO</option>
-<option value="MOTORISTA">MOTORISTA</option>
-<option value="OBRA">OBRA</option>
-<option value="RETROESCAVADEIRA">RETROESCAVADEIRA</option>
-<option value="SEGURO">SEGURO</option>
-<option value="TRANSPORTE">TRANSPORTE</option>
-<option value="VIAGENS">VIAGENS</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
@@ -1568,8 +1547,14 @@ function populateContratoFilters() {
   var setResp = {};
   DADOS.forEach(function(d){ var v = String(d['RESPONSÁVEL NO FATURAMENTO']||'').trim(); if (v) setResp[v] = 1; });
   (typeof RESPS !== 'undefined' ? RESPS : []).forEach(function(v){ if (v) setResp[v] = 1; });
-  var lista = Object.keys(setResp).sort(function(a, b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
-  fillSelectFilter('f-re', lista, 'Todos');
+  var listaResp = Object.keys(setResp).sort(function(a, b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
+  fillSelectFilter('f-re', listaResp, 'Todos');
+  // Tipo: usa TIPOS canônicos ∪ distintos dos DADOS
+  var setTi = {};
+  (typeof TIPOS !== 'undefined' ? TIPOS : []).forEach(function(v){ if (v) setTi[v] = 1; });
+  DADOS.forEach(function(d){ var v = String(d['TIPO']||'').trim(); if (v) setTi[v] = 1; });
+  var listaTi = Object.keys(setTi).sort(function(a, b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
+  fillSelectFilter('f-ti', listaTi, 'Todos');
 }
 
 function applyFilters() {
