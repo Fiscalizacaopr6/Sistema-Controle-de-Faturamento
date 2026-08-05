@@ -1778,13 +1778,13 @@ function genericExportExcel(sheetName, headers, rows, filename) {
 
 // Fiscais
 function exportFiscaisPDF() {
-  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','Telefone'];
-  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.telefone||'']; });
+  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','E-mail 2','Telefone'];
+  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.email2||'',f.telefone||'']; });
   genericExportPDF('Fiscais de Contrato', h, r, 'fiscais');
 }
 function exportFiscaisExcel() {
-  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','Telefone'];
-  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.telefone||'']; });
+  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','E-mail 2','Telefone'];
+  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.email2||'',f.telefone||'']; });
   genericExportExcel('Fiscais', h, r, 'fiscais');
 }
 
@@ -2482,7 +2482,8 @@ function buildFiscaisCards() {
         || (f.contrato||'').toLowerCase().indexOf(q) !== -1
         || (f.empresa||'').toLowerCase().indexOf(q) !== -1
         || (f.unidade||'').toLowerCase().indexOf(q) !== -1
-        || (f.email||'').toLowerCase().indexOf(q) !== -1;
+        || (f.email||'').toLowerCase().indexOf(q) !== -1
+        || (f.email2||'').toLowerCase().indexOf(q) !== -1;
   });
   fcPage = 1;
   renderFiscaisTable();
@@ -2525,6 +2526,7 @@ function renderFiscaisTable() {
       +'<td style="white-space:nowrap">'+esc(f.empresa)+'</td>'
       +'<td style="font-size:11px;color:var(--muted)">'+esc(f.unidade)+'</td>'
       +'<td style="font-size:11px">'+esc(f.email)+'</td>'
+      +'<td style="font-size:11px">'+esc(f.email2)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(f.telefone)+'</td>'
       +'<td style="font-size:11px;color:var(--muted)">'+esc(f.enderecoSei)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(f.portaria)+'</td>'
@@ -2536,7 +2538,7 @@ function renderFiscaisTable() {
     +'<div class="table-info"><span>'+fcFiltered.length+' fiscal(is)</span><span>Página '+fcPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
-    +'<th>Nome</th><th>Situação</th><th>Contrato</th><th>Status</th><th>Empresa</th><th>Unidade</th><th>E-mail</th><th>Telefone</th><th>End. SEI</th><th>Portaria</th>'
+    +'<th>Nome</th><th>Situação</th><th>Contrato</th><th>Status</th><th>Empresa</th><th>Unidade</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th><th>End. SEI</th><th>Portaria</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -2607,12 +2609,14 @@ function fiscalFormHtml(f) {
   var contratoOpts = '<option value="">— Selecione —</option>'
     + contratosUnicos.map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   return '<div class="eform">'
-    +'<div class="ef full"><label>Nome *</label><input id="ff-nome" value="'+esc(f.nome||'')+'"></div>'
+    +'<div class="ef full"><label>Nome *</label>'
+      + '<input id="ff-nome" data-nocaps="1" value="'+esc(f.nome||'')+'"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="ff-empresa" value="'+esc(f.empresa||'')+'" readonly style="opacity:.7;cursor:default"></div>'
     +'<div class="ef"><label>Unidade</label><input id="ff-unidade" value="'+esc(f.unidade||'')+'"></div>'
     +'<div class="ef"><label>E-mail</label><input type="email" id="ff-email" value="'+esc(f.email||'')+'"></div>'
+    +'<div class="ef"><label>E-mail 2</label><input type="email" id="ff-email2" value="'+esc(f.email2||'')+'"></div>'
     +'<div class="ef"><label>Telefone (DDD + 9 dígitos)</label><input id="ff-tel" value="'+esc(f.telefone||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
     +'<div class="ef"><label>Endereço SEI</label><input id="ff-sei" value="'+esc(f.enderecoSei||'')+'"></div>'
     +'<div class="ef"><label>Portaria</label><input id="ff-portaria" value="'+esc(f.portaria||'')+'"></div>'
@@ -2673,6 +2677,7 @@ function readFiscalForm() {
     empresa:       v('ff-empresa'),
     unidade:       v('ff-unidade'),
     email:         v('ff-email'),
+    email2:        v('ff-email2'),
     telefone:      v('ff-tel'),
     enderecoSei:   v('ff-sei'),
     portaria:      v('ff-portaria'),
