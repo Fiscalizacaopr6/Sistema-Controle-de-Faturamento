@@ -2613,7 +2613,11 @@ function fiscalFormHtml(f) {
       + '<input id="ff-nome" data-nocaps="1" value="'+esc(f.nome||'')+'"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
-    +'<div class="ef"><label>Empresa</label><input id="ff-empresa" value="'+esc(f.empresa||'')+'" readonly style="opacity:.7;cursor:default"></div>'
+    +'<div class="ef"><label>Empresa</label><input id="ff-empresa" list="ff-empresa-list" value="'+esc(f.empresa||'')+'">'
+      + '<datalist id="ff-empresa-list">'
+      + Array.from(new Set(DADOS.map(function(d){ return (d['EMPRESA']||'').trim(); }).filter(Boolean))).sort()
+          .map(function(e){ return '<option value="'+esc(e)+'">'; }).join('')
+      + '</datalist></div>'
     +'<div class="ef"><label>Unidade</label><input id="ff-unidade" value="'+esc(f.unidade||'')+'"></div>'
     +'<div class="ef"><label>E-mail</label><input type="email" id="ff-email" value="'+esc(f.email||'')+'"></div>'
     +'<div class="ef"><label>E-mail 2</label><input type="email" id="ff-email2" value="'+esc(f.email2||'')+'"></div>'
@@ -2623,10 +2627,13 @@ function fiscalFormHtml(f) {
     +'</div>';
 }
 
+// Escolher o contrato preenche a empresa, mas o campo continua editável: dá
+// para ajustar o nome à mão. Limpar o contrato não apaga o que foi digitado.
 function fiscalAutoFillEmpresa() {
   var contratoNum = document.getElementById('ff-contrato').value;
   var d = DADOS.find(function(x){ return x['CONTRATO'] === contratoNum; });
-  document.getElementById('ff-empresa').value = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
+  var nome = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
+  if (nome) document.getElementById('ff-empresa').value = nome;
 }
 
 function normalizeResp(val) {
