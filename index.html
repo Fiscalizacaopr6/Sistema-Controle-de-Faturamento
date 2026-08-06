@@ -2610,7 +2610,7 @@ function fiscalFormHtml(f) {
     + contratosUnicos.map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   return '<div class="eform">'
     +'<div class="ef full"><label>Nome *</label>'
-      + '<input id="ff-nome" value="'+esc((f.nome||'').toUpperCase())+'"></div>'
+      + '<input id="ff-nome" value="'+esc((f.nome||'').toUpperCase())+'" autocapitalize="characters" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="ff-empresa" list="ff-empresa-list" value="'+esc(f.empresa||'')+'">'
