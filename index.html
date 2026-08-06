@@ -1164,7 +1164,17 @@ function setupRealtimeListeners() {
     if (_suppressRefresh) return;
     var val = snap.val(); if (!val) return;
     var arr = Array.isArray(val) ? val : Object.values(val);
-    FISCAIS.length = 0; arr.forEach(function(d){ if(d) FISCAIS.push(d); });
+    var _fiscNameChanged = false;
+    FISCAIS.length = 0; arr.forEach(function(d){
+      if (d) {
+        if (d.nome) {
+          var _up = String(d.nome).toUpperCase();
+          if (_up !== d.nome) { d.nome = _up; _fiscNameChanged = true; }
+        }
+        FISCAIS.push(d);
+      }
+    });
+    if (_fiscNameChanged) saveFiscaisToStorage();
     refreshAll();
   });
   fbdb.ref('unidades').on('value', function(snap) {
@@ -2610,7 +2620,7 @@ function fiscalFormHtml(f) {
     + contratosUnicos.map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   return '<div class="eform">'
     +'<div class="ef full"><label>Nome *</label>'
-      + '<input id="ff-nome" data-nocaps="1" value="'+esc(f.nome||'')+'"></div>'
+      + '<input id="ff-nome" value="'+esc((f.nome||'').toUpperCase())+'"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="ff-empresa" list="ff-empresa-list" value="'+esc(f.empresa||'')+'">'
@@ -2678,7 +2688,7 @@ function readFiscalForm() {
     ? (dadoContrato._st === 'VIGENTE' ? 'Contrato Vigente' : 'Contrato Encerrado')
     : '';
   return {
-    nome:          v('ff-nome'),
+    nome:          v('ff-nome').toUpperCase(),
     situacao:      v('ff-sit'),
     contrato:      contrato,
     empresa:       v('ff-empresa'),
