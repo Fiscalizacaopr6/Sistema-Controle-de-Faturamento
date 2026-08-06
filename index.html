@@ -1164,17 +1164,7 @@ function setupRealtimeListeners() {
     if (_suppressRefresh) return;
     var val = snap.val(); if (!val) return;
     var arr = Array.isArray(val) ? val : Object.values(val);
-    var _fiscNameChanged = false;
-    FISCAIS.length = 0; arr.forEach(function(d){
-      if (d) {
-        if (d.nome) {
-          var _up = String(d.nome).toUpperCase();
-          if (_up !== d.nome) { d.nome = _up; _fiscNameChanged = true; }
-        }
-        FISCAIS.push(d);
-      }
-    });
-    if (_fiscNameChanged) saveFiscaisToStorage();
+    FISCAIS.length = 0; arr.forEach(function(d){ if(d) FISCAIS.push(d); });
     refreshAll();
   });
   fbdb.ref('unidades').on('value', function(snap) {
