@@ -740,6 +740,9 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
           <select class="sel" id="ct-f-resp" onchange="buildContasTable()"><option value="">Todos</option></select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Situação</span>
+          <select class="sel" id="ct-f-sit" onchange="buildContasTable()"><option value="">Todas</option></select>
+        </div>
         <button class="btn clear" onclick="clearContaFilters()">Limpar</button>
       </div>
       <div class="fiscal-cards" id="conta-table"></div>
@@ -4123,20 +4126,22 @@ function populateContaFilters() {
   fillSelectFilter('ct-f-contrato', distinctSorted(CONTAS, function(c){ return c.contrato; }), 'Todos');
   fillSelectFilter('ct-f-empresa', distinctSorted(CONTAS, function(c){ return c.empresa; }), 'Todas');
   fillSelectFilter('ct-f-resp', distinctSorted(CONTAS, function(c){ return c.responsavel; }), 'Todos');
+  fillSelectFilter('ct-f-sit', distinctSorted(CONTAS, function(c){ return c.situacao; }), 'Todas');
 }
 
 function clearContaFilters() {
-  clearFilterFields(['conta-q','ct-f-contrato','ct-f-empresa','ct-f-resp'], buildContasTable);
+  clearFilterFields(['conta-q','ct-f-contrato','ct-f-empresa','ct-f-resp','ct-f-sit'], buildContasTable);
 }
 
 function buildContasTable() {
   populateContaFilters();
   var q = (document.getElementById('conta-q') ? document.getElementById('conta-q').value : '').toLowerCase();
-  var fContrato = fVal('ct-f-contrato'), fEmpresa = fVal('ct-f-empresa'), fResp = fVal('ct-f-resp');
+  var fContrato = fVal('ct-f-contrato'), fEmpresa = fVal('ct-f-empresa'), fResp = fVal('ct-f-resp'), fSit = fVal('ct-f-sit');
   cvFiltered = CONTAS.filter(function(c) {
     if (fContrato && String(c.contrato || '').trim() !== fContrato) return false;
     if (fEmpresa && String(c.empresa || '').trim() !== fEmpresa) return false;
     if (fResp && String(c.responsavel || '').trim() !== fResp) return false;
+    if (fSit && String(c.situacao || '').trim() !== fSit) return false;
     if (!q) return true;
     return (c.contrato||'').toLowerCase().indexOf(q) !== -1
         || (c.processo||'').toLowerCase().indexOf(q) !== -1
