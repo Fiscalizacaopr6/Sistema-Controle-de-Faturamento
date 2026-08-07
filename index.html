@@ -4310,12 +4310,14 @@ function contaDataParaBR(v) {
 }
 
 // Situação AUTOMÁTICA da Solicitação da Empresa:
-//  - com comprovante de resgate  → VALOR DEVOLVIDO
-//  - com folha de informação      → ENVIADO À PR3 OU BLOCO 743
-//  - sem folha de informação      → PENDENTE
+//  - com comprovante de resgate   → VALOR DEVOLVIDO
+//  - com check em "Envio à PR-3"   → ENVIADO À PR3
+//  - com folha de informação       → BLOCO 743
+//  - sem nada                       → PENDENTE
 function contaSituacaoAuto(c) {
   if (c && String(c.comprovanteResgate || '').trim()) return 'VALOR DEVOLVIDO';
-  if (c && String(c.folhaInfo || '').trim()) return 'ENVIADO À PR3 OU BLOCO 743';
+  if (c && String(c.envioPR3 || '').trim()) return 'ENVIADO À PR3';
+  if (c && String(c.folhaInfo || '').trim()) return 'BLOCO 743';
   return 'PENDENTE';
 }
 
@@ -4330,8 +4332,8 @@ function contaInlineSalvar(id, campo, valor) {
     c.processo = a.processo; c.empresa = a.empresa; c.responsavel = a.responsavel;
   }
   saveContasToStorage();
-  // Folha de informação e comprovante de resgate afetam a Situação automática
-  if (campo === 'folhaInfo' || campo === 'comprovanteResgate') renderContasTable();
+  // Folha de informação, envio à PR-3 e comprovante de resgate afetam a Situação automática
+  if (campo === 'folhaInfo' || campo === 'comprovanteResgate' || campo === 'envioPR3') renderContasTable();
 }
 
 function renderContasTable() {
@@ -4350,8 +4352,9 @@ function renderContasTable() {
   var slice = cvFiltered.slice(start, start + cvPer);
   var sitColor = {
     'VALOR DEVOLVIDO': 'var(--green)',
-    'ENVIADO À PR3 OU BLOCO 743': 'var(--accent)',
-    'PENDENTE': 'var(--amber)'
+    'ENVIADO À PR3': 'var(--accent)',
+    'BLOCO 743': 'var(--amber)',
+    'PENDENTE': 'var(--muted)'
   };
   var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-transform:none';
   var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
@@ -4369,11 +4372,21 @@ function renderContasTable() {
       +' style="'+inpBase+';font-family:\'DM Mono\',monospace" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
       +' onchange="contaInlineSalvar(\''+id+'\',\'comprovantePg\',this.value)">';
   }
+  function edPR3(id, val) {
+    var checked = !!String(val || '').trim();
+    if (!canEdit) return '<span style="font-weight:700;color:var(--accent)">'+(checked?'✓':'—')+'</span>';
+    return '<select style="'+inpBase+';text-align:center;font-weight:700;'+(checked?'color:var(--accent)':'color:var(--muted)')+'"'
+      +' onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
+      +' onchange="contaInlineSalvar(\''+id+'\',\'envioPR3\',this.value)">'
+      +'<option value=""'+(checked?'':' selected')+'>— (retirar)</option>'
+      +'<option value="1"'+(checked?' selected':'')+'>✓</option>'
+      +'</select>';
+  }
   function edSit(c) {
     var val = contaSituacaoAuto(c);
     var sitStyle = sitColor[val] || 'var(--muted)';
     return '<span style="font-weight:600;color:'+sitStyle+'"'
-      + ' title="Automático: sem folha de informação = Pendente; com folha = Enviado à PR3 ou Bloco 743; com comprovante de resgate = Valor Devolvido">'
+      + ' title="Automático: sem nada = Pendente; com folha de informação = Bloco 743; com check em Envio à PR-3 = Enviado à PR3; com comprovante de resgate = Valor Devolvido">'
       + esc(val) + '</span>';
   }
   var rows = slice.map(function(c) {
@@ -4388,6 +4401,7 @@ function renderContasTable() {
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+ed(c.id,'valor',c.valor)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'folhaInfo',c.folhaInfo)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'comprovanteResgate',c.comprovanteResgate)+'</td>'
+      +'<td style="text-align:center;white-space:nowrap">'+edPR3(c.id, c.envioPR3)+'</td>'
       +'<td style="white-space:nowrap">'+edSit(c)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
@@ -4398,7 +4412,7 @@ function renderContasTable() {
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
     +'<th>Contrato</th><th>Processo</th><th>Responsável</th><th>Empresa</th><th>Pedido</th>'
-    +'<th>Comprovante PG</th><th>Valor</th><th>Folha Info.</th><th>Comprov. Resgate</th><th>Situação</th>'
+    +'<th>Comprovante PG</th><th>Valor</th><th>Folha Info.</th><th>Comprov. Resgate</th><th>Envio à PR-3</th><th>Situação</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -4477,6 +4491,7 @@ function readContaForm() {
     comprovantePg: '',
     folhaInfo: '',
     comprovanteResgate: '',
+    envioPR3: '',
     situacao: ''
   };
 }
