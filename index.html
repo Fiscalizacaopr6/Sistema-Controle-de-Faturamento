@@ -4374,11 +4374,11 @@ function renderContasTable() {
   }
   function edPR3(id, val) {
     var checked = !!String(val || '').trim();
-    if (!canEdit) return '<span style="font-weight:700;color:var(--accent)">'+(checked?'✓':'—')+'</span>';
+    if (!canEdit) return checked ? '<span style="font-weight:700;color:var(--accent)">✓</span>' : '';
     return '<select style="'+inpBase+';text-align:center;font-weight:700;'+(checked?'color:var(--accent)':'color:var(--muted)')+'"'
       +' onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
       +' onchange="contaInlineSalvar(\''+id+'\',\'envioPR3\',this.value)">'
-      +'<option value=""'+(checked?'':' selected')+'>— (retirar)</option>'
+      +'<option value=""'+(checked?'':' selected')+'></option>'
       +'<option value="1"'+(checked?' selected':'')+'>✓</option>'
       +'</select>';
   }
