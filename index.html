@@ -1923,12 +1923,12 @@ function exportReajustesExcel() {
 // Conta Vinculada
 function exportContasPDF() {
   var h = ['Contrato','Processo','Responsável','Empresa','Valor','Situação'];
-  var r = cvFiltered.map(function(c){ return [c.contrato||'',c.processo||'',c.responsavel||'',c.empresa||'',c.valor||'',c.situacao||'']; });
+  var r = cvFiltered.map(function(c){ return [c.contrato||'',c.processo||'',c.responsavel||'',c.empresa||'',c.valor||'',contaSituacaoAuto(c)]; });
   genericExportPDF('Conta Vinculada', h, r, 'contas_vinculadas');
 }
 function exportContasExcel() {
   var h = ['Contrato','Processo','Responsável','Empresa','Valor','Situação'];
-  var r = cvFiltered.map(function(c){ return [c.contrato||'',c.processo||'',c.responsavel||'',c.empresa||'',c.valor||'',c.situacao||'']; });
+  var r = cvFiltered.map(function(c){ return [c.contrato||'',c.processo||'',c.responsavel||'',c.empresa||'',c.valor||'',contaSituacaoAuto(c)]; });
   genericExportExcel('Conta Vinculada', h, r, 'contas_vinculadas');
 }
 
@@ -2416,7 +2416,7 @@ function exportContratoPDF(numContrato) {
     secTitle('Conta Vinculada (' + contas.length + ')');
     tbl({
       head: [['Pedido','Situação']],
-      body: contas.map(function(c){ return [c.pedido||'—', c.situacao||'—']; })
+      body: contas.map(function(c){ return [c.pedido||'—', contaSituacaoAuto(c)]; })
     });
   }
 
@@ -4264,7 +4264,7 @@ function populateContaFilters() {
   fillSelectFilter('ct-f-contrato', distinctSorted(CONTAS, function(c){ return c.contrato; }), 'Todos');
   fillSelectFilter('ct-f-empresa', distinctSorted(CONTAS, function(c){ return c.empresa; }), 'Todas');
   fillSelectFilter('ct-f-resp', distinctSorted(CONTAS, function(c){ return c.responsavel; }), 'Todos');
-  fillSelectFilter('ct-f-sit', distinctSorted(CONTAS, function(c){ return c.situacao; }), 'Todas');
+  fillSelectFilter('ct-f-sit', distinctSorted(CONTAS, function(c){ return contaSituacaoAuto(c); }), 'Todas');
 }
 
 function clearContaFilters() {
@@ -4279,14 +4279,14 @@ function buildContasTable() {
     if (fContrato && String(c.contrato || '').trim() !== fContrato) return false;
     if (fEmpresa && String(c.empresa || '').trim() !== fEmpresa) return false;
     if (fResp && String(c.responsavel || '').trim() !== fResp) return false;
-    if (fSit && String(c.situacao || '').trim() !== fSit) return false;
+    if (fSit && contaSituacaoAuto(c).trim() !== fSit) return false;
     if (!q) return true;
     return (c.contrato||'').toLowerCase().indexOf(q) !== -1
         || (c.processo||'').toLowerCase().indexOf(q) !== -1
         || (c.responsavel||'').toLowerCase().indexOf(q) !== -1
         || (c.empresa||'').toLowerCase().indexOf(q) !== -1
         || (c.pedido||'').toLowerCase().indexOf(q) !== -1
-        || (c.situacao||'').toLowerCase().indexOf(q) !== -1;
+        || contaSituacaoAuto(c).toLowerCase().indexOf(q) !== -1;
   });
   cvPage = 1;
   renderContasTable();
@@ -4309,6 +4309,16 @@ function contaDataParaBR(v) {
   return p[2]+'/'+p[1]+'/'+p[0];
 }
 
+// Situação AUTOMÁTICA da Solicitação da Empresa:
+//  - com comprovante de resgate  → VALOR DEVOLVIDO
+//  - com folha de informação      → ENVIADO À PR3 OU BLOCO 743
+//  - sem folha de informação      → PENDENTE
+function contaSituacaoAuto(c) {
+  if (c && String(c.comprovanteResgate || '').trim()) return 'VALOR DEVOLVIDO';
+  if (c && String(c.folhaInfo || '').trim()) return 'ENVIADO À PR3 OU BLOCO 743';
+  return 'PENDENTE';
+}
+
 function contaInlineSalvar(id, campo, valor) {
   var c = CONTAS.find(function(x){ return x.id === id; });
   if (!c) return;
@@ -4320,7 +4330,8 @@ function contaInlineSalvar(id, campo, valor) {
     c.processo = a.processo; c.empresa = a.empresa; c.responsavel = a.responsavel;
   }
   saveContasToStorage();
-  if (campo === 'situacao') renderContasTable(); // atualiza cor
+  // Folha de informação e comprovante de resgate afetam a Situação automática
+  if (campo === 'folhaInfo' || campo === 'comprovanteResgate') renderContasTable();
 }
 
 function renderContasTable() {
@@ -4339,11 +4350,9 @@ function renderContasTable() {
   var slice = cvFiltered.slice(start, start + cvPer);
   var sitColor = {
     'VALOR DEVOLVIDO': 'var(--green)',
-    'PENDENTE': 'var(--amber)',
-    'AGUARDANDO': 'var(--amber)',
-    'CANCELADO': 'var(--red)'
+    'ENVIADO À PR3 OU BLOCO 743': 'var(--accent)',
+    'PENDENTE': 'var(--amber)'
   };
-  var sitList = ['','VALOR DEVOLVIDO','PENDENTE','AGUARDANDO','CANCELADO'];
   var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-transform:none';
   var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
   var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
@@ -4360,12 +4369,12 @@ function renderContasTable() {
       +' style="'+inpBase+';font-family:\'DM Mono\',monospace" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
       +' onchange="contaInlineSalvar(\''+id+'\',\'comprovantePg\',this.value)">';
   }
-  function edSit(id, val) {
+  function edSit(c) {
+    var val = contaSituacaoAuto(c);
     var sitStyle = sitColor[val] || 'var(--muted)';
-    if (!canEdit) return '<span style="font-weight:600;color:'+sitStyle+'">'+esc(val||'')+'</span>';
-    var opts = sitList.map(function(s){ return '<option value="'+s+'"'+(s===(val||'')?' selected':'')+'>'+(s||'—')+'</option>'; }).join('');
-    return '<select style="'+inpBase+';font-weight:600;color:'+sitStyle+'" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
-      +' onchange="contaInlineSalvar(\''+id+'\',\'situacao\',this.value)">'+opts+'</select>';
+    return '<span style="font-weight:600;color:'+sitStyle+'"'
+      + ' title="Automático: sem folha de informação = Pendente; com folha = Enviado à PR3 ou Bloco 743; com comprovante de resgate = Valor Devolvido">'
+      + esc(val) + '</span>';
   }
   var rows = slice.map(function(c) {
     var actions = canEdit ? '<button class="btn-usr-del" onclick="confirmDeleteConta(\''+c.id+'\')">Excluir</button>' : '';
@@ -4379,7 +4388,7 @@ function renderContasTable() {
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+ed(c.id,'valor',c.valor)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'folhaInfo',c.folhaInfo)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'comprovanteResgate',c.comprovanteResgate)+'</td>'
-      +'<td style="white-space:nowrap">'+edSit(c.id, c.situacao)+'</td>'
+      +'<td style="white-space:nowrap">'+edSit(c)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
