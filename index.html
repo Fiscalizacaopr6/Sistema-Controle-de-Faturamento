@@ -2455,7 +2455,7 @@ function saveFiscaisToStorage() {
 }
 function loadFiscaisFromStorage() { /* migrado para loadAllFromFirebase */ }
 
-var SITUACOES = ['Titular','Substituto','Presidente','Membro de comissão'];
+var SITUACOES = ['Titular','Substituto','Presidente','Presidente substituto','Membro de comissão'];
 
 var fcFiltered = [], fcPage = 1, fcPer = 50;
 
@@ -2506,7 +2506,7 @@ function renderFiscaisTable() {
   var totalPages = Math.ceil(fcFiltered.length / fcPer);
   var start = (fcPage - 1) * fcPer;
   var slice = fcFiltered.slice(start, start + fcPer);
-  var sitColor = {'Titular':'var(--blue)','Substituto':'var(--amber)','Presidente':'var(--purple)','Membro de comissão':'var(--green)'};
+  var sitColor = {'Titular':'var(--blue)','Substituto':'var(--amber)','Presidente':'var(--purple)','Presidente substituto':'var(--purple)','Membro de comissão':'var(--green)'};
   var rows = slice.map(function(f) {
     var dado = DADOS.find(function(d){ return (d['CONTRATO']||'').trim() === (f.contrato||'').trim(); });
     var st = dado ? (dado._st || '') : '';
