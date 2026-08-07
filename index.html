@@ -1038,11 +1038,16 @@ function roleLabel(r) { return LEVEL_LABEL[normalizeRole(r)] || r; }
 function roleClass(r) { return 'role-' + normalizeRole(r); }
 
 // Pode o nível 'role' VER a tela 'view'?
+// Telas que só aparecem a partir de certo nível (além da regra Área 51)
+var VIEW_MIN_LEVEL = { usuarios: 3 };  // Usuários: só n3+ (n1 e n2 não veem)
+function levelNum(role) { role = normalizeRole(role); return role === 'area51' ? 99 : parseInt(role.slice(1), 10) || 0; }
 function canViewView(view, role) {
   role = normalizeRole(role || currentRole);
   if (role === 'area51') return true;               // vê tudo
   if (role === 'n1') return (view === 'dashboard' || view === 'db-lista');
-  return PUBLIC_VIEWS.indexOf(view) !== -1;         // n2..n5: tudo menos Área 51
+  if (PUBLIC_VIEWS.indexOf(view) === -1) return false;              // Área 51
+  if (VIEW_MIN_LEVEL[view] && levelNum(role) < VIEW_MIN_LEVEL[view]) return false;
+  return true;                                      // n2..n5: tudo menos Área 51
 }
 // Pode o nível 'role' EDITAR a chave de permissão 'key'?
 function canEditKey(key, role) {
