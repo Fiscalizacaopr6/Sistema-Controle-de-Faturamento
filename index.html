@@ -1934,25 +1934,25 @@ function exportContasExcel() {
 
 // Empresas
 function exportEmpresasPDF() {
-  var h = ['Empresa','Responsável','E-mail','Telefone'];
-  var r = empFiltered.map(function(e){ return [e.empresa||'',e.responsavel||'',e.email||'',e.telefone||'']; });
+  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'']; });
   genericExportPDF('Empresas', h, r, 'empresas');
 }
 function exportEmpresasExcel() {
-  var h = ['Empresa','Responsável','E-mail','Telefone'];
-  var r = empFiltered.map(function(e){ return [e.empresa||'',e.responsavel||'',e.email||'',e.telefone||'']; });
+  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'']; });
   genericExportExcel('Empresas', h, r, 'empresas');
 }
 
 // Unidades
 function exportUnidadesPDF() {
   var h = ['Nome','Cargo','Unidade','Sigla','E-mail','Telefone'];
-  var r = unFiltered.map(function(u){ return [u.nome||'',u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
+  var r = unFiltered.map(function(u){ return [(u.nome||'').toUpperCase(),u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
   genericExportPDF('Unidades', h, r, 'unidades');
 }
 function exportUnidadesExcel() {
   var h = ['Nome','Cargo','Unidade','Sigla','E-mail','Telefone'];
-  var r = unFiltered.map(function(u){ return [u.nome||'',u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
+  var r = unFiltered.map(function(u){ return [(u.nome||'').toUpperCase(),u.cargo||'',u.unidade||'',u.sigla||'',u.email||'',u.telefone||'']; });
   genericExportExcel('Unidades', h, r, 'unidades');
 }
 
@@ -3423,7 +3423,7 @@ function renderUnidadesTable() {
         +' <button class="btn-usr-del" onclick="confirmDeleteUnidade(\''+u.id+'\')">Excluir</button>'
       : '';
     return '<tr>'
-      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc(u.nome)+'</td>'
+      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc((u.nome||'').toUpperCase())+'</td>'
       +'<td style="color:var(--accent);font-weight:600;white-space:nowrap">'+esc(u.cargo)+'</td>'
       +'<td style="font-size:11px">'+unidadeNomeHtml(u.unidade)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(u.sigla)+'</td>'
@@ -3469,11 +3469,22 @@ function unGoPage(p) {
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+// Opções de Cargo já cadastradas (distintas), para a lista suspensa
+function unidadeCargoOptions(sel) {
+  sel = (sel||'').trim();
+  var set = {};
+  UNIDADES.forEach(function(u){ var c = (u.cargo||'').trim(); if (c) set[c] = 1; });
+  if (sel) set[sel] = 1;
+  var arr = Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  return '<option value="">— selecione —</option>'
+    + arr.map(function(c){ return '<option value="'+esc(c)+'"'+(c===sel?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
+}
+
 function unidadeFormHtml(u) {
   u = u || {};
   return '<div class="eform">'
-    +'<div class="ef full"><label>Nome *</label><input id="uf-nome" value="'+esc(u.nome||'')+'"></div>'
-    +'<div class="ef"><label>Cargo</label><input id="uf-cargo" value="'+esc(u.cargo||'')+'"></div>'
+    +'<div class="ef full"><label>Nome *</label><input id="unf-nome" value="'+esc(u.nome||'')+'"></div>'
+    +'<div class="ef"><label>Cargo</label><select id="unf-cargo">'+unidadeCargoOptions(u.cargo)+'</select></div>'
     +'<div class="ef"><label>Unidade</label><input id="uf-unidade" value="'+esc(u.unidade||'')+'"></div>'
     +'<div class="ef"><label>Sigla</label><input id="uf-sigla" value="'+esc(u.sigla||'')+'"></div>'
     +'<div class="ef"><label>E-mail</label><input type="email" id="uf-email" value="'+esc(u.email||'')+'"></div>'
@@ -3483,7 +3494,7 @@ function unidadeFormHtml(u) {
 
 function readUnidadeForm() {
   function v(id){ return document.getElementById(id).value.trim(); }
-  return { nome: v('uf-nome'), cargo: v('uf-cargo'), unidade: v('uf-unidade'), sigla: v('uf-sigla'), email: v('uf-email'), telefone: v('uf-tel') };
+  return { nome: v('unf-nome').toUpperCase(), cargo: v('unf-cargo'), unidade: v('uf-unidade'), sigla: v('uf-sigla'), email: v('uf-email'), telefone: v('uf-tel') };
 }
 
 function openNewUnidadeModal() {
@@ -4097,7 +4108,8 @@ function buildEmpresasTable() {
     if (!q) return true;
     return (e.empresa||'').toLowerCase().indexOf(q) !== -1
         || (e.responsavel||'').toLowerCase().indexOf(q) !== -1
-        || (e.email||'').toLowerCase().indexOf(q) !== -1;
+        || (e.email||'').toLowerCase().indexOf(q) !== -1
+        || (e.email2||'').toLowerCase().indexOf(q) !== -1;
   });
   empPage = 1;
   renderEmpresasTable();
@@ -4123,9 +4135,10 @@ function renderEmpresasTable() {
         +' <button class="btn-usr-del" onclick="confirmDeleteEmpresa(\''+e.id+'\')">Excluir</button>'
       : '';
     return '<tr>'
-      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc(e.empresa)+'</td>'
-      +'<td style="font-size:12px;white-space:nowrap">'+esc(e.responsavel)+'</td>'
+      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc((e.empresa||'').toUpperCase())+'</td>'
+      +'<td style="font-size:12px;white-space:nowrap">'+esc((e.responsavel||'').toUpperCase())+'</td>'
       +'<td style="font-size:11px">'+esc(e.email)+'</td>'
+      +'<td style="font-size:11px">'+esc(e.email2)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(e.telefone)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
@@ -4135,7 +4148,7 @@ function renderEmpresasTable() {
     +'<div class="table-info"><span>'+empFiltered.length+' empresa(s)</span><span>Página '+empPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
-    +'<th>Empresa</th><th>Responsável</th><th>E-mail</th><th>Telefone</th>'
+    +'<th>Empresa</th><th>Responsável</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -4173,13 +4186,14 @@ function empresaFormHtml(e) {
     +'<div class="ef full"><label>Empresa *</label><input id="ef-empresa" value="'+esc(e.empresa||'')+'"></div>'
     +'<div class="ef"><label>Responsável</label><input id="ef-resp" value="'+esc(e.responsavel||'')+'"></div>'
     +'<div class="ef"><label>E-mail</label><input type="email" id="ef-email" value="'+esc(e.email||'')+'"></div>'
+    +'<div class="ef"><label>E-mail 2</label><input type="email" id="ef-email2" value="'+esc(e.email2||'')+'"></div>'
     +'<div class="ef"><label>Telefone (DDD + 9 dígitos)</label><input id="ef-tel" value="'+esc(e.telefone||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
     +'</div>';
 }
 
 function readEmpresaForm() {
   function v(id){ return document.getElementById(id).value.trim(); }
-  return { empresa: v('ef-empresa'), responsavel: v('ef-resp'), email: v('ef-email'), telefone: v('ef-tel') };
+  return { empresa: v('ef-empresa').toUpperCase(), responsavel: v('ef-resp').toUpperCase(), email: v('ef-email'), email2: v('ef-email2'), telefone: v('ef-tel') };
 }
 
 function openNewEmpresaModal() {
