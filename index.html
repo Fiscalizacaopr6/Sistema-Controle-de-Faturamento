@@ -4332,8 +4332,17 @@ function contaInlineSalvar(id, campo, valor) {
     c.processo = a.processo; c.empresa = a.empresa; c.responsavel = a.responsavel;
   }
   saveContasToStorage();
-  // Folha de informação, envio à PR-3 e comprovante de resgate afetam a Situação automática
-  if (campo === 'folhaInfo' || campo === 'comprovanteResgate' || campo === 'envioPR3') renderContasTable();
+  // Folha de informação, envio à PR-3 e comprovante de resgate afetam a Situação automática.
+  // Recomputa cvFiltered a partir de CONTAS — o listener do Firebase recria as instâncias a
+  // cada save e deixa cvFiltered defasado (a edição ia para o objeto novo, o render usava o
+  // antigo, exigindo refresh). Preserva a página atual.
+  if (campo === 'folhaInfo' || campo === 'comprovanteResgate' || campo === 'envioPR3') {
+    var _p = cvPage;
+    buildContasTable();
+    var _tp = Math.ceil(cvFiltered.length / cvPer) || 1;
+    cvPage = Math.min(_p, _tp);
+    renderContasTable();
+  }
 }
 
 function renderContasTable() {
