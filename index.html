@@ -4731,11 +4731,11 @@ function rrSeiHtml(r, k) {
 }
 
 // Memória de Cálculo AUTOMÁTICA:
-//  - Memória Revisada marcada  → FEITO
-//  - Valor NF preenchido        → Em revisão.
-//  - senão                       → PENDENTE
+//  - Memória Revisada marcada OU Ordem Bancária preenchida → FEITO
+//  - Valor NF preenchido                                    → Em revisão.
+//  - senão                                                   → PENDENTE
 function reajusteMemoriaAuto(r) {
-  if (r && String(r.memoriaRevisada || '').trim()) return 'FEITO';
+  if (r && (String(r.memoriaRevisada || '').trim() || String(r.ordemBancaria || '').trim())) return 'FEITO';
   if (r && String(r.valorNf || '').trim()) return 'Em revisão.';
   return 'PENDENTE';
 }
