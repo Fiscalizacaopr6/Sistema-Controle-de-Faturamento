@@ -1911,12 +1911,12 @@ function exportFiscaisExcel() {
 // Reajustes
 function exportReajustesPDF() {
   var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação','Observação'];
-  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',x.situacaoNf||'',x.situacao||'',x.observacao||'']; });
+  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',reajusteSitNfAuto(x),x.situacao||'',x.observacao||'']; });
   genericExportPDF('Reajuste e Repactuação', h, r, 'reajustes');
 }
 function exportReajustesExcel() {
   var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação','Observação'];
-  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',x.situacaoNf||'',x.situacao||'',x.observacao||'']; });
+  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',reajusteSitNfAuto(x),x.situacao||'',x.observacao||'']; });
   genericExportExcel('Reajustes', h, r, 'reajustes');
 }
 
@@ -2407,7 +2407,7 @@ function exportContratoPDF(numContrato) {
     secTitle('Reajustes e Repactuações (' + reajustes.length + ')');
     tbl({
       head: [['Ano','Memória de Cálculo','Período','Origem','Sit. NF']],
-      body: reajustes.map(function(r){ return [r.ano||'—', r.memoriaCalculo||'—', r.periodo||'—', r.origem||'—', r.situacaoNf||'—']; })
+      body: reajustes.map(function(r){ return [r.ano||'—', reajusteMemoriaAuto(r), r.periodo||'—', r.origem||'—', reajusteSitNfAuto(r)]; })
     });
   }
 
@@ -4716,7 +4716,8 @@ function buildReajustesTable() {
         || (r.responsavel||'').toLowerCase().indexOf(q) !== -1
         || (r.empresa||'').toLowerCase().indexOf(q) !== -1
         || (r.periodo||'').toLowerCase().indexOf(q) !== -1
-        || (r.situacaoNf||'').toLowerCase().indexOf(q) !== -1
+        || reajusteSitNfAuto(r).toLowerCase().indexOf(q) !== -1
+        || reajusteMemoriaAuto(r).toLowerCase().indexOf(q) !== -1
         || (r.situacao||'').toLowerCase().indexOf(q) !== -1
         || (r.origem||'').toLowerCase().indexOf(q) !== -1;
   });
@@ -4727,6 +4728,42 @@ function buildReajustesTable() {
 // Número de documento clicável: menu com "Editar registro" ou "Abrir no SEI".
 function rrSeiHtml(r, k) {
   return seiLinkHtml(r[k], 'rrSeiMenu(event,\'' + esc(r.id) + '\',\'' + k + '\')');
+}
+
+// Memória de Cálculo AUTOMÁTICA:
+//  - Memória Revisada marcada  → FEITO
+//  - Valor NF preenchido        → Em revisão.
+//  - senão                       → PENDENTE
+function reajusteMemoriaAuto(r) {
+  if (r && String(r.memoriaRevisada || '').trim()) return 'FEITO';
+  if (r && String(r.valorNf || '').trim()) return 'Em revisão.';
+  return 'PENDENTE';
+}
+// Situação da NF AUTOMÁTICA:
+//  - Ordem Bancária preenchida → PAGO
+//  - Envio à PR-3 marcado       → ENVIADO À PR3
+//  - Folha de Informação        → BLOCO 743
+//  - senão                       → PENDENTE
+function reajusteSitNfAuto(r) {
+  if (r && String(r.ordemBancaria || '').trim()) return 'PAGO';
+  if (r && String(r.envioPR3 || '').trim()) return 'ENVIADO À PR3';
+  if (r && String(r.folhaInfo || '').trim()) return 'BLOCO 743';
+  return 'PENDENTE';
+}
+
+// Edição inline (checkboxes). Recomputa rrFiltered a partir de REAJUSTES — o
+// listener do Firebase recria as instâncias a cada save e deixa rrFiltered
+// defasado (edição ia para o objeto novo, render usava o antigo). Preserva a página.
+function reajusteInlineSalvar(id, campo, valor) {
+  var r = REAJUSTES.find(function(x){ return x.id === id; });
+  if (!r) return;
+  r[campo] = valor;
+  saveReajustesToStorage();
+  var _p = rrPage;
+  buildReajustesTable();
+  var _tp = Math.ceil(rrFiltered.length / rrPer) || 1;
+  rrPage = Math.min(_p, _tp);
+  renderReajustesTable();
 }
 
 function renderReajustesTable() {
@@ -4743,11 +4780,26 @@ function renderReajustesTable() {
   var totalPages = Math.ceil(rrFiltered.length / rrPer);
   var start = (rrPage - 1) * rrPer;
   var slice = rrFiltered.slice(start, start + rrPer);
-  var nfColor = {'PAGO':'var(--green)','PENDENTE':'var(--amber)','CANCELADO':'var(--red)'};
+  var nfColor = {'PAGO':'var(--green)','ENVIADO À PR3':'var(--accent)','BLOCO 743':'var(--amber)','PENDENTE':'var(--muted)'};
+  var memColor = {'FEITO':'var(--green)','Em revisão.':'var(--accent)','PENDENTE':'var(--muted)'};
   var sitColor = {'VIGENTE':'var(--green)','ENCERRADO':'var(--red)'};
+  var chkBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;font:inherit;padding:3px 5px;outline:none;text-align:center;font-weight:700';
+  var chkFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
+  var chkBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
+  function edCheck(id, campo, val) {
+    var checked = !!String(val || '').trim();
+    if (!canEdit) return checked ? '<span style="font-weight:700;color:var(--accent)">✓</span>' : '';
+    return '<select style="'+chkBase+';'+(checked?'color:var(--accent)':'color:var(--muted)')+'"'
+      +' onfocus="'+chkFocus+'" onblur="'+chkBlur+'"'
+      +' onchange="reajusteInlineSalvar(\''+id+'\',\''+campo+'\',this.value)">'
+      +'<option value=""'+(checked?'':' selected')+'></option>'
+      +'<option value="1"'+(checked?' selected':'')+'>✓</option>'
+      +'</select>';
+  }
   var rows = slice.map(function(r) {
-    var nfSt = (r.situacaoNf||'').toUpperCase().trim();
-    var sit  = (r.situacao||'').toUpperCase().trim();
+    var memSt = reajusteMemoriaAuto(r);
+    var nfSt  = reajusteSitNfAuto(r);
+    var sit   = (r.situacao||'').toUpperCase().trim();
     var actions = canEdit
       ? '<button class="btn-usr-edit" onclick="openEditReajusteModal(\''+r.id+'\')">Editar</button>'
         +' <button class="btn-usr-del" onclick="confirmDeleteReajuste(\''+r.id+'\')">Excluir</button>'
@@ -4757,14 +4809,16 @@ function renderReajustesTable() {
       +'<td style="font-weight:600;white-space:nowrap">'+esc(r.responsavel)+'</td>'
       +'<td style="white-space:nowrap">'+esc(r.empresa)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;text-align:center">'+esc(r.ano)+'</td>'
-      +'<td style="font-size:11px">'+esc(r.memoriaCalculo)+'</td>'
+      +'<td style="font-weight:600;font-size:11px;white-space:nowrap;color:'+(memColor[memSt]||'var(--muted)')+'">'+esc(memSt)+'</td>'
+      +'<td style="text-align:center;white-space:nowrap">'+edCheck(r.id,'memoriaRevisada',r.memoriaRevisada)+'</td>'
       +'<td style="font-size:12px">'+esc(r.periodo)+'</td>'
       +'<td style="font-size:11px;white-space:nowrap">'+esc(r.origem)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.nf)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+esc(r.valorNf)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrSeiHtml(r,'folhaInfo')+'</td>'
+      +'<td style="text-align:center;white-space:nowrap">'+edCheck(r.id,'envioPR3',r.envioPR3)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrSeiHtml(r,'ordemBancaria')+'</td>'
-      +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'">'+esc(r.situacaoNf)+'</td>'
+      +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'">'+esc(nfSt)+'</td>'
       +'<td style="font-size:11px;color:var(--muted)">'+esc(r.observacao)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(sitColor[sit]||'var(--muted)')+'">'+esc(r.situacao)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
@@ -4775,9 +4829,9 @@ function renderReajustesTable() {
     +'<div class="table-info"><span>'+rrFiltered.length+' registro(s)</span><span>Página '+rrPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
-    +'<th>Contrato</th><th>Responsável</th><th>Empresa</th><th>Ano</th><th>Memória Cálculo</th>'
+    +'<th>Contrato</th><th>Responsável</th><th>Empresa</th><th>Ano</th><th>Memória Cálculo</th><th>Memória Revisada</th>'
     +'<th>Período</th><th>Origem</th><th>NF</th><th>Valor NF</th>'
-    +'<th>Folha Info.</th><th>Ordem Bancária</th><th>Sit. NF</th><th>Observação</th><th>Situação</th>'
+    +'<th>Folha Info.</th><th>Envio à PR-3</th><th>Ordem Bancária</th><th>Sit. NF</th><th>Observação</th><th>Situação</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -4811,9 +4865,6 @@ function rrGoPage(p) {
 
 function reajusteFormHtml(r) {
   r = r || {};
-  var sitNfOpts = ['PAGO','PENDENTE','CANCELADO',''].map(function(s){
-    return '<option value="'+s+'"'+(s===(r.situacaoNf||'')?' selected':'')+'>'+(s||'— Selecione —')+'</option>';
-  }).join('');
   var sitOpts = ['VIGENTE','ENCERRADO',''].map(function(s){
     return '<option value="'+s+'"'+(s===(r.situacao||'').trim()?' selected':'')+'>'+(s||'— Selecione —')+'</option>';
   }).join('');
@@ -4822,27 +4873,26 @@ function reajusteFormHtml(r) {
     +'<div class="ef"><label>Responsável</label><select id="rf-resp"><option value="">—</option>'+selOpts(RESPS, normalizeResp(r.responsavel||''))+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="rf-empresa" value="'+esc(r.empresa||'')+'"></div>'
     +'<div class="ef"><label>Ano</label><input id="rf-ano" value="'+esc(r.ano||'')+'"></div>'
-    +'<div class="ef"><label>Memória de Cálculo</label><input id="rf-memoria" value="'+esc(r.memoriaCalculo||'')+'"></div>'
     +'<div class="ef"><label>Período</label><input id="rf-periodo" value="'+esc(r.periodo||'')+'"></div>'
     +'<div class="ef"><label>Origem</label><input id="rf-origem" value="'+esc(r.origem||'')+'"></div>'
     +'<div class="ef"><label>NF</label><input id="rf-nf" value="'+esc(r.nf||'')+'"></div>'
     +'<div class="ef"><label>Valor NF</label><input id="rf-valor" value="'+esc(r.valorNf||'')+'"></div>'
     +'<div class="ef"><label>Folha de Informação</label><input id="rf-folha" value="'+esc(r.folhaInfo||'')+'"></div>'
     +'<div class="ef"><label>Ordem Bancária</label><input id="rf-ordem" value="'+esc(r.ordemBancaria||'')+'"></div>'
-    +'<div class="ef"><label>Situação da NF</label><select id="rf-sitnf">'+sitNfOpts+'</select></div>'
     +'<div class="ef full"><label>Observação</label><input id="rf-obs" value="'+esc(r.observacao||'')+'"></div>'
     +'<div class="ef"><label>Situação</label><select id="rf-sit">'+sitOpts+'</select></div>'
     +'</div>';
 }
 
 function readReajusteForm() {
-  function v(id){ return document.getElementById(id).value.trim(); }
+  function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  // Memória de Cálculo e Situação da NF são automáticas (não vêm do formulário)
   return {
     contrato: v('rf-contrato'), responsavel: v('rf-resp'), empresa: v('rf-empresa'),
-    ano: v('rf-ano'), memoriaCalculo: v('rf-memoria'), periodo: v('rf-periodo'),
+    ano: v('rf-ano'), periodo: v('rf-periodo'),
     origem: v('rf-origem'), nf: v('rf-nf'), valorNf: v('rf-valor'),
     folhaInfo: v('rf-folha'), ordemBancaria: v('rf-ordem'),
-    situacaoNf: v('rf-sitnf'), observacao: v('rf-obs'), situacao: v('rf-sit')
+    observacao: v('rf-obs'), situacao: v('rf-sit')
   };
 }
 
