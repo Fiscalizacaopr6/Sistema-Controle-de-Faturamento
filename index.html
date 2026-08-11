@@ -731,7 +731,7 @@ select.doc-inp{cursor:pointer}
           <select class="sel" id="rj-f-resp" onchange="buildReajustesTable()"><option value="">Todos</option></select>
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Memória de Cálculo</span>
-          <select class="sel" id="rj-f-memoria" onchange="buildReajustesTable()"><option value="">Todas</option><option value="FEITO">FEITO</option><option value="Em revisão.">Em revisão.</option><option value="PENDENTE">PENDENTE</option></select>
+          <select class="sel" id="rj-f-memoria" onchange="buildReajustesTable()"><option value="">Todas</option><option value="FEITO">FEITO</option><option value="EM REVISÃO">EM REVISÃO</option><option value="PENDENTE">PENDENTE</option></select>
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Situação NF</span>
           <select class="sel" id="rj-f-sitnf" onchange="buildReajustesTable()"><option value="">Todas</option><option value="PAGO">PAGO</option><option value="ENVIADO À PR3">ENVIADO À PR3</option><option value="BLOCO 743">BLOCO 743</option><option value="PENDENTE">PENDENTE</option></select>
@@ -4751,12 +4751,13 @@ function rrSeiHtml(r, k) {
 }
 
 // Memória de Cálculo AUTOMÁTICA:
-//  - Memória Revisada marcada OU Ordem Bancária preenchida → FEITO
-//  - Valor NF preenchido                                    → Em revisão.
+//  - Memória Revisada marcada OU Ordem Bancária OU Folha de Informação preenchida → FEITO
+//    (Folha de Informação = SIT.NF "BLOCO 743": a memória já foi feita para chegar aí)
+//  - Valor NF preenchido                                    → EM REVISÃO
 //  - senão                                                   → PENDENTE
 function reajusteMemoriaAuto(r) {
-  if (r && (String(r.memoriaRevisada || '').trim() || String(r.ordemBancaria || '').trim())) return 'FEITO';
-  if (r && String(r.valorNf || '').trim()) return 'Em revisão.';
+  if (r && (String(r.memoriaRevisada || '').trim() || String(r.ordemBancaria || '').trim() || String(r.folhaInfo || '').trim())) return 'FEITO';
+  if (r && String(r.valorNf || '').trim()) return 'EM REVISÃO';
   return 'PENDENTE';
 }
 // Situação da NF AUTOMÁTICA:
@@ -4801,7 +4802,7 @@ function renderReajustesTable() {
   var start = (rrPage - 1) * rrPer;
   var slice = rrFiltered.slice(start, start + rrPer);
   var nfColor = {'PAGO':'var(--green)','ENVIADO À PR3':'var(--accent)','BLOCO 743':'var(--amber)','PENDENTE':'var(--muted)'};
-  var memColor = {'FEITO':'var(--green)','Em revisão.':'var(--accent)','PENDENTE':'var(--muted)'};
+  var memColor = {'FEITO':'var(--green)','EM REVISÃO':'var(--accent)','PENDENTE':'var(--muted)'};
   var sitColor = {'VIGENTE':'var(--green)','ENCERRADO':'var(--red)'};
   var chkBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;font:inherit;padding:3px 5px;outline:none;text-align:center;font-weight:700';
   var chkFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
