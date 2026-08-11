@@ -2035,7 +2035,14 @@ function openContratoModal(num) {
   if (!termos.length) { alert('Nenhum contrato encontrado para: ' + q); return; }
 
   var numContrato = termos[0]['CONTRATO'];
-  var d = termos[termos.length - 1];
+  // Mostra sempre o termo MAIS RECENTE do contrato (mesma regra da tela Documentos:
+  // início → ano → número), e não o último em ordem de array — que pode ser um termo
+  // antigo reinserido depois (ex.: 13/23, cujo TA 04/26 encerrado ficou no fim do array).
+  var d = termos[0], _dPos = docPosicaoTermo(d);
+  for (var _i = 1; _i < termos.length; _i++) {
+    var _p = docPosicaoTermo(termos[_i]);
+    if (docTermoMaisNovo(_p, _dPos)) { d = termos[_i]; _dPos = _p; }
+  }
   var st = d._st || '—';
   var empresaNome = (d['EMPRESA'] || '').trim();
   var isDedExcl = (d['SUBTIPO'] || '').indexOf('DEDICAÇÃO EXCLUSIVA') !== -1;
