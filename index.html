@@ -4780,11 +4780,16 @@ function reajusteInlineSalvar(id, campo, valor) {
   if (!r) return;
   r[campo] = valor;
   saveReajustesToStorage();
-  var _p = rrPage;
-  buildReajustesTable();
-  var _tp = Math.ceil(rrFiltered.length / rrPer) || 1;
-  rrPage = Math.min(_p, _tp);
-  renderReajustesTable();
+  // Só re-renderiza quando o campo afeta as colunas calculadas (Memória de Cálculo / Sit. NF),
+  // para não perder o foco durante a edição inline de texto. Preserva a página atual.
+  if (campo === 'memoriaRevisada' || campo === 'envioPR3' || campo === 'valorNf'
+      || campo === 'folhaInfo' || campo === 'ordemBancaria') {
+    var _p = rrPage;
+    buildReajustesTable();
+    var _tp = Math.ceil(rrFiltered.length / rrPer) || 1;
+    rrPage = Math.min(_p, _tp);
+    renderReajustesTable();
+  }
 }
 
 function renderReajustesTable() {
@@ -4817,31 +4822,64 @@ function renderReajustesTable() {
       +'<option value="1"'+(checked?' selected':'')+'>✓</option>'
       +'</select>';
   }
+  // Edição inline de texto (mesmo estilo transparente da tela Conta Vinculada). extra:
+  // atributos HTML adicionais no input (ex.: 'data-nocaps="1"' para não caixa-alta).
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
+  var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
+  function edInp(id, campo, val, extraAttrs, extraStyle) {
+    if (!canEdit) return esc(val || '');
+    return '<input value="'+esc(val||'')+'" '+(extraAttrs||'')
+      +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';reajusteInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
+  }
+  // Select inline com um dropdown fixo de opções (ex.: Situação).
+  function edSel(id, campo, val, opts, extraStyle) {
+    if (!canEdit) return esc(val || '');
+    var v = String(val || '').trim();
+    var opt = opts.map(function(o){
+      return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+(o||'—')+'</option>';
+    }).join('');
+    return '<select style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
+      +' onchange="reajusteInlineSalvar(\''+id+'\',\''+campo+'\',this.value)">'+opt+'</select>';
+  }
+  // Link SEI editável inline (Folha Info. / Ordem Bancária). Não passa por rrSeiMenu
+  // (que abriria o modal); a edição é aqui mesmo e o ícone ↗ abre o SEI, se houver número.
+  function edSei(id, campo, val) {
+    if (!canEdit) return esc(val || '');
+    var v = String(val || '').trim();
+    var abrir = docSeiNumeros(v).length
+      ? '<span title="Abrir no SEI" style="cursor:pointer;color:var(--accent);margin-left:4px" onclick="event.stopPropagation();docAbrirSei(\''+esc(docSeiNumeros(v)[0])+'\')">↗</span>'
+      : '';
+    return '<span style="display:inline-flex;align-items:center;gap:2px;min-width:0;width:100%">'
+      +'<input value="'+esc(v)+'" style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';reajusteInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">'
+      +abrir+'</span>';
+  }
   var rows = slice.map(function(r) {
     var memSt = reajusteMemoriaAuto(r);
     var nfSt  = reajusteSitNfAuto(r);
     var sit   = (r.situacao||'').toUpperCase().trim();
     var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="openEditReajusteModal(\''+r.id+'\')">Editar</button>'
-        +' <button class="btn-usr-del" onclick="confirmDeleteReajuste(\''+r.id+'\')">Excluir</button>'
+      ? '<button class="btn-usr-del" onclick="confirmDeleteReajuste(\''+r.id+'\')">Excluir</button>'
       : '';
     return '<tr>'
-      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+esc(r.contrato)+'</td>'
-      +'<td style="font-weight:600;white-space:nowrap">'+esc(r.responsavel)+'</td>'
-      +'<td style="white-space:nowrap">'+esc(r.empresa)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;text-align:center">'+esc(r.ano)+'</td>'
-      +'<td style="font-weight:600;font-size:11px;white-space:nowrap;color:'+(memColor[memSt]||'var(--muted)')+'">'+esc(memSt)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+edInp(r.id,'contrato',r.contrato,'',';font-family:inherit;color:inherit;font-weight:600')+'</td>'
+      +'<td style="font-weight:600;white-space:nowrap">'+edInp(r.id,'responsavel',r.responsavel,'',';font-weight:600')+'</td>'
+      +'<td style="white-space:nowrap">'+edInp(r.id,'empresa',r.empresa)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;text-align:center">'+edInp(r.id,'ano',r.ano,'inputmode="numeric" maxlength="4"',';text-align:center;font-family:inherit')+'</td>'
+      +'<td style="font-weight:600;font-size:11px;white-space:nowrap;color:'+(memColor[memSt]||'var(--muted)')+'" title="Automático — não editável">'+esc(memSt)+'</td>'
       +'<td style="text-align:center;white-space:nowrap">'+edCheck(r.id,'memoriaRevisada',r.memoriaRevisada)+'</td>'
-      +'<td style="font-size:12px">'+esc(r.periodo)+'</td>'
-      +'<td style="font-size:11px;white-space:nowrap">'+esc(r.origem)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(r.nf)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+esc(r.valorNf)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrSeiHtml(r,'folhaInfo')+'</td>'
+      +'<td style="font-size:12px">'+edInp(r.id,'periodo',r.periodo,'',';font-size:12px')+'</td>'
+      +'<td style="font-size:11px;white-space:nowrap">'+edInp(r.id,'origem',r.origem,'',';font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edInp(r.id,'nf',r.nf,'',';font-family:inherit;font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+edInp(r.id,'valorNf',r.valorNf,'',';font-family:inherit;font-weight:600')+'</td>'
+      +'<td style="white-space:nowrap">'+edSei(r.id,'folhaInfo',r.folhaInfo)+'</td>'
       +'<td style="text-align:center;white-space:nowrap">'+edCheck(r.id,'envioPR3',r.envioPR3)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+rrSeiHtml(r,'ordemBancaria')+'</td>'
-      +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'">'+esc(nfSt)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+esc(r.observacao)+'</td>'
-      +'<td style="font-weight:600;white-space:nowrap;color:'+(sitColor[sit]||'var(--muted)')+'">'+esc(r.situacao)+'</td>'
+      +'<td style="white-space:nowrap">'+edSei(r.id,'ordemBancaria',r.ordemBancaria)+'</td>'
+      +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'" title="Automático — não editável">'+esc(nfSt)+'</td>'
+      +'<td style="font-size:11px;color:var(--muted)">'+edInp(r.id,'observacao',r.observacao,'',';font-size:11px;color:var(--muted)')+'</td>'
+      +'<td style="font-weight:600;white-space:nowrap;color:'+(sitColor[sit]||'var(--muted)')+'">'+edSel(r.id,'situacao',r.situacao,['','VIGENTE','ENCERRADO'],';font-weight:600')+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
