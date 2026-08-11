@@ -730,6 +730,12 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
           <select class="sel" id="rj-f-resp" onchange="buildReajustesTable()"><option value="">Todos</option></select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Memória de Cálculo</span>
+          <select class="sel" id="rj-f-memoria" onchange="buildReajustesTable()"><option value="">Todas</option><option value="FEITO">FEITO</option><option value="Em revisão.">Em revisão.</option><option value="PENDENTE">PENDENTE</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Situação NF</span>
+          <select class="sel" id="rj-f-sitnf" onchange="buildReajustesTable()"><option value="">Todas</option><option value="PAGO">PAGO</option><option value="ENVIADO À PR3">ENVIADO À PR3</option><option value="BLOCO 743">BLOCO 743</option><option value="PENDENTE">PENDENTE</option></select>
+        </div>
         <button class="btn clear" onclick="clearReajusteFilters()">Limpar</button>
       </div>
       <div class="fiscal-cards" id="reajuste-table"></div>
@@ -4711,17 +4717,20 @@ function populateReajusteFilters() {
 }
 
 function clearReajusteFilters() {
-  clearFilterFields(['reajuste-q','rj-f-contrato','rj-f-empresa','rj-f-resp'], buildReajustesTable);
+  clearFilterFields(['reajuste-q','rj-f-contrato','rj-f-empresa','rj-f-resp','rj-f-memoria','rj-f-sitnf'], buildReajustesTable);
 }
 
 function buildReajustesTable() {
   populateReajusteFilters();
   var q = (document.getElementById('reajuste-q') ? document.getElementById('reajuste-q').value : '').toLowerCase();
   var fContrato = fVal('rj-f-contrato'), fEmpresa = fVal('rj-f-empresa'), fResp = fVal('rj-f-resp');
+  var fMemoria = fVal('rj-f-memoria'), fSitNf = fVal('rj-f-sitnf');
   rrFiltered = REAJUSTES.filter(function(r) {
     if (fContrato && String(r.contrato || '').trim() !== fContrato) return false;
     if (fEmpresa && String(r.empresa || '').trim() !== fEmpresa) return false;
     if (fResp && String(r.responsavel || '').trim() !== fResp) return false;
+    if (fMemoria && reajusteMemoriaAuto(r) !== fMemoria) return false;
+    if (fSitNf && reajusteSitNfAuto(r) !== fSitNf) return false;
     if (!q) return true;
     return (r.contrato||'').toLowerCase().indexOf(q) !== -1
         || (r.responsavel||'').toLowerCase().indexOf(q) !== -1
