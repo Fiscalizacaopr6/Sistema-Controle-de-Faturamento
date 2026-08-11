@@ -2035,13 +2035,15 @@ function openContratoModal(num) {
   if (!termos.length) { alert('Nenhum contrato encontrado para: ' + q); return; }
 
   var numContrato = termos[0]['CONTRATO'];
-  // Mostra sempre o termo MAIS RECENTE do contrato (mesma regra da tela Documentos:
-  // início → ano → número), e não o último em ordem de array — que pode ser um termo
-  // antigo reinserido depois (ex.: 13/23, cujo TA 04/26 encerrado ficou no fim do array).
-  var d = termos[0], _dPos = docPosicaoTermo(d);
+  // Mostra sempre o termo ATUAL do contrato = o de MAIOR TÉRMINO DA VIGÊNCIA
+  // (desempate pelo maior INÍCIO). Não usa a ordem do array — que pode ter um termo
+  // antigo reinserido no fim (ex.: 13/23, cujo TA 04/26 encerrado ficou no fim) — nem o
+  // início isolado, que erra com apostilas (início = mês de pagamento) e erratas (1 dia).
+  var d = termos[0];
   for (var _i = 1; _i < termos.length; _i++) {
-    var _p = docPosicaoTermo(termos[_i]);
-    if (docTermoMaisNovo(_p, _dPos)) { d = termos[_i]; _dPos = _p; }
+    var _a = termos[_i];
+    var _at = String(_a['TÉRMINO DA VIGÊNCIA'] || ''), _dt = String(d['TÉRMINO DA VIGÊNCIA'] || '');
+    if (_at > _dt || (_at === _dt && String(_a['INÍCIO DO CONTRATO'] || '') > String(d['INÍCIO DO CONTRATO'] || ''))) d = _a;
   }
   var st = d._st || '—';
   var empresaNome = (d['EMPRESA'] || '').trim();
