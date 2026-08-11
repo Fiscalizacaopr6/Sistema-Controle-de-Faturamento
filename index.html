@@ -4409,7 +4409,6 @@ function renderContasTable() {
       +'<td style="font-weight:600;white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.responsavel)+'</td>'
       +'<td style="white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.empresa)+'</td>'
       +'<td style="font-size:12px">'+ed(c.id,'pedido',c.pedido,'data-nocaps="1"')+'</td>'
-      +'<td style="text-align:center">'+edData(c.id, c.comprovantePg)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap">'+ed(c.id,'valor',c.valor)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'folhaInfo',c.folhaInfo)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+ed(c.id,'comprovanteResgate',c.comprovanteResgate)+'</td>'
@@ -4424,7 +4423,7 @@ function renderContasTable() {
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
     +'<th>Contrato</th><th>Processo</th><th>Responsável</th><th>Empresa</th><th>Pedido</th>'
-    +'<th>Comprovante PG</th><th>Valor</th><th>Folha Info.</th><th>Comprov. Resgate</th><th>Envio à PR-3</th><th>Situação</th>'
+    +'<th>Valor</th><th>Folha Info.</th><th>Comprov. Resgate</th><th>Envio à PR-3</th><th>Situação</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
