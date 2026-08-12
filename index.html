@@ -1943,13 +1943,13 @@ function exportContasExcel() {
 
 // Empresas
 function exportEmpresasPDF() {
-  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone'];
-  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'']; });
+  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)','Responsável 3','E-mail (Resp. 3)','Telefone (Resp. 3)'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'',(e.responsavel3||'').toUpperCase(),e.emailResp3||'',e.telefoneResp3||'']; });
   genericExportPDF('Empresas', h, r, 'empresas');
 }
 function exportEmpresasExcel() {
-  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone'];
-  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'']; });
+  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)','Responsável 3','E-mail (Resp. 3)','Telefone (Resp. 3)'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'',(e.responsavel3||'').toUpperCase(),e.emailResp3||'',e.telefoneResp3||'']; });
   genericExportExcel('Empresas', h, r, 'empresas');
 }
 
@@ -4120,10 +4120,26 @@ function buildEmpresasTable() {
     return (e.empresa||'').toLowerCase().indexOf(q) !== -1
         || (e.responsavel||'').toLowerCase().indexOf(q) !== -1
         || (e.email||'').toLowerCase().indexOf(q) !== -1
-        || (e.email2||'').toLowerCase().indexOf(q) !== -1;
+        || (e.email2||'').toLowerCase().indexOf(q) !== -1
+        || (e.telefone||'').toLowerCase().indexOf(q) !== -1
+        || (e.responsavel2||'').toLowerCase().indexOf(q) !== -1
+        || (e.emailResp2||'').toLowerCase().indexOf(q) !== -1
+        || (e.telefoneResp2||'').toLowerCase().indexOf(q) !== -1
+        || (e.responsavel3||'').toLowerCase().indexOf(q) !== -1
+        || (e.emailResp3||'').toLowerCase().indexOf(q) !== -1
+        || (e.telefoneResp3||'').toLowerCase().indexOf(q) !== -1;
   });
   empPage = 1;
   renderEmpresasTable();
+}
+
+// Salva inline (mesmo padrão de reajusteInlineSalvar/contaInlineSalvar). Sem colunas
+// calculadas nesta tela, então nunca re-renderiza — preserva o foco durante a digitação.
+function empresaInlineSalvar(id, campo, valor) {
+  var e = EMPRESAS.find(function(x){ return x.id === id; });
+  if (!e) return;
+  e[campo] = valor;
+  saveEmpresasToStorage();
 }
 
 function renderEmpresasTable() {
@@ -4140,17 +4156,39 @@ function renderEmpresasTable() {
   var totalPages = Math.ceil(empFiltered.length / empPer);
   var start = (empPage - 1) * empPer;
   var slice = empFiltered.slice(start, start + empPer);
+  // Edição inline (mesmo estilo transparente dos reajustes/conta vinculada).
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
+  var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
+  function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
+    if (!canEdit) return esc(upper ? String(val || '').toUpperCase() : (val || ''));
+    var oninput = upper ? ' oninput="this.value=this.value.toUpperCase()"' : '';
+    return '<input value="'+esc(val||'')+'" '+(extraAttrs||'')+oninput
+      +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';empresaInlineSalvar(\''+id+'\',\''+campo+'\',this.value'+(upper?'.toUpperCase()':'')+'.trim())">';
+  }
+  function edTel(id, campo, val) {
+    if (!canEdit) return esc(val || '');
+    return '<input value="'+esc(val||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"'
+      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';empresaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
+  }
   var rows = slice.map(function(e) {
     var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="openEditEmpresaModal(\''+e.id+'\')">Editar</button>'
-        +' <button class="btn-usr-del" onclick="confirmDeleteEmpresa(\''+e.id+'\')">Excluir</button>'
+      ? '<button class="btn-usr-del" onclick="confirmDeleteEmpresa(\''+e.id+'\')">Excluir</button>'
       : '';
     return '<tr>'
-      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc((e.empresa||'').toUpperCase())+'</td>'
-      +'<td style="font-size:12px;white-space:nowrap">'+esc((e.responsavel||'').toUpperCase())+'</td>'
-      +'<td style="font-size:11px">'+esc(e.email)+'</td>'
-      +'<td style="font-size:11px">'+esc(e.email2)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(e.telefone)+'</td>'
+      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+edInp(e.id,'empresa',(e.empresa||'').toUpperCase(),'',';font-weight:600',true)+'</td>'
+      +'<td style="font-size:12px;white-space:nowrap">'+edInp(e.id,'responsavel',(e.responsavel||'').toUpperCase(),'',';font-size:12px',true)+'</td>'
+      +'<td style="font-size:11px">'+edInp(e.id,'email',e.email,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-size:11px">'+edInp(e.id,'email2',e.email2,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(e.id,'telefone',e.telefone)+'</td>'
+      +'<td style="font-size:12px;white-space:nowrap">'+edInp(e.id,'responsavel2',(e.responsavel2||'').toUpperCase(),'',';font-size:12px',true)+'</td>'
+      +'<td style="font-size:11px">'+edInp(e.id,'emailResp2',e.emailResp2,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(e.id,'telefoneResp2',e.telefoneResp2)+'</td>'
+      +'<td style="font-size:12px;white-space:nowrap">'+edInp(e.id,'responsavel3',(e.responsavel3||'').toUpperCase(),'',';font-size:12px',true)+'</td>'
+      +'<td style="font-size:11px">'+edInp(e.id,'emailResp3',e.emailResp3,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(e.id,'telefoneResp3',e.telefoneResp3)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -4160,6 +4198,8 @@ function renderEmpresasTable() {
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
     +'<th>Empresa</th><th>Responsável</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th>'
+    +'<th>Responsável 2</th><th>E-mail (Resp. 2)</th><th>Telefone (Resp. 2)</th>'
+    +'<th>Responsável 3</th><th>E-mail (Resp. 3)</th><th>Telefone (Resp. 3)</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
