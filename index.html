@@ -7634,7 +7634,10 @@ document.addEventListener('DOMContentLoaded', function() {
       var tp = el.type;
       if (tp === 'checkbox' || tp === 'radio' || tp === 'hidden' || tp === 'file' || tp === 'button' || tp === 'submit') return false;
     }
-    return !!(el.closest && el.closest('.table-wrap table'));
+    if (!el.closest) return false;
+    // Tela de Documentos já tem edição própria por célula (duplo clique): não interferir.
+    if (el.closest('#doc-tbl')) return false;
+    return !!el.closest('.table-wrap table');
   }
   function selectableText(el){
     if (el.tagName === 'TEXTAREA') return true;
