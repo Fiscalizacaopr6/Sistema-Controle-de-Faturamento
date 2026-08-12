@@ -4199,12 +4199,23 @@ function empresaFormHtml(e) {
     +'<div class="ef"><label>E-mail</label><input type="email" id="ef-email" value="'+esc(e.email||'')+'"></div>'
     +'<div class="ef"><label>E-mail 2</label><input type="email" id="ef-email2" value="'+esc(e.email2||'')+'"></div>'
     +'<div class="ef"><label>Telefone (DDD + 9 dígitos)</label><input id="ef-tel" value="'+esc(e.telefone||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
+    +'<div class="ef"><label>Responsável 2</label><input id="ef-resp2" value="'+esc(e.responsavel2||'')+'"></div>'
+    +'<div class="ef"><label>E-mail (Resp. 2)</label><input type="email" id="ef-emailResp2" value="'+esc(e.emailResp2||'')+'"></div>'
+    +'<div class="ef"><label>Telefone (Resp. 2)</label><input id="ef-telResp2" value="'+esc(e.telefoneResp2||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
+    +'<div class="ef"><label>Responsável 3</label><input id="ef-resp3" value="'+esc(e.responsavel3||'')+'"></div>'
+    +'<div class="ef"><label>E-mail (Resp. 3)</label><input type="email" id="ef-emailResp3" value="'+esc(e.emailResp3||'')+'"></div>'
+    +'<div class="ef"><label>Telefone (Resp. 3)</label><input id="ef-telResp3" value="'+esc(e.telefoneResp3||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
     +'</div>';
 }
 
 function readEmpresaForm() {
   function v(id){ return document.getElementById(id).value.trim(); }
-  return { empresa: v('ef-empresa').toUpperCase(), responsavel: v('ef-resp').toUpperCase(), email: v('ef-email'), email2: v('ef-email2'), telefone: v('ef-tel') };
+  return {
+    empresa: v('ef-empresa').toUpperCase(),
+    responsavel: v('ef-resp').toUpperCase(), email: v('ef-email'), email2: v('ef-email2'), telefone: v('ef-tel'),
+    responsavel2: v('ef-resp2').toUpperCase(), emailResp2: v('ef-emailResp2'), telefoneResp2: v('ef-telResp2'),
+    responsavel3: v('ef-resp3').toUpperCase(), emailResp3: v('ef-emailResp3'), telefoneResp3: v('ef-telResp3')
+  };
 }
 
 function openNewEmpresaModal() {
