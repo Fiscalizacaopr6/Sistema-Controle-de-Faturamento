@@ -510,6 +510,7 @@ select.doc-inp{cursor:pointer}
       <div class="nav-item" id="nav-empresas" title="Empresas" onclick="showView('empresas')"><span class="sb-ic">🏭</span><span class="sb-tx">Empresas</span></div>
       <div class="nav-item" id="nav-unidades" title="Unidades" onclick="showView('unidades')"><span class="sb-ic">🏢</span><span class="sb-tx">Unidades</span></div>
       <div class="nav-item" id="nav-imr" title="IMR" onclick="showView('imr')"><span class="sb-ic">📋</span><span class="sb-tx">IMR</span></div>
+      <div class="nav-item" id="nav-ic" title="IC" onclick="showView('ic')" style="display:none"><span class="sb-ic">🛸</span><span class="sb-tx">IC</span></div>
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
     </nav>
     <div class="sb-foot">
@@ -819,6 +820,13 @@ select.doc-inp{cursor:pointer}
         </div>
       </div>
       <div id="imr-table"></div>
+    </div>
+<!-- IC -->
+    <div class="view" id="view-ic">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">IC</h2>
+      </div>
+      <div id="ic-content"></div>
     </div>
     <!-- RETENÇÃO CONTA VINCULADA -->
     <div class="view" id="view-retencao">
@@ -1229,7 +1237,7 @@ function applyPermissionsUI() {
     'nav-dashboard':'dashboard', 'nav-contratos':'contratos', 'nav-documentos':'documentos',
     'nav-fiscais':'fiscais', 'nav-reajustes':'reajustes', 'nav-contas':'contas',
     'nav-retencao':'retencao', 'nav-empresas':'empresas', 'nav-unidades':'unidades',
-    'nav-imr':'imr', 'nav-usuarios':'usuarios'
+    'nav-imr':'imr', 'nav-ic':'ic', 'nav-usuarios':'usuarios'
   };
   Object.keys(navMap).forEach(function(id) {
     var el = document.getElementById(id);
@@ -1374,7 +1382,7 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', ic:'IC', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   // Conta Vinculada é um grupo: mantém o submenu aberto e o grupo destacado nas duas telas
   var ehConta = (v === 'contas' || v === 'retencao' || v === 'cvform');
