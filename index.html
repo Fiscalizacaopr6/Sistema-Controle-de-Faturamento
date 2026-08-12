@@ -509,7 +509,7 @@ select.doc-inp{cursor:pointer}
       </div>
       <div class="nav-item" id="nav-empresas" title="Empresas" onclick="showView('empresas')"><span class="sb-ic">🏭</span><span class="sb-tx">Empresas</span></div>
       <div class="nav-item" id="nav-unidades" title="Unidades" onclick="showView('unidades')"><span class="sb-ic">🏢</span><span class="sb-tx">Unidades</span></div>
-      <div class="nav-item" id="nav-imr" title="IMR" onclick="showView('imr')"><span class="sb-ic">📋</span><span class="sb-tx">IMR</span></div>
+      <div class="nav-item" id="nav-imr" title="INSTRUMENTO DE MEDIÇÃO DE RESULTADO" onclick="showView('imr')"><span class="sb-ic">📋</span><span class="sb-tx">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</span></div>
       <div class="nav-item" id="nav-ic" title="IC" onclick="showView('ic')" style="display:none"><span class="sb-ic">🛸</span><span class="sb-tx">IC</span></div>
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
     </nav>
@@ -813,7 +813,7 @@ select.doc-inp{cursor:pointer}
 <!-- IMR -->
     <div class="view" id="view-imr">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">IMR</h2>
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
           <input id="imr-q" type="text" placeholder="Buscar por contrato ou empresa..." oninput="buildImrTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-new" id="btn-novo-imr" onclick="openNewImrModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
@@ -1382,7 +1382,7 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'IMR', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', ic:'INSTRUMENTO DE COBRANÇA', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'INSTRUMENTO DE MEDIÇÃO DE RESULTADO', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', ic:'INSTRUMENTO DE COBRANÇA', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   // Conta Vinculada é um grupo: mantém o submenu aberto e o grupo destacado nas duas telas
   var ehConta = (v === 'contas' || v === 'retencao' || v === 'cvform');
@@ -3601,7 +3601,7 @@ function renderImrTable() {
   var canEdit = canEditView('imr');
   var wrap = document.getElementById('imr-table');
   if (!wrap) return;
-  if (!IMR.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum registro de IMR cadastrado.</div>'; return; }
+  if (!IMR.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum registro de Instrumento de Medição de Resultado cadastrado.</div>'; return; }
   if (!imrFiltered.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum registro encontrado.</div>'; return; }
   var totalPages = Math.ceil(imrFiltered.length / imrPer);
   var start = (imrPage - 1) * imrPer;
@@ -3657,7 +3657,7 @@ function imrFormHtml(r) {
     +'<datalist id="imr-contrato-list">'+contratoOpts.map(function(c){ return '<option value="'+esc(c)+'">'; }).join('')+'</datalist></div>'
     +'<div class="ef full"><label>Empresa *</label><input id="ef-imr-empresa" value="'+esc(r.empresa||'')+'"></div>'
     +'<div class="ef full"><label>Unidade</label><input id="ef-imr-unidade" value="'+esc(r.unidade||'')+'"></div>'
-    +'<div class="ef full"><label>Link IMR</label><input id="ef-imr-link" type="url" style="text-transform:none" value="'+esc(r.link||'')+'" placeholder="https://..."></div>'
+    +'<div class="ef full"><label>Link Instrumento de Medição de Resultado</label><input id="ef-imr-link" type="url" style="text-transform:none" value="'+esc(r.link||'')+'" placeholder="https://..."></div>'
     +'</div>';
 }
 
@@ -3667,7 +3667,7 @@ function readImrForm() {
 }
 
 function openNewImrModal() {
-  document.getElementById('mo-t').textContent = 'Novo Registro IMR';
+  document.getElementById('mo-t').textContent = 'Novo Registro de Instrumento de Medição de Resultado';
   document.getElementById('mo-s').textContent = 'Preencha os dados';
   document.getElementById('mo-b').innerHTML = imrFormHtml(null);
   document.getElementById('mo-actions').innerHTML =
@@ -3689,7 +3689,7 @@ function saveNewImr() {
 function openEditImrModal(id) {
   var r = IMR.find(function(x){ return x.id === id; });
   if (!r) return;
-  document.getElementById('mo-t').textContent = 'Editar IMR';
+  document.getElementById('mo-t').textContent = 'Editar Instrumento de Medição de Resultado';
   document.getElementById('mo-s').textContent = r.contrato;
   document.getElementById('mo-b').innerHTML = imrFormHtml(r);
   document.getElementById('mo-actions').innerHTML =
