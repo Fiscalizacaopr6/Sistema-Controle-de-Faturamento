@@ -7642,18 +7642,43 @@ document.addEventListener('DOMContentLoaded', function() {
     var editable = ['text','email','tel','search','url','number','password',''];
     return editable.indexOf(el.type) !== -1;
   }
+  function lockRO(el){ if (selectableText(el) && 'readOnly' in el) el.readOnly = true; }
+  function unlockRO(el){ if (selectableText(el) && 'readOnly' in el) el.readOnly = false; }
+  document.addEventListener('focus', function(e){
+    var el = e.target;
+    if (!isInline(el)) return;
+    if (el.dataset.editing === '1') return;
+    lockRO(el);
+  }, true);
   document.addEventListener('mousedown', function(e){
     var el = e.target;
     if (!isInline(el)) return;
     if (el.dataset.editing === '1') return;
     e.preventDefault();
+    lockRO(el);
     try { el.focus({preventScroll:true}); } catch(_){ try{ el.focus(); }catch(__){} }
     if (selectableText(el)) { try { el.select(); } catch(_){} }
+  }, true);
+  document.addEventListener('keydown', function(e){
+    var el = e.target;
+    if (!isInline(el)) return;
+    if (el.dataset.editing === '1') return;
+    // Enter/F2 também habilita edição no campo focado
+    if (e.key === 'Enter' || e.key === 'F2') {
+      e.preventDefault();
+      el.dataset.editing = '1';
+      unlockRO(el);
+      try { el.focus(); if (selectableText(el)) el.select(); } catch(_){}
+    } else if (e.key !== 'Tab' && e.key !== 'Shift' && e.key !== 'Escape') {
+      // Bloqueia digitação em modo "somente seleção"
+      e.preventDefault();
+    }
   }, true);
   document.addEventListener('dblclick', function(e){
     var el = e.target;
     if (!isInline(el)) return;
     el.dataset.editing = '1';
+    unlockRO(el);
     try { el.focus(); } catch(_){}
     if (selectableText(el)) { try { el.select(); } catch(_){} }
     if (typeof el.showPicker === 'function') {
@@ -7669,6 +7694,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var el = e.target;
     if (!isInline(el)) return;
     delete el.dataset.editing;
+    lockRO(el);
   }, true);
 })();
 </script>
