@@ -7622,6 +7622,55 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   initLogin();
 });
+
+// Edição inline em tabelas: um clique apenas seleciona a informação;
+// dois cliques (duplo clique) habilitam a edição do campo.
+(function(){
+  function isInline(el){
+    if (!el || !el.tagName) return false;
+    var t = el.tagName;
+    if (t !== 'INPUT' && t !== 'SELECT' && t !== 'TEXTAREA') return false;
+    if (t === 'INPUT') {
+      var tp = el.type;
+      if (tp === 'checkbox' || tp === 'radio' || tp === 'hidden' || tp === 'file' || tp === 'button' || tp === 'submit') return false;
+    }
+    return !!(el.closest && el.closest('.table-wrap table'));
+  }
+  function selectableText(el){
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName !== 'INPUT') return false;
+    var editable = ['text','email','tel','search','url','number','password',''];
+    return editable.indexOf(el.type) !== -1;
+  }
+  document.addEventListener('mousedown', function(e){
+    var el = e.target;
+    if (!isInline(el)) return;
+    if (el.dataset.editing === '1') return;
+    e.preventDefault();
+    try { el.focus({preventScroll:true}); } catch(_){ try{ el.focus(); }catch(__){} }
+    if (selectableText(el)) { try { el.select(); } catch(_){} }
+  }, true);
+  document.addEventListener('dblclick', function(e){
+    var el = e.target;
+    if (!isInline(el)) return;
+    el.dataset.editing = '1';
+    try { el.focus(); } catch(_){}
+    if (selectableText(el)) { try { el.select(); } catch(_){} }
+    if (typeof el.showPicker === 'function') {
+      var open = el.tagName === 'SELECT';
+      if (el.tagName === 'INPUT') {
+        var t = el.type;
+        open = open || t === 'date' || t === 'datetime-local' || t === 'time' || t === 'month' || t === 'week' || t === 'color';
+      }
+      if (open) { try { el.showPicker(); } catch(_){} }
+    }
+  }, true);
+  document.addEventListener('blur', function(e){
+    var el = e.target;
+    if (!isInline(el)) return;
+    delete el.dataset.editing;
+  }, true);
+})();
 </script>
 <div id="fc-sticky-scroll"><div id="fc-sticky-inner"></div></div>
 
