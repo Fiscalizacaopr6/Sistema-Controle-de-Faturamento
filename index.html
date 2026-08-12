@@ -1943,13 +1943,13 @@ function exportContasExcel() {
 
 // Empresas
 function exportEmpresasPDF() {
-  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)','Responsável 3','E-mail (Resp. 3)','Telefone (Resp. 3)'];
-  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'',(e.responsavel3||'').toUpperCase(),e.emailResp3||'',e.telefoneResp3||'']; });
+  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'']; });
   genericExportPDF('Empresas', h, r, 'empresas');
 }
 function exportEmpresasExcel() {
-  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)','Responsável 3','E-mail (Resp. 3)','Telefone (Resp. 3)'];
-  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'',(e.responsavel3||'').toUpperCase(),e.emailResp3||'',e.telefoneResp3||'']; });
+  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'']; });
   genericExportExcel('Empresas', h, r, 'empresas');
 }
 
@@ -4124,10 +4124,7 @@ function buildEmpresasTable() {
         || (e.telefone||'').toLowerCase().indexOf(q) !== -1
         || (e.responsavel2||'').toLowerCase().indexOf(q) !== -1
         || (e.emailResp2||'').toLowerCase().indexOf(q) !== -1
-        || (e.telefoneResp2||'').toLowerCase().indexOf(q) !== -1
-        || (e.responsavel3||'').toLowerCase().indexOf(q) !== -1
-        || (e.emailResp3||'').toLowerCase().indexOf(q) !== -1
-        || (e.telefoneResp3||'').toLowerCase().indexOf(q) !== -1;
+        || (e.telefoneResp2||'').toLowerCase().indexOf(q) !== -1;
   });
   empPage = 1;
   renderEmpresasTable();
@@ -4186,9 +4183,6 @@ function renderEmpresasTable() {
       +'<td style="font-size:12px;white-space:nowrap">'+edInp(e.id,'responsavel2',(e.responsavel2||'').toUpperCase(),'',';font-size:12px',true)+'</td>'
       +'<td style="font-size:11px">'+edInp(e.id,'emailResp2',e.emailResp2,'type="email"',';font-size:11px')+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(e.id,'telefoneResp2',e.telefoneResp2)+'</td>'
-      +'<td style="font-size:12px;white-space:nowrap">'+edInp(e.id,'responsavel3',(e.responsavel3||'').toUpperCase(),'',';font-size:12px',true)+'</td>'
-      +'<td style="font-size:11px">'+edInp(e.id,'emailResp3',e.emailResp3,'type="email"',';font-size:11px')+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(e.id,'telefoneResp3',e.telefoneResp3)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -4199,7 +4193,6 @@ function renderEmpresasTable() {
     +'<thead><tr>'
     +'<th>Empresa</th><th>Responsável</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th>'
     +'<th>Responsável 2</th><th>E-mail (Resp. 2)</th><th>Telefone (Resp. 2)</th>'
-    +'<th>Responsável 3</th><th>E-mail (Resp. 3)</th><th>Telefone (Resp. 3)</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -4242,9 +4235,6 @@ function empresaFormHtml(e) {
     +'<div class="ef"><label>Responsável 2</label><input id="ef-resp2" value="'+esc(e.responsavel2||'')+'"></div>'
     +'<div class="ef"><label>E-mail (Resp. 2)</label><input type="email" id="ef-emailResp2" value="'+esc(e.emailResp2||'')+'"></div>'
     +'<div class="ef"><label>Telefone (Resp. 2)</label><input id="ef-telResp2" value="'+esc(e.telefoneResp2||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
-    +'<div class="ef"><label>Responsável 3</label><input id="ef-resp3" value="'+esc(e.responsavel3||'')+'"></div>'
-    +'<div class="ef"><label>E-mail (Resp. 3)</label><input type="email" id="ef-emailResp3" value="'+esc(e.emailResp3||'')+'"></div>'
-    +'<div class="ef"><label>Telefone (Resp. 3)</label><input id="ef-telResp3" value="'+esc(e.telefoneResp3||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"></div>'
     +'</div>';
 }
 
@@ -4253,8 +4243,7 @@ function readEmpresaForm() {
   return {
     empresa: v('ef-empresa').toUpperCase(),
     responsavel: v('ef-resp').toUpperCase(), email: v('ef-email'), email2: v('ef-email2'), telefone: v('ef-tel'),
-    responsavel2: v('ef-resp2').toUpperCase(), emailResp2: v('ef-emailResp2'), telefoneResp2: v('ef-telResp2'),
-    responsavel3: v('ef-resp3').toUpperCase(), emailResp3: v('ef-emailResp3'), telefoneResp3: v('ef-telResp3')
+    responsavel2: v('ef-resp2').toUpperCase(), emailResp2: v('ef-emailResp2'), telefoneResp2: v('ef-telResp2')
   };
 }
 
