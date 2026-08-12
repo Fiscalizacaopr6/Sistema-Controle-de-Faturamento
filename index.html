@@ -4166,7 +4166,7 @@ function renderEmpresasTable() {
   }
   function edTel(id, campo, val) {
     if (!canEdit) return esc(val || '');
-    return '<input value="'+esc(val||'')+'" oninput="maskPhone(this)" placeholder="(21) 91234-5678" maxlength="15"'
+    return '<input value="'+esc(val||'')+'" oninput="maskPhone(this)" maxlength="15"'
       +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';empresaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
   }
