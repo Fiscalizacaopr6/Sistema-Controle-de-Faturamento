@@ -4877,7 +4877,11 @@ function renderReajustesTable() {
   var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
   function edInp(id, campo, val, extraAttrs, extraStyle) {
     if (!canEdit) return esc(val || '');
-    return '<input value="'+esc(val||'')+'" '+(extraAttrs||'')
+    // size = largura natural do input (em caracteres). Sem isso, o width:100%
+    // faz a coluna encolher ao mínimo e corta o texto (só aparecia dando zoom out).
+    var _v = String(val == null ? '' : val);
+    var _sz = Math.max(6, Math.min(70, _v.length + 3));
+    return '<input value="'+esc(val||'')+'" size="'+_sz+'" '+(extraAttrs||'')
       +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';reajusteInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
   }
@@ -4899,8 +4903,9 @@ function renderReajustesTable() {
     var abrir = docSeiNumeros(v).length
       ? '<span title="Abrir no SEI" style="cursor:pointer;color:var(--accent);margin-left:4px" onclick="event.stopPropagation();docAbrirSei(\''+esc(docSeiNumeros(v)[0])+'\')">↗</span>'
       : '';
+    var _sz = Math.max(8, Math.min(70, v.length + 3));
     return '<span style="display:inline-flex;align-items:center;gap:2px;min-width:0;width:100%">'
-      +'<input value="'+esc(v)+'" style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +'<input value="'+esc(v)+'" size="'+_sz+'" style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';reajusteInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">'
       +abrir+'</span>';
   }
