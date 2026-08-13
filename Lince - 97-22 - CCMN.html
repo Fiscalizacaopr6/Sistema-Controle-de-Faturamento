@@ -666,6 +666,9 @@ function showTab(tab){
   // Botão Salvar PDF só nas abas que entram no PDF (não em Contrato/Relatório)
   const pdfBtn=document.getElementById('btnPDF');
   if(pdfBtn) pdfBtn.style.display=(tab==='materiais'||tab==='imr'||tab==='area')?'inline-block':'none';
+  // Na aba Materiais o botão vira "Limpar Materiais" (só as linhas); nas demais, "Limpar Tudo"
+  const limparBtn=document.getElementById('btnLimpar');
+  if(limparBtn) limparBtn.textContent=(tab==='materiais')?'🗑 Limpar Materiais':'🗑 Limpar Tudo';
 }
 
 // ─── PÍLULAS ─────────────────────────────────────────────────────
