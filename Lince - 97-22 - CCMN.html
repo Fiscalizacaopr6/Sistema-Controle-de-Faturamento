@@ -214,15 +214,17 @@ input[type=number]{-moz-appearance:textfield;}
       <input type="text" id="headerOrg" value="PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6"
         style="width:100%;border:none;background:transparent;font-size:11px;color:#1f3864;font-weight:bold;font-family:Arial;text-align:center;outline:none;padding:0;"
         oninput="autosave()">
-      <input type="text" id="headerMain" value="INSTRUMENTO DE MEDIÇÃO DE RESULTADO DOS SERVIÇOS DE LIMPEZA"
+      <input type="text" id="headerMain" value="INSTRUMENTO DE MEDIÇÃO DE RESULTADO"
         style="width:100%;border:none;background:transparent;font-size:13px;font-weight:bold;color:#000;font-family:Arial;text-align:center;outline:none;padding:0;margin-top:2px;"
         oninput="autosave()">
     </div>
     <div class="header-badge">IMR</div>
   </div>
   <div class="header-update">
-    <input type="text" id="headerUpdate" value="Sistema de Controle de Materiais e Medição de Resultado – Limpeza"
-      style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;">
+    <input type="text" id="headerUpdate" value="ATUALIZADO CONFORME TERMO INICIAL DE CONTRATO"
+      title="Editar aplica deste período em diante (cascata). O período segue o seletor das abas IMR/Área."
+      style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;"
+      oninput="onHeaderUpdateInput()">
   </div>
 </div>
 
@@ -245,9 +247,7 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="info-cell full"><label>EMPRESA / CONTRATADA:</label><input type="text" id="empresa" placeholder="Nome da empresa contratada" oninput="autosave()"></div>
     <div class="info-cell"><label>CONTRATO Nº:</label><input type="text" id="contrato" placeholder="Número do contrato" oninput="autosave()"></div>
     <div class="info-cell"><label>INÍCIO DA VIGÊNCIA:</label><input type="text" id="inicio" placeholder="Ex: Maio/2026" oninput="onInicioChange()"></div>
-    <div class="info-cell"><label>ÚLTIMO TERMO / APOSTILA:</label><input type="text" id="ultimoTermo" placeholder="Ex: Termo Inicial" oninput="autosave()"></div>
-    <div class="info-cell"><label>FISCAL OPERACIONAL:</label><input type="text" id="fiscal" placeholder="Nome do fiscal" oninput="autosave()"></div>
-    <div class="info-cell"><label>FISCAL ADMINISTRATIVO:</label><input type="text" id="fiscalAdm" placeholder="Nome do fiscal administrativo" oninput="autosave()"></div>
+    <div class="info-cell full"><label>FISCAL OPERACIONAL:</label><input type="text" id="fiscal" placeholder="Nome do fiscal" oninput="autosave()"></div>
   </div>
   <div class="sec-title"><span>IDENTIFICAÇÃO DAS 7 UNIDADES</span></div>
   <div class="info-box">Informe o nome de cada unidade/área.</div>
@@ -295,7 +295,6 @@ input[type=number]{-moz-appearance:textfield;}
 
 <div class="btn-bar">
   <button class="btn btn-red"   id="btnLimpar"  onclick="limparTudo()">🗑 Limpar Tudo</button>
-  <button class="btn btn-blue"  id="btnExpLock" onclick="exportLocked()">🔒 Exportar Versão Travada</button>
   <button class="btn btn-green" id="btnPDF"     onclick="salvarPDF()">📄 Salvar PDF</button>
 </div>
 <p style="font-size:9px;color:#aaa;text-align:center;margin-top:4px;">Dados salvos automaticamente no navegador (localStorage). <span id="cloudStatus" style="margin-left:6px;color:#1f3864;font-weight:bold;"></span></p>
@@ -353,7 +352,7 @@ function applyRemote(payload){
   if(editing){remotePending=payload;return;}
   applyingRemote=true;
   try{
-    if(payload.header!==undefined) db.header=payload.header;
+    if(payload.headerUpdates!==undefined) db.headerUpdates=payload.headerUpdates;
     if(payload.headerOrg!==undefined) db.headerOrg=payload.headerOrg;
     if(payload.headerMain!==undefined) db.headerMain=payload.headerMain;
     if(payload.contrato) Object.assign(db.contrato,payload.contrato);
@@ -491,7 +490,8 @@ function getMultiplier(itemText){
 // ─── MODELO DE DADOS ─────────────────────────────────────────────
 let db={
   header:'Sistema de Controle de Materiais e Medição de Resultado – Limpeza',
-  contrato:{empresa:'',numero:'',inicio:'',ultimoTermo:'',fiscal:'',fiscalAdm:''},
+  contrato:{empresa:'',numero:'',inicio:'',fiscal:''},
+  headerUpdates:{},
   unidades:Array.from({length:N},(_,i)=>({id:i+1,nome:`Unidade ${i+1}`})),
   materiais:Object.fromEntries(Array.from({length:N},(_,i)=>[i+1,[]])),
   lancamentos:{},
@@ -584,11 +584,9 @@ function totalMes(mes,u){
 
 // ─── SALVAR / CARREGAR ────────────────────────────────────────────
 function coleta(){
-  db.header=gv('headerUpdate');
   db.headerOrg=gv('headerOrg');
   db.headerMain=gv('headerMain');
-  db.contrato={empresa:gv('empresa'),numero:gv('contrato'),inicio:gv('inicio'),
-               ultimoTermo:gv('ultimoTermo'),fiscal:gv('fiscal'),fiscalAdm:gv('fiscalAdm')};
+  db.contrato={empresa:gv('empresa'),numero:gv('contrato'),inicio:gv('inicio'),fiscal:gv('fiscal')};
   for(let i=1;i<=N;i++){const el=document.getElementById(`un${i}`);if(el)db.unidades[i-1].nome=el.value||`Unidade ${i}`;}
 }
 function autosave(){coleta();localStorage.setItem('imr_lince-97-22-ccmn',JSON.stringify(db));scheduleCloud();}
@@ -602,7 +600,7 @@ function loadDB(){
   if(!raw) return;
   try{
     const p=JSON.parse(raw);
-    if(p.header)     db.header=p.header;
+    if(p.headerUpdates) db.headerUpdates=p.headerUpdates;
     if(p.contrato)   Object.assign(db.contrato,p.contrato);
     if(p.unidades)   db.unidades=p.unidades;
     if(p.materiais)  db.materiais=p.materiais;
@@ -613,13 +611,42 @@ function loadDB(){
 }
 function fillForm(){
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
-  s('headerUpdate',db.header);
+  refreshHeaderBar();
   s('headerOrg', db.headerOrg||'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6');
-  s('headerMain',db.headerMain||'INSTRUMENTO DE MEDIÇÃO DE RESULTADO DOS SERVIÇOS DE LIMPEZA');
+  s('headerMain',db.headerMain||'INSTRUMENTO DE MEDIÇÃO DE RESULTADO');
   s('empresa',db.contrato.empresa); s('contrato',db.contrato.numero);
-  s('inicio',db.contrato.inicio); s('ultimoTermo',db.contrato.ultimoTermo);
-  s('fiscal',db.contrato.fiscal); s('fiscalAdm',db.contrato.fiscalAdm);
+  s('inicio',db.contrato.inicio);
+  s('fiscal',db.contrato.fiscal);
   for(let i=1;i<=N;i++) s(`un${i}`,db.unidades[i-1]?.nome||`Unidade ${i}`);
+}
+
+// ─── CABEÇALHO "ATUALIZADO CONFORME…" (por período, cascata p/ frente) ──
+const DEFAULT_HDR='ATUALIZADO CONFORME TERMO INICIAL DE CONTRATO';
+let hdrPeriodIdx=0; // período que a barra do cabeçalho reflete (0-based)
+// Valor efetivo do cabeçalho no período idx: último ponto de edição ≤ idx, senão padrão
+function effHeaderUpdate(idx){
+  const hu=db.headerUpdates||{};
+  let best=null;
+  for(const k in hu){ const ki=+k; if(ki<=idx && (best===null||ki>best)) best=ki; }
+  return best===null?DEFAULT_HDR:hu[best];
+}
+function refreshHeaderBar(){
+  const el=document.getElementById('headerUpdate');
+  if(el) el.value=effHeaderUpdate(hdrPeriodIdx);
+}
+// Sincroniza qual período a barra reflete conforme a aba/seletor ativos
+function syncHdrPeriod(){
+  let idx=0;
+  if(activeTab==='imr')  idx=MESES.indexOf(activeIMRPeriod);
+  else if(activeTab==='area') idx=MESES.indexOf(activeAreaPeriod);
+  hdrPeriodIdx=(idx>=0?idx:0);
+  refreshHeaderBar();
+}
+// Edição na barra: grava um ponto de edição no período atual (cascateia p/ frente)
+function onHeaderUpdateInput(){
+  if(!db.headerUpdates) db.headerUpdates={};
+  db.headerUpdates[hdrPeriodIdx]=document.getElementById('headerUpdate').value;
+  autosave();
 }
 
 // ─── NAVEGAÇÃO ────────────────────────────────────────────────────
@@ -635,6 +662,7 @@ function showTab(tab){
   if(tab==='imr')       renderIMR();
   if(tab==='area')      renderArea();
   if(tab==='relatorio') renderRelatorio();
+  syncHdrPeriod();
   // Botão Salvar PDF só nas abas que entram no PDF (não em Contrato/Relatório)
   const pdfBtn=document.getElementById('btnPDF');
   if(pdfBtn) pdfBtn.style.display=(tab==='materiais'||tab==='imr'||tab==='area')?'inline-block':'none';
@@ -1131,6 +1159,7 @@ let activeIMRUnit=1;
 function renderIMR(period,unit){
   if(period!==undefined) activeIMRPeriod=period;
   if(unit!==undefined)   activeIMRUnit=unit;
+  if(activeTab==='imr'){ const i=MESES.indexOf(activeIMRPeriod); hdrPeriodIdx=(i>=0?i:0); refreshHeaderBar(); }
 
   // Preenche o select de período
   const sel=document.getElementById('imrPeriodSel');
@@ -1541,7 +1570,7 @@ function saveUpd(mes,u,val){getLanc(mes,u).valorAtualizado=val;autosave();}
 
 // ─── TRAVA ────────────────────────────────────────────────────────
 let globalLocked=false,globalPwd='';
-const LOCK_FIELDS=['empresa','contrato','inicio','ultimoTermo','fiscal','fiscalAdm','headerUpdate','headerOrg','headerMain'];
+const LOCK_FIELDS=['empresa','contrato','inicio','fiscal','headerUpdate','headerOrg','headerMain'];
 function lockAll(){
   const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
   if(!pwd||pwd.length<4){alert('Senha inválida.');return;}
@@ -1549,7 +1578,6 @@ function lockAll(){
   document.getElementById('btnLock').style.display='none';
   document.getElementById('btnUnlock').style.display='inline-block';
   document.getElementById('btnLimpar').style.display='none';
-  document.getElementById('btnExpLock').style.display='none';
   if(activeTab==='materiais') renderMateriais(activeMatUnit);
   alert('✅ Formulário travado!');
 }
@@ -1560,7 +1588,6 @@ function unlockAll(){
   document.getElementById('btnLock').style.display='inline-block';
   document.getElementById('btnUnlock').style.display='none';
   document.getElementById('btnLimpar').style.display='inline-block';
-  document.getElementById('btnExpLock').style.display='inline-block';
   if(activeTab==='materiais') renderMateriais(activeMatUnit);
 }
 function applyLock(){
@@ -1578,7 +1605,7 @@ function applyLock(){
 function printHeaderHTML(u){
   const c=db.contrato||{};
   const org =escH(gv('headerOrg') ||db.headerOrg ||'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6');
-  const main=escH(gv('headerMain')||db.headerMain||'INSTRUMENTO DE MEDIÇÃO DE RESULTADO DOS SERVIÇOS DE LIMPEZA');
+  const main=escH(gv('headerMain')||db.headerMain||'INSTRUMENTO DE MEDIÇÃO DE RESULTADO');
   const cell=(lbl,val,full)=>`<div class="c${full?' full':''}"><b>${lbl}</b> ${escH((val||'').toString()||'—')}</div>`;
   return `<div class="p-head">
     <div class="p-head-top">
@@ -1589,7 +1616,6 @@ function printHeaderHTML(u){
     <div class="p-info">
       ${cell('EMPRESA / CONTRATADA:',c.empresa,true)}
       ${cell('CONTRATO Nº:',c.numero)}
-      ${cell('ÚLTIMO TERMO / APOSTILA:',c.ultimoTermo)}
       ${cell('FISCAL OPERACIONAL:',c.fiscal)}
       ${cell('UNIDADE:',unNome(u),true)}
     </div>
@@ -1907,6 +1933,7 @@ function setAreaLanc(mes,u,key,val){
 }
 function onAreaPeriodChange(mes){
   activeAreaPeriod=mes;
+  if(activeTab==='area'){ const i=MESES.indexOf(mes); hdrPeriodIdx=(i>=0?i:0); refreshHeaderBar(); }
   renderAreaForm(mes,activeAreaUnit);
 }
 
@@ -2093,7 +2120,6 @@ if(INIT_LOCKED&&INIT_DATA_EXPORT){
   document.getElementById('btnLock').style.display='none';
   document.getElementById('btnUnlock').style.display='inline-block';
   document.getElementById('btnLimpar').style.display='none';
-  document.getElementById('btnExpLock').style.display='none';
 }
 </script>
 
