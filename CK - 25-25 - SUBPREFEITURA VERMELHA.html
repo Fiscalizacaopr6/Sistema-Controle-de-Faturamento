@@ -215,7 +215,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
   </div>
   <div class="info-cell full">
     <label>AVALIAÇÃO REFERENTE AO PERÍODO:</label>
-    <input type="text" id="periodo" placeholder="Ex: Maio/2024 ou 05/2024" oninput="recalcAll();propagatePeriodo();renderTabs()">
+    <input type="text" id="periodo" placeholder="Ex: Maio/2024 ou 05/2024" oninput="onPeriodoInput()">
     <span class="periodo-tag" id="periodoTag"></span>
   </div>
   <div class="info-note">
@@ -464,7 +464,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
         </tr>
         <tr>
           <td class="lbl">Número de Dias Trabalhados no Mês</td>
-          <td class="val"><input type="number" class="fi" id="diasTrab" value="30" min="1" max="30" oninput="recalcAll()" style="text-align:center;font-size:13px;font-weight:bold;"></td>
+          <td class="val"><input type="number" class="fi" id="diasTrab" value="30" min="0" max="31" oninput="onDiasTrabInput()" style="text-align:center;font-size:13px;font-weight:bold;"></td>
         </tr>
         <tr>
           <td class="lbl" style="background:#c8e6c9;font-size:12px;font-weight:bold;">Valor Aprovado para Pagamento (R$)</td>
@@ -753,6 +753,42 @@ function formatPeriod(base, offset){
   return mm + base.sep + yy;
 }
 
+// ─── DIAS TRABALHADOS / CALENDÁRIO FINANCEIRO (30 avos) ──────────
+function diasNoMes(periodoStr){
+  const b=detectPeriodFormat(periodoStr);
+  if(!b) return 30;
+  const y=b.year, m=b.month;
+  if(m===1) return ((y%4===0&&y%100!==0)||y%400===0)?29:28;
+  return [31,28,31,30,31,30,31,31,30,31,30,31][m];
+}
+// Dias para CÁLCULO: mês cheio = 30 avos (mesmo em fev/28-29 ou meses de 31);
+// mês parcial = dias digitados (base 30), conforme início/fim do contrato.
+function finDays(periodoStr, diasTrabVal){
+  const full=diasNoMes(periodoStr);
+  let w=parseFloat(diasTrabVal);
+  if(!isFinite(w)) w=full;
+  w=Math.max(0,Math.min(w,full));
+  return (w>=full)?30:w;
+}
+function syncDiasTrabMax(){
+  const el=document.getElementById('diasTrab'); if(!el) return;
+  const full=diasNoMes(val('periodo'));
+  el.max=full;
+  if(el.value===''||parseFloat(el.value)>full) el.value=full;
+}
+function onDiasTrabInput(){
+  const el=document.getElementById('diasTrab');
+  const full=diasNoMes(val('periodo'));
+  if(el && parseFloat(el.value)>full) el.value=full;
+  recalcAll();
+}
+function onPeriodoInput(){
+  const el=document.getElementById('diasTrab');
+  const full=diasNoMes(val('periodo'));
+  if(el){ el.max=full; el.value=full; }
+  recalcAll(); propagatePeriodo(); renderTabs();
+}
+
 // ─── SNAPSHOT / APPLY (DOM ↔ modelo) ─────────────────────────────
 function snapshotDOM(){
   const notas={};
@@ -777,7 +813,8 @@ function applyPeriodToDOM(s){
   setVal('headerUpdate', s.headerUpdate);
   ALL_IDS.forEach(id=>{ const sel=document.querySelector('select.nota-sel[data-id="'+id+'"]'); if(sel) sel.value=(s.notas&&s.notas[id])||'3'; });
   renderPostos((s.postos&&s.postos.length)?s.postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}]);
-  setVal('diasTrab', s.diasTrab||'30');
+  setVal('diasTrab', (s.diasTrab!=null&&s.diasTrab!=='')?s.diasTrab:String(diasNoMes(s.periodo)));
+  syncDiasTrabMax();
   setVal('crecheRetido', s.crecheRetido||'0');
   setVal('crecheAprovados', s.crecheAprovados||'0');
   setVal('crechemBDI', s.crechemBDI||'0');
@@ -859,7 +896,7 @@ function computeDerived(s){
   });
   const conceito=getConceito(notaFinal);
   const pct=PCT_MAP[conceito]??1.00;
-  const dias=Math.max(1, parseFloat(s.diasTrab)||0);
+  const dias=finDays(s.periodo, s.diasTrab);
 
   let somaDesc=0, somaMensal=0; const postoCalc=[];
   (s.postos||[]).forEach(p=>{
@@ -1036,7 +1073,7 @@ function applyGlobalLock(){
     const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=globalLocked; rb.style.opacity=globalLocked?.4:1; }
   });
   // Creche
-  ['crecheRetido','crechemBDI'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
+  ['crecheRetido','crechemBDI','diasTrab'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
   // Botões
   const addb=document.getElementById('btnAddPosto');
   if(addb){ addb.disabled=globalLocked; addb.style.opacity=globalLocked?.4:1; }
@@ -1194,6 +1231,7 @@ function normalizePeriod(p){
     ? p.postos.map(x=>({item:(x&&x.item!=null?x.item:''), posto:(x&&x.posto)||'', qtde:(x&&x.qtde)||'', vlrUnit:(x&&x.vlrUnit)||'', semCob:(x&&x.semCob)||''}))
     : d.postos;
   ['diasTrab','crecheRetido','crecheAprovados','crechemBDI','justif','dataAprov'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
+  if(p.diasTrab==null) d.diasTrab=String(diasNoMes(d.periodo));
   ASS_IDS.forEach(id=>{ if(p[id]!=null) d[id]=p[id]; });
   return d;
 }
