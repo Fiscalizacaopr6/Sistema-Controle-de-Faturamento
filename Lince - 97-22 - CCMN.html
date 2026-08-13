@@ -2053,6 +2053,16 @@ function renderAreaForm(period,u){
 
   let lastGrupo=-1, lastTipo='__';
 
+  // Com o formulário travado, oculta linhas sem M² contratado (e cabeçalhos de
+  // grupo/seção que ficariam vazios); os totais passam a somar só as visíveis.
+  const rowVisible={}, grpVis={}, tipoVis={};
+  AREA_LINHAS.forEach(function(ln){
+    const c=contrato[ln.key]||{};
+    const vis=!globalLocked || (+(c.m2||0))>0;
+    rowVisible[ln.key]=vis;
+    if(vis){ grpVis[ln.grupo]=true; if(ln.tipo) tipoVis[ln.grupo+'|'+ln.tipo]=true; }
+  });
+
   AREA_LINHAS.forEach(function(ln){
     const c=contrato[ln.key]||{};
     const m2c=+(c.m2||0);
@@ -2062,18 +2072,21 @@ function renderAreaForm(period,u){
     const latestVm2=getAreaLatestVm2(u,ln.codeKey);
     const m2a=+(lanc[ln.key]||0);
     const vl=fl2(m2a*vm2AtPeriod);
-    totalM2C=fl2(totalM2C+m2c);
-    totalM2A=fl2(totalM2A+m2a);
-    totalVL=fl2(totalVL+vl);
 
     if(ln.grupo!==lastGrupo){
       lastGrupo=ln.grupo; lastTipo='__';
-      h+='<tr class="area-grupo-hdr"><td colspan="8">&#128203; Carga semanal: '+escH(AREA_GRUPOS[ln.grupo])+'</td></tr>';
+      if(grpVis[ln.grupo]) h+='<tr class="area-grupo-hdr"><td colspan="8">&#128203; Carga semanal: '+escH(AREA_GRUPOS[ln.grupo])+'</td></tr>';
     }
     if(ln.tipo&&ln.isFirst&&ln.tipo!==lastTipo){
       lastTipo=ln.tipo;
-      h+='<tr class="area-secao-hdr"><td colspan="8">'+escH(ln.tipo)+'</td></tr>';
+      if(tipoVis[ln.grupo+'|'+ln.tipo]) h+='<tr class="area-secao-hdr"><td colspan="8">'+escH(ln.tipo)+'</td></tr>';
     }
+
+    if(!rowVisible[ln.key]) return; // travado: linha sem M² é ocultada
+
+    totalM2C=fl2(totalM2C+m2c);
+    totalM2A=fl2(totalM2A+m2a);
+    totalVL=fl2(totalVL+vl);
 
     // valores editáveis por unidade (com fallback para o padrão de AREA_LINHAS)
     const valCod   =getAreaLinhaVal(u,ln.key,'cod');
