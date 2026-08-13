@@ -184,6 +184,10 @@ input:not([type=date]):not([type=number]):not([type=email]):not([type=password])
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .table-info{padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
 table{width:100%;border-collapse:collapse}
+/* Reajuste/Repactuação: a tabela dimensiona pelas colunas (largura do conteúdo)
+   em vez de ser espremida em 100% da tela — assim o texto nunca é cortado em
+   nenhum nível de zoom; o excesso é resolvido pelo scroll horizontal. */
+#reajuste-table table{width:max-content;min-width:100%;table-layout:auto}
 /* Conteúdo das tabelas centralizado — vale para as colunas de hoje e para as
    que forem acrescentadas depois, sem precisar marcar célula por célula. */
 th{background:var(--surface2);padding:11px 14px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
