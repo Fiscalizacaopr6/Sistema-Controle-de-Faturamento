@@ -1927,13 +1927,13 @@ function exportFiscaisExcel() {
 
 // Reajustes
 function exportReajustesPDF() {
-  var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação','Observação'];
-  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',reajusteSitNfAuto(x),x.situacao||'',x.observacao||'']; });
+  var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação'];
+  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',reajusteSitNfAuto(x),x.situacao||'']; });
   genericExportPDF('Reajuste e Repactuação', h, r, 'reajustes');
 }
 function exportReajustesExcel() {
-  var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação','Observação'];
-  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',reajusteSitNfAuto(x),x.situacao||'',x.observacao||'']; });
+  var h = ['Contrato','Responsável','Empresa','Período','Valor NF','Situação NF','Situação'];
+  var r = rrFiltered.map(function(x){ return [x.contrato||'',x.responsavel||'',x.empresa||'',x.periodo||'',x.valorNf||'',reajusteSitNfAuto(x),x.situacao||'']; });
   genericExportExcel('Reajustes', h, r, 'reajustes');
 }
 
@@ -4931,7 +4931,6 @@ function renderReajustesTable() {
       +'<td style="text-align:center;white-space:nowrap">'+edCheck(r.id,'envioPR3',r.envioPR3)+'</td>'
       +'<td style="white-space:nowrap">'+edSei(r.id,'ordemBancaria',r.ordemBancaria)+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(nfColor[nfSt]||'var(--muted)')+'" title="Automático — não editável">'+esc(nfSt)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+edInp(r.id,'observacao',r.observacao,'',';font-size:11px;color:var(--muted)')+'</td>'
       +'<td style="font-weight:600;white-space:nowrap;color:'+(sitColor[sit]||'var(--muted)')+'">'+edSel(r.id,'situacao',r.situacao,['','VIGENTE','ENCERRADO'],';font-weight:600')+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
@@ -4943,7 +4942,7 @@ function renderReajustesTable() {
     +'<thead><tr>'
     +'<th>Contrato</th><th>Responsável</th><th>Empresa</th><th>Ano</th><th>Memória Cálculo</th><th>Memória Revisada</th>'
     +'<th>Período</th><th>Origem</th><th>NF</th><th>Valor NF</th>'
-    +'<th>Folha Info.</th><th>Envio à PR-3</th><th>Ordem Bancária</th><th>Sit. NF</th><th>Observação</th><th>Situação</th>'
+    +'<th>Folha Info.</th><th>Envio à PR-3</th><th>Ordem Bancária</th><th>Sit. NF</th><th>Situação</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -4991,7 +4990,6 @@ function reajusteFormHtml(r) {
     +'<div class="ef"><label>Valor NF</label><input id="rf-valor" value="'+esc(r.valorNf||'')+'"></div>'
     +'<div class="ef"><label>Folha de Informação</label><input id="rf-folha" value="'+esc(r.folhaInfo||'')+'"></div>'
     +'<div class="ef"><label>Ordem Bancária</label><input id="rf-ordem" value="'+esc(r.ordemBancaria||'')+'"></div>'
-    +'<div class="ef full"><label>Observação</label><input id="rf-obs" value="'+esc(r.observacao||'')+'"></div>'
     +'<div class="ef"><label>Situação</label><select id="rf-sit">'+sitOpts+'</select></div>'
     +'</div>';
 }
@@ -5004,7 +5002,7 @@ function readReajusteForm() {
     ano: v('rf-ano'), periodo: v('rf-periodo'),
     origem: v('rf-origem'), nf: v('rf-nf'), valorNf: v('rf-valor'),
     folhaInfo: v('rf-folha'), ordemBancaria: v('rf-ordem'),
-    observacao: v('rf-obs'), situacao: v('rf-sit')
+    situacao: v('rf-sit')
   };
 }
 
