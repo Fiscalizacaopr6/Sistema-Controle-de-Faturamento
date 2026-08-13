@@ -1728,6 +1728,16 @@ function cleanupPrint(){
 }
 window.addEventListener('afterprint',cleanupPrint);
 function limparTudo(){
+  // Na aba Materiais, "Limpar Tudo" exclui só as linhas de material (todas as
+  // unidades) e seus lançamentos mensais — o resto do formulário é preservado.
+  if(activeTab==='materiais'){
+    if(!confirm('⚠ Excluir TODAS as linhas de material (todas as unidades) e seus lançamentos mensais?')) return;
+    db.materiais=Object.fromEntries(Array.from({length:N},(_,i)=>[i+1,[]]));
+    db.lancamentos={};
+    autosave();
+    renderMateriais(activeMatUnit);
+    return;
+  }
   if(!confirm('⚠ Limpar TODOS os dados?')) return;
   localStorage.removeItem('imr_lince-97-22-ccmn');location.reload();
 }
