@@ -348,6 +348,12 @@ tr:last-child td{border-bottom:none}
 #doc-table td.doc-cell:hover{box-shadow:inset 0 0 0 1px rgba(59,130,246,.35)}
 #doc-table td.doc-calc{cursor:default}
 #doc-table td.doc-editing{padding:3px 5px;background:rgba(59,130,246,.10)}
+/* Célula selecionada (clique simples): base do Copiar/Colar em várias linhas */
+#doc-table td.doc-sel{box-shadow:inset 0 0 0 2px var(--accent);background:rgba(59,130,246,.12)}
+/* Dica do recurso de replicar valor nas linhas do filtro */
+.doc-hint{font-size:11px;color:var(--muted);margin:-4px 0 12px;line-height:1.5}
+.doc-hint b{color:var(--text);font-weight:600}
+.doc-hint kbd{font-family:'DM Mono',monospace;font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text)}
 #doc-table .doc-sticky{position:sticky;left:0;z-index:2;background:var(--surface)}
 #doc-table th.doc-sticky{background:var(--surface2);z-index:3}
 /* Linha de total ao pé da tabela: soma tudo que passou pelos filtros */
@@ -675,6 +681,7 @@ select.doc-inp{cursor:pointer}
         <button class="btn-new" id="btn-novo-documento" onclick="openNewDocumentoModal()" style="display:none">+ Novo Registro</button>
         <button class="btn-new" id="btn-lote-documento" onclick="openLoteDocumentoModal()" style="display:none" title="Gerar as parcelas mensais de varias unidades de uma vez">+ Cadastro em Lote</button>
       </div>
+      <div class="doc-hint" id="doc-hint-replicar">💡 <b>Preencher várias linhas de uma vez:</b> aplique um filtro, clique numa célula e tecle <kbd>Ctrl</kbd>+<kbd>C</kbd> para copiar o valor; clique noutra célula da mesma coluna e tecle <kbd>Ctrl</kbd>+<kbd>V</kbd> para replicá-lo em todas as linhas que estiverem aparecendo. Vale para <b>IMR Recebido, NF Autorizada, NF Recebida, Nota Fiscal, Emissão, Documentação, Conta Vinculada, Envio à PR3, Ordem Bancária</b> e <b>Não Houve Prestação</b>.</div>
       <div id="doc-table"></div>
       <div id="doc-hbar"><div id="doc-hbar-thumb"></div></div>
       <div id="doc-toast"></div>
@@ -6088,6 +6095,145 @@ function docEditVizinha(td, dir) {
   if (alvo) docEditCell(alvo);
 }
 
+// ══════════════════════════════════════════════════════════════
+//  Copiar valor de uma célula e replicar em todas as linhas do filtro
+//  Fluxo: clique numa célula (fica selecionada) → Ctrl+C copia o valor →
+//  clique noutra célula da mesma coluna → Ctrl+V cola em TODAS as linhas
+//  que passaram pelo filtro atual (docFiltered).
+// ══════════════════════════════════════════════════════════════
+
+// Colunas em que o "colar em todas as linhas" é permitido. As demais
+// (empresa, contrato, valor, etc.) continuam com o colar comum, célula a célula.
+var DOC_REPLICAVEIS = {
+  imrRecebido:1, nfAutorizada:1, nfRecebida:1, notaFiscal:1, emissao:1,
+  documentacao:1, contaVinculada:1, envioPr3:1, ordemBancaria:1, semPrestacao:1
+};
+
+var _docSel = null;    // {id, k} da célula selecionada
+var _docCopy = null;   // {k, texto} do valor copiado
+
+// Texto legível da célula, do jeito que o usuário vê — é o que vai para a
+// área de transferência e o que será reinterpretado no colar.
+function docTextoCelula(col, rec) {
+  var v = docValor(col, rec);
+  if (v === undefined || v === null || v === '') return '';
+  if (col.type === 'money') return typeof v === 'number' ? fmtBR(v) : String(v);
+  if (col.type === 'date')  return docFmtDate(v);
+  return String(v);
+}
+
+function docLimparSel() {
+  var prev = document.querySelector('#doc-table td.doc-sel');
+  if (prev) prev.classList.remove('doc-sel');
+}
+
+function docSelecionar(td) {
+  if (!td) return;
+  docLimparSel();
+  _docSel = {id: td.getAttribute('data-id'), k: td.getAttribute('data-k')};
+  td.classList.add('doc-sel');
+}
+
+// Depois de redesenhar a tabela, devolve o destaque à célula selecionada
+// (se ela ainda estiver na página à vista).
+function docReaplicarSel() {
+  if (!_docSel) return;
+  var td = docCellTd(_docSel.id, _docSel.k);
+  if (td) td.classList.add('doc-sel');
+}
+
+// Ctrl+C: guarda o valor da célula selecionada e copia para a área de transferência.
+function docCopiarSel() {
+  if (!_docSel) return false;
+  var col = DOC_FIELD_MAP[_docSel.k], rec = docFind(_docSel.id);
+  if (!col || !rec) return false;
+  var texto = docTextoCelula(col, rec);
+  _docCopy = {k: _docSel.k, texto: texto};
+  docCopiar(texto);
+  var mostra = texto === '' ? '(vazio)' : '"' + texto + '"';
+  if (DOC_REPLICAVEIS[_docSel.k]) {
+    docToast('Copiado ' + mostra + '. Clique numa célula de "' + col.label
+      + '" e tecle Ctrl+V para replicar nas ' + docFiltered.length.toLocaleString('pt-BR') + ' linha(s) do filtro.');
+  } else {
+    docToast('Copiado ' + mostra + '.');
+  }
+  return true;
+}
+
+// Ctrl+V: cola o valor copiado em TODAS as linhas do filtro, na coluna da
+// célula selecionada. Só nas colunas liberadas (DOC_REPLICAVEIS).
+function docColarSel() {
+  if (!_docSel) return false;
+  var col = DOC_FIELD_MAP[_docSel.k];
+  if (!col) return false;
+  if (!DOC_REPLICAVEIS[_docSel.k]) {
+    docToast('Colar em várias linhas não é permitido na coluna "' + col.label
+      + '". Dê um duplo clique para editar a célula.', true);
+    return true;
+  }
+  if (!docCanEdit()) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return true; }
+  if (_docCopy) { docReplicarNasFiltradas(col, _docCopy.texto); return true; }
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText()
+      .then(function(t) { docReplicarNasFiltradas(col, t); })
+      .catch(function() { docToast('Copie um valor primeiro: clique numa célula e tecle Ctrl+C.', true); });
+    return true;
+  }
+  docToast('Copie um valor primeiro: clique numa célula e tecle Ctrl+C.', true);
+  return true;
+}
+
+// Aplica o valor a todas as linhas de docFiltered na coluna informada.
+function docReplicarNasFiltradas(col, texto) {
+  var valor = docParseValue(col, texto);
+  var alvo = docFiltered.slice();
+  if (!alvo.length) { docToast('Nenhuma linha no filtro para preencher.', true); return; }
+
+  var sobrescreve = 0;
+  alvo.forEach(function(r) {
+    var atual = r[col.k] === undefined ? '' : r[col.k];
+    if (atual !== '' && atual !== null && atual !== undefined && String(atual) !== String(valor)) sobrescreve++;
+  });
+
+  var disp = valor === '' ? '(vazio)'
+    : (col.type === 'date' ? docFmtDate(valor)
+      : (col.type === 'money' && typeof valor === 'number' ? fmtBR(valor) : String(valor)));
+  var msg = 'Colar "' + disp + '" na coluna "' + col.label + '" em '
+    + alvo.length.toLocaleString('pt-BR') + ' linha(s) do filtro?';
+  if (sobrescreve) msg += '\n\n' + sobrescreve.toLocaleString('pt-BR')
+    + ' linha(s) já têm valor e serão substituídas.';
+  if (!confirm(msg)) return;
+
+  var n = 0;
+  alvo.forEach(function(r) {
+    var atual = r[col.k] === undefined ? '' : r[col.k];
+    if (String(atual) === String(valor)) return;
+    var rec = docMutable(r.id);
+    if (!rec) return;
+    if (valor === '') delete rec[col.k]; else rec[col.k] = valor;
+    docPersist(rec);
+    n++;
+  });
+
+  renderDocumentosTable();
+  docToast(n ? '✔ ' + n.toLocaleString('pt-BR') + ' linha(s) preenchida(s) em "' + col.label + '".'
+             : 'Nenhuma linha alterada — todas já tinham esse valor.');
+}
+
+// Ctrl+C / Ctrl+V com uma célula selecionada, fora do modo de edição.
+function docTeclaCopyPaste(e) {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  var view = document.getElementById('view-documentos');
+  if (!view || !view.classList.contains('active')) return;
+  if (docHasOpenEditor()) return;                 // editando uma célula: comportamento normal
+  var ae = document.activeElement;
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.nodeName)) return;  // digitando num filtro: não interfere
+  if (!_docSel) return;
+  var key = (e.key || '').toLowerCase();
+  if (key === 'c') { if (docCopiarSel()) e.preventDefault(); }
+  else if (key === 'v') { if (docColarSel()) e.preventDefault(); }
+}
+
 function docActionsHtml(id) {
   return '<div class="doc-act">'
     + '<button class="btn-doc no" onclick="docConfirmDelete(\'' + id + '\')">Excluir</button></div>';
@@ -6170,16 +6316,20 @@ function initDocumentos() {
       if (td.classList.contains('doc-cell')) docEditCell(td);
       else if (td.classList.contains('doc-calc')) docAvisoCalculada(DOC_FIELD_MAP[td.getAttribute('data-k')]);
     });
-    // clique simples na Ordem Bancária: escolher entre editar a célula ou abrir no SEI
+    // clique simples: seleciona a célula (base do Copiar/Colar) e, na Ordem
+    // Bancária, ainda oferece o menu de editar/abrir no SEI.
     if (cont) cont.addEventListener('click', function(e) {
       var td = e.target;
       while (td && td.nodeName !== 'TD') td = td.parentNode;
       if (!td || !td.classList || !td.classList.contains('doc-cell')) return;
-      if (!SEI_COLUNAS[td.getAttribute('data-k')]) return;
       if (td.classList.contains('doc-editing')) return;
+      docSelecionar(td);
+      if (!SEI_COLUNAS[td.getAttribute('data-k')]) return;
       e.stopPropagation();
       docObMenu(td, e);
     });
+    // Ctrl+C / Ctrl+V para copiar o valor e replicá-lo nas linhas do filtro
+    document.addEventListener('keydown', docTeclaCopyPaste);
     docHBarInit();
     _docInit = true;
   }
@@ -6291,6 +6441,7 @@ function renderDocumentosTable() {
     + '<thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody>'
     + docTotalFootHtml(soma, canEdit) + '</table></div>'
     + docPaginationHtml(totalPages) + '</div>';
+  docReaplicarSel();
   setTimeout(docHBarSync, 0);
 }
 
