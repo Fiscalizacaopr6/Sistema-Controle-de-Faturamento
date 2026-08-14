@@ -7899,11 +7899,12 @@ document.addEventListener('DOMContentLoaded', function() {
     icBuilt=true;
     var copts=IC_CONTRACTS.map(function(c,i){ return '<option value="'+c.id+'"'+(i===0?' selected':'')+'>'+c.label+'</option>'; }).join('');
     host.innerHTML=
-      '<div style="max-width:720px">'
+      '<div style="display:inline-block;max-width:100%">'
       +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:0 4px 18px rgba(0,0,0,.12)">'
-        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">'
           +'<span style="font-size:11px;color:var(--muted);font-weight:600">Contrato</span>'
           +'<select id="ic-contrato-sel" onchange="icSelectContract(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;outline:none;cursor:pointer;min-width:180px">'+copts+'</select>'
+          +'<span id="ic-mes-wrap" style="display:flex;align-items:center;gap:10px"></span>'
         +'</div>'
         +'<div id="ic-body"></div>'
       +'</div>'
@@ -7915,6 +7916,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.icSelectContract=function(id){
     icCurrent=id;
     var body=document.getElementById('ic-body'); if(!body) return;
+    var mw=document.getElementById('ic-mes-wrap'); if(mw) mw.innerHTML='';
     if(icCache[id]){ icApplyContract(id); return; }
     var c=icFindContract(id); if(!c){ body.innerHTML=''; return; }
     body.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;padding:24px 4px">'
@@ -7967,6 +7969,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function icApplyContract(id){
     var data=icCache[id]; var body=document.getElementById('ic-body'); if(!data||!body) return;
     IC_MONTHS=data.months; IC_ITEMS=data.items; IC_ORDER=data.order;
+    var mw=document.getElementById('ic-mes-wrap'); if(mw) mw.innerHTML='';
     if(!IC_ORDER.length){
       body.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px 4px">Nenhum dado de IMR encontrado para este contrato.</div>';
       return;
@@ -7976,16 +7979,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var def=IC_ORDER[IC_ORDER.length-1];
     for(var i=0;i<IC_ORDER.length;i++){ if(IC_ORDER[i]<=nowKey) def=IC_ORDER[i]; }
     var opts=IC_ORDER.map(function(k){ return '<option value="'+k+'"'+(k===def?' selected':'')+'>'+IC_MONTHS[k].label+'</option>'; }).join('');
-    // Envolve mês + tabela num bloco que encolhe até a largura da tabela, para que o
-    // seletor de mês (alinhado à direita) fique acima da coluna "Valor Unit. Faturado".
-    body.innerHTML=
-      '<div style="display:inline-block">'
-        +'<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px">'
-          +'<span style="font-size:11px;color:var(--muted);font-weight:600">Mês</span>'
-          +'<select id="ic-mes-sel" onchange="icRenderTable(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;padding:7px 12px;outline:none;cursor:pointer;min-width:150px">'+opts+'</select>'
-        +'</div>'
-        +'<div id="ic-tabela"></div>'
-      +'</div>';
+    // Seletor de mês fica no cabeçalho do card, ao lado do de Contrato.
+    if(mw) mw.innerHTML=
+      '<span style="font-size:11px;color:var(--muted);font-weight:600">Mês</span>'
+      +'<select id="ic-mes-sel" onchange="icRenderTable(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;padding:7px 12px;outline:none;cursor:pointer;min-width:150px">'+opts+'</select>';
+    body.innerHTML='<div id="ic-tabela"></div>';
     icRenderTable(def);
   }
 
