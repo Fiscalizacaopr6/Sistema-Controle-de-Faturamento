@@ -681,7 +681,7 @@ select.doc-inp{cursor:pointer}
         <button class="btn-new" id="btn-novo-documento" onclick="openNewDocumentoModal()" style="display:none">+ Novo Registro</button>
         <button class="btn-new" id="btn-lote-documento" onclick="openLoteDocumentoModal()" style="display:none" title="Gerar as parcelas mensais de varias unidades de uma vez">+ Cadastro em Lote</button>
       </div>
-      <div class="doc-hint" id="doc-hint-replicar">💡 <b>Preencher várias linhas de uma vez:</b> aplique um filtro, clique numa célula e tecle <kbd>Ctrl</kbd>+<kbd>C</kbd> para copiar o valor; clique noutra célula da mesma coluna e tecle <kbd>Ctrl</kbd>+<kbd>V</kbd> para replicá-lo em todas as linhas que estiverem aparecendo. Vale para <b>IMR Recebido, NF Autorizada, NF Recebida, Nota Fiscal, Emissão, Documentação, Conta Vinculada, Envio à PR3, Ordem Bancária</b> e <b>Não Houve Prestação</b>.</div>
+      <div class="doc-hint" id="doc-hint-replicar">💡 <b>Preencher várias linhas de uma vez:</b> aplique um filtro, clique numa célula e tecle <kbd>Ctrl</kbd>+<kbd>C</kbd> para copiar o valor; clique noutra célula da mesma coluna e tecle <kbd>Ctrl</kbd>+<kbd>V</kbd> para replicá-lo em todas as linhas que estiverem aparecendo. Vale para <b>IMR Recebido, NF Autorizada, NF Recebida, Nota Fiscal, Emissão, Documentação, Conta Vinculada, Folha de Informação, Envio à PR3, Ordem Bancária</b> e <b>Não Houve Prestação</b>.</div>
       <div id="doc-table"></div>
       <div id="doc-hbar"><div id="doc-hbar-thumb"></div></div>
       <div id="doc-toast"></div>
@@ -6106,7 +6106,7 @@ function docEditVizinha(td, dir) {
 // (empresa, contrato, valor, etc.) continuam com o colar comum, célula a célula.
 var DOC_REPLICAVEIS = {
   imrRecebido:1, nfAutorizada:1, nfRecebida:1, notaFiscal:1, emissao:1,
-  documentacao:1, contaVinculada:1, envioPr3:1, ordemBancaria:1, semPrestacao:1
+  documentacao:1, contaVinculada:1, folhaInfo:1, envioPr3:1, ordemBancaria:1, semPrestacao:1
 };
 
 var _docSel = null;    // {id, k} da célula selecionada
