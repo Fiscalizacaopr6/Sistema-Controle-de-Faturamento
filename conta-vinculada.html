@@ -16,6 +16,7 @@ body{font-family:Arial,sans-serif;font-size:12px;background:#e8e8e8;color:#000}
 .ident div span{color:#777;text-transform:uppercase;font-size:10px;letter-spacing:.5px;display:block}
 .ident div b{font-size:13px;color:#047857}
 .aviso{background:#fff8e1;border:1px solid #ffe08a;border-left:4px solid #f0ad00;border-radius:3px;padding:9px 12px;margin-bottom:12px;font-size:11.5px;line-height:1.5}
+.tituloform{text-align:center;font-size:26px;font-weight:bold;color:#047857;letter-spacing:.5px;margin:6px 0 14px}
 .tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#047857;border-radius:4px;margin-bottom:10px}
 .tab-btn{flex:0 0 auto;min-width:78px;padding:5px 10px;font-size:10px;border:1px solid #10b981;background:#10b981;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.3}
 .tab-btn.active{background:#fff;color:#047857;font-weight:bold;border-color:#fff}
@@ -47,6 +48,8 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 .resumo div{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:4px;padding:8px 14px;min-width:150px}
 .resumo span{display:block;font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.5px}
 .resumo b{font-size:14px;color:#047857}
+.resumo .total-dest span{font-weight:bold;color:#047857}
+.resumo .total-dest b{font-size:18px;font-weight:bold}
 .vazio{text-align:center;padding:26px;color:#888;font-style:italic}
 .carregando{text-align:center;padding:60px;color:#047857;font-size:14px}
 @media print{
@@ -67,16 +70,12 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
       <div class="ident">
         <div><span>Contrato</span><b id="i-contrato">—</b></div>
         <div><span>Empresa</span><b id="i-empresa">—</b></div>
-        <div><span>Unidade</span><b id="i-unidade">—</b></div>
-        <div><span>Incidência sobre o submódulo 4.1</span><b id="i-perc">—</b></div>
       </div>
     </div>
 
-    <div class="aviso" id="aviso">
-      Preencha um funcionário por linha, na aba do mês de competência. As colunas em verde são
-      calculadas pelo sistema a partir da remuneração e dos dias trabalhados — não precisam ser
-      preenchidas. O preenchimento é salvo automaticamente; o botão <b>Salvar</b> força o envio.
-    </div>
+    <div class="tituloform">CONTA VINCULADA MENSAL</div>
+
+    <div class="aviso" id="aviso" style="display:none"></div>
 
     <div class="tabbar" id="tabbar"></div>
 
@@ -90,11 +89,7 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
     <div id="tabela"></div>
 
     <div class="resumo">
-      <div><span>13º salário</span><b id="t-n">R$ 0,00</b></div>
-      <div><span>Férias e adicional</span><b id="t-o">R$ 0,00</b></div>
-      <div><span>Rescisão e adicional do FGTS</span><b id="t-p">R$ 0,00</b></div>
-      <div><span>Incidência submódulo 4.1</span><b id="t-q">R$ 0,00</b></div>
-      <div><span>Total do mês para depósito</span><b id="t-r">R$ 0,00</b></div>
+      <div class="total-dest"><span>Total do mês para depósito</span><b id="t-r">R$ 0,00</b></div>
     </div>
   </div>
 </div>
@@ -432,11 +427,11 @@ function montar() {
   document.getElementById('conteudo').style.display = '';
   document.getElementById('i-contrato').textContent = DADOS.contrato || '—';
   document.getElementById('i-empresa').textContent = DADOS.empresa || '—';
-  document.getElementById('i-unidade').textContent = DADOS.unidade || '—';
-  document.getElementById('i-perc').textContent = pctTexto(percSub());
   document.title = 'Conta Vinculada — ' + (DADOS.contrato || '') + (DADOS.empresa ? ' · ' + DADOS.empresa : '');
   if (_bloqueado) {
-    document.getElementById('aviso').innerHTML =
+    var av = document.getElementById('aviso');
+    av.style.display = '';
+    av.innerHTML =
       '<b>Este formulário está fechado para edição.</b> Os dados abaixo são apenas para consulta. '
       + 'Se precisar corrigir algo, fale com a PR6.';
     document.querySelectorAll('.btn-add,.btn-salvar').forEach(function(b) { b.style.display = 'none'; });
