@@ -7756,21 +7756,18 @@ function cvExportarPDF() {
     });
   }
 
-  // Card do saldo: só o saldo em negrito; depositado/retirado normais.
+  // Card do saldo: só o valor do saldo, maior e centralizado no card.
   function drawCartaoDeposito(ix) {
     var x = margin + ix * (cardW + gap);
     doc.setFillColor(239,246,255); doc.setDrawColor(37,99,235); doc.setLineWidth(0.8);
     doc.roundedRect(x, cardY, cardW, cardH, 5, 5, 'FD');
     doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(100,116,139);
-    doc.text(doc.splitTextToSize('VALOR DEPOSITADO NA CONTA VINCULADA', cardW - 16).slice(0,2), x+8, cardY+11);
-    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(37,99,235);
-    doc.text(m0(t.r - t.w), x+8, cardY+48);
-    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(100,116,139);
-    doc.text('DEPOSITADO', x+8, cardY+64);
-    doc.text('RETIRADO', x+8+cardW/2, cardY+64);
-    doc.setFontSize(8.5); doc.setTextColor(51,65,85);
-    doc.text(m0(t.r), x+8, cardY+75);
-    doc.text(m0(t.w), x+8+cardW/2, cardY+75);
+    var tl = doc.splitTextToSize('VALOR DEPOSITADO NA CONTA VINCULADA', cardW - 16).slice(0,2);
+    doc.text(tl, x + cardW/2, cardY+11, {align:'center'});
+    // saldo grande, centralizado no espaço abaixo do título
+    doc.setFont('helvetica','bold'); doc.setFontSize(19); doc.setTextColor(37,99,235);
+    var meioY = cardY + 11 + tl.length*7 + (cardH - (11 + tl.length*7)) / 2 + 6;
+    doc.text(m0(t.r - t.w), x + cardW/2, meioY, {align:'center'});
   }
 
   var somaPerc = CV_PERC.n + CV_PERC.o + CV_PERC.p + perc;
