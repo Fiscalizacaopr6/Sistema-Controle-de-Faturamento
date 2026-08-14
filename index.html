@@ -8004,8 +8004,8 @@ document.addEventListener('DOMContentLoaded', function() {
     IC_ITEMS.forEach(function(item){
       var it=M.items[item];
       var qtde=it?it.qtdeSum:0;
-      var media=(it&&it.vfatCount)?it.vfatSum/it.vfatCount:null;
-      if(media!=null) totalVal+=media;
+      var media=(it&&it.vfatCount)?Math.round(it.vfatSum/it.vfatCount*100)/100:null;  // arredonda ao valor exibido
+      if(media!=null) totalVal+=qtde*media;   // faturamento do item = qtde faturada × valor unit. faturado
       body+='<tr>'
         +'<td style="text-align:center;'+tdPad+';border-bottom:1px solid var(--border);font-weight:700">'+item+'</td>'
         +'<td style="text-align:center;'+tdPad+';border-bottom:1px solid var(--border)">'+(it?IC_BR0.format(qtde):'<span style="color:var(--muted)">0</span>')+'</td>'
