@@ -7786,31 +7786,36 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     INSTRUMENTO DE COBRANÇA (tela IC) — Angels 04/24
-     Lê os 60 períodos de cada unidade no Firestore (projeto imr-fiscalizacao),
+     INSTRUMENTO DE COBRANÇA (tela IC)
+     Dropdown de Contrato (IC_CONTRACTS). Para o contrato escolhido, lê os
+     60 períodos de cada unidade no Firestore (projeto imr-fiscalizacao),
      replica o cálculo do IMR (qtde e valor unit. faturado por posto) e
      agrega por ITEM: Qtde Faturada = soma entre unidades; Valor Unit.
-     Faturado = média entre unidades. Tudo por mês (lista suspensa).
+     Faturado = média entre unidades. Lista suspensa de mês (acima da coluna
+     de valor) + linha de Total (soma da coluna Valor Unit. Faturado).
      ══════════════════════════════════════════════════════════════════ -->
 <script>
 (function(){
-  // ── Unidades do contrato 04/24 (FORM_ID no Firestore + rótulo) ──
-  var IC_UNITS = [
-    {id:'angels-04-24-cap',                        nome:'CAP'},
-    {id:'angels-04-24-casa-da-ciencia',            nome:'CASA DA CIÊNCIA'},
-    {id:'angels-04-24-cbae',                       nome:'CBAE'},
-    {id:'angels-04-24-editora',                    nome:'EDITORA'},
-    {id:'angels-04-24-eean',                       nome:'EEAN'},
-    {id:'angels-04-24-escola-de-musica',           nome:'ESCOLA DE MÚSICA'},
-    {id:'angels-04-24-fnd',                        nome:'FND'},
-    {id:'angels-04-24-hesfa',                      nome:'HESFA'},
-    {id:'angels-04-24-ifcs',                       nome:'IFCS'},
-    {id:'angels-04-24-ig',                         nome:'IG'},
-    {id:'angels-04-24-indc',                       nome:'INDC'},
-    {id:'angels-04-24-ipub',                       nome:'IPUB'},
-    {id:'angels-04-24-museu-nacional',             nome:'MUSEU NACIONAL'},
-    {id:'angels-04-24-observatorio-valongo',       nome:'OBSERVATÓRIO VALONGO'},
-    {id:'angels-04-24-portoes-eefd-aulario-palacio',nome:'PORTÕES / EEFD'}
+  // ── Contratos disponíveis na tela IC (cada um com suas unidades/FORM_IDs) ──
+  // Para adicionar outro contrato, basta acrescentar um objeto aqui.
+  var IC_CONTRACTS = [
+    { id:'04-24', label:'04/24 — Angel\'s', units:[
+      {id:'angels-04-24-cap',                        nome:'CAP'},
+      {id:'angels-04-24-casa-da-ciencia',            nome:'CASA DA CIÊNCIA'},
+      {id:'angels-04-24-cbae',                       nome:'CBAE'},
+      {id:'angels-04-24-editora',                    nome:'EDITORA'},
+      {id:'angels-04-24-eean',                       nome:'EEAN'},
+      {id:'angels-04-24-escola-de-musica',           nome:'ESCOLA DE MÚSICA'},
+      {id:'angels-04-24-fnd',                        nome:'FND'},
+      {id:'angels-04-24-hesfa',                      nome:'HESFA'},
+      {id:'angels-04-24-ifcs',                       nome:'IFCS'},
+      {id:'angels-04-24-ig',                         nome:'IG'},
+      {id:'angels-04-24-indc',                       nome:'INDC'},
+      {id:'angels-04-24-ipub',                       nome:'IPUB'},
+      {id:'angels-04-24-museu-nacional',             nome:'MUSEU NACIONAL'},
+      {id:'angels-04-24-observatorio-valongo',       nome:'OBSERVATÓRIO VALONGO'},
+      {id:'angels-04-24-portoes-eefd-aulario-palacio',nome:'PORTÕES / EEFD'}
+    ]}
   ];
   var IC_API = 'https://firestore.googleapis.com/v1/projects/imr-fiscalizacao/databases/(default)/documents/imr_forms/';
   var IC_KEY = 'AIzaSyBwL87K4sGeVB1bAvqY1a8yv5otKLez8cw';
@@ -7878,36 +7883,60 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ── Estado do módulo ──
-  var icLoaded=false, icBusy=false;
-  var IC_MONTHS={};   // key(order) -> { label, order, items:{ itemNum:{qtdeSum, vfatSum, vfatCount} } }
-  var IC_ITEMS=[];    // universo de itens (números, ordenados)
-  var IC_ORDER=[];    // chaves de mês ordenadas
+  var icBuilt=false;
+  var icCache={};       // contratoId -> { months, items, order }  (evita refetch)
+  var icCurrent=null;   // contratoId selecionado
+  var IC_MONTHS={};     // do contrato atual: key(order) -> { label, order, items:{ item:{qtdeSum,vfatSum,vfatCount} } }
+  var IC_ITEMS=[];      // universo de itens (números, ordenados) do contrato atual
+  var IC_ORDER=[];      // chaves de mês ordenadas do contrato atual
 
+  function icFindContract(id){ for(var i=0;i<IC_CONTRACTS.length;i++){ if(IC_CONTRACTS[i].id===id) return IC_CONTRACTS[i]; } return null; }
+
+  // Monta a "casca" do card uma única vez: dropdown de Contrato + área do corpo.
   window.buildIC=function(){
     var host=document.getElementById('ic-content'); if(!host) return;
-    if(icLoaded){ return; }               // já carregado nesta sessão
-    if(icBusy) return;
-    icBusy=true;
-    host.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;padding:24px 4px">'
+    if(icBuilt) return;
+    icBuilt=true;
+    var copts=IC_CONTRACTS.map(function(c,i){ return '<option value="'+c.id+'"'+(i===0?' selected':'')+'>'+c.label+'</option>'; }).join('');
+    host.innerHTML=
+      '<div style="max-width:720px">'
+      +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:0 4px 18px rgba(0,0,0,.12)">'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">'
+          +'<span style="font-size:11px;color:var(--muted);font-weight:600">Contrato</span>'
+          +'<select id="ic-contrato-sel" onchange="icSelectContract(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;outline:none;cursor:pointer;min-width:180px">'+copts+'</select>'
+        +'</div>'
+        +'<div id="ic-body"></div>'
+      +'</div>'
+      +'</div>';
+    icSelectContract(IC_CONTRACTS[0].id);
+  };
+
+  // Seleciona um contrato: usa cache ou busca as unidades no Firestore.
+  window.icSelectContract=function(id){
+    icCurrent=id;
+    var body=document.getElementById('ic-body'); if(!body) return;
+    if(icCache[id]){ icApplyContract(id); return; }
+    var c=icFindContract(id); if(!c){ body.innerHTML=''; return; }
+    body.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;padding:24px 4px">'
       +'<div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div>'
-      +'Carregando dados dos IMR das 15 unidades…</div>';
-    Promise.all(IC_UNITS.map(function(u){
+      +'Carregando dados dos IMR ('+c.units.length+' unidades)…</div>';
+    Promise.all(c.units.map(function(u){
       return fetch(IC_API+u.id+'?key='+IC_KEY)
         .then(function(r){ return r.ok?r.json():null; })
         .catch(function(){ return null; })
         .then(function(j){ return {u:u, j:j}; });
     })).then(function(results){
-      icBusy=false; icLoaded=true;
-      icAggregate(results);
-      icRenderShell(results);
+      if(icCurrent!==id) return;                 // trocou de contrato durante a busca
+      icCache[id]=icAggregate(results);
+      icApplyContract(id);
     }).catch(function(e){
-      icBusy=false;
-      host.innerHTML='<div style="color:var(--red);font-size:13px;padding:20px 4px">Erro ao carregar os dados: '+(e&&e.message||e)+'</div>';
+      if(icCurrent!==id) return;
+      body.innerHTML='<div style="color:var(--red);font-size:13px;padding:20px 4px">Erro ao carregar os dados: '+(e&&e.message||e)+'</div>';
     });
   };
 
   function icAggregate(results){
-    IC_MONTHS={}; var itemSet={};
+    var months={}, itemSet={};
     results.forEach(function(res){
       var j=res.j;
       var payload=j&&j.fields&&j.fields.payload&&j.fields.payload.stringValue;
@@ -7918,7 +7947,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var b=icDetectPeriod(period.periodo); if(!b) return;
         var key=b.year*12+b.month;
         var rows=icPeriodCalc(period); if(!rows.length) return;
-        var M=IC_MONTHS[key]||(IC_MONTHS[key]={label:IC_MESES_CAP[b.month]+' '+b.year, order:key, items:{}});
+        var M=months[key]||(months[key]={label:IC_MESES_CAP[b.month]+' '+b.year, order:key, items:{}});
         rows.forEach(function(r){
           if(!r.item) return;
           itemSet[r.item]=true;
@@ -7927,37 +7956,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       });
     });
-    IC_ITEMS=Object.keys(itemSet).sort(function(a,b){ return (parseFloat(a)||0)-(parseFloat(b)||0); });
-    IC_ORDER=Object.keys(IC_MONTHS).map(Number).sort(function(a,b){ return a-b; });
+    return {
+      months: months,
+      items: Object.keys(itemSet).sort(function(a,b){ return (parseFloat(a)||0)-(parseFloat(b)||0); }),
+      order: Object.keys(months).map(Number).sort(function(a,b){ return a-b; })
+    };
   }
 
-  function icRenderShell(results){
-    var host=document.getElementById('ic-content'); if(!host) return;
+  // Aplica o contrato em cache aos globais e renderiza o corpo (mês + tabela).
+  function icApplyContract(id){
+    var data=icCache[id]; var body=document.getElementById('ic-body'); if(!data||!body) return;
+    IC_MONTHS=data.months; IC_ITEMS=data.items; IC_ORDER=data.order;
     if(!IC_ORDER.length){
-      host.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 4px">Nenhum dado de IMR encontrado para as unidades do contrato 04/24.</div>';
+      body.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px 4px">Nenhum dado de IMR encontrado para este contrato.</div>';
       return;
     }
     // Mês padrão: o mais recente com data que não seja futuro; senão o último disponível
     var now=new Date(), nowKey=now.getFullYear()*12+now.getMonth();
     var def=IC_ORDER[IC_ORDER.length-1];
     for(var i=0;i<IC_ORDER.length;i++){ if(IC_ORDER[i]<=nowKey) def=IC_ORDER[i]; }
-
     var opts=IC_ORDER.map(function(k){ return '<option value="'+k+'"'+(k===def?' selected':'')+'>'+IC_MONTHS[k].label+'</option>'; }).join('');
-
-    host.innerHTML=
-      '<div style="max-width:720px">'
-      +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:0 4px 18px rgba(0,0,0,.12)">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px">'
-          +'<div>'
-            +'<div style="font-size:14px;font-weight:700">Contrato 04/24 — Angel\'s</div>'
-          +'</div>'
-          +'<div style="display:flex;align-items:center;gap:8px">'
-            +'<span style="font-size:11px;color:var(--muted);font-weight:600">Mês</span>'
-            +'<select id="ic-mes-sel" onchange="icRenderTable(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;padding:7px 12px;outline:none;cursor:pointer;min-width:160px">'+opts+'</select>'
-          +'</div>'
+    // Envolve mês + tabela num bloco que encolhe até a largura da tabela, para que o
+    // seletor de mês (alinhado à direita) fique acima da coluna "Valor Unit. Faturado".
+    body.innerHTML=
+      '<div style="display:inline-block">'
+        +'<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px">'
+          +'<span style="font-size:11px;color:var(--muted);font-weight:600">Mês</span>'
+          +'<select id="ic-mes-sel" onchange="icRenderTable(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;padding:7px 12px;outline:none;cursor:pointer;min-width:150px">'+opts+'</select>'
         +'</div>'
         +'<div id="ic-tabela"></div>'
-      +'</div>'
       +'</div>';
     icRenderTable(def);
   }
@@ -7965,25 +7992,32 @@ document.addEventListener('DOMContentLoaded', function() {
   window.icRenderTable=function(key){
     var host=document.getElementById('ic-tabela'); if(!host) return;
     var M=IC_MONTHS[Number(key)]; if(!M){ host.innerHTML=''; return; }
+    var thPad='padding:8px 22px', tdPad='padding:8px 22px';
     var head=
       '<table style="width:auto;border-collapse:collapse;font-size:12px">'
       +'<thead><tr>'
-        +'<th style="text-align:center;padding:8px 22px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Item</th>'
-        +'<th style="text-align:center;padding:8px 22px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Qtde. Faturada</th>'
-        +'<th style="text-align:center;padding:8px 22px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Valor Unit. Faturado</th>'
+        +'<th style="text-align:center;'+thPad+';border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Item</th>'
+        +'<th style="text-align:center;'+thPad+';border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Qtde. Faturada</th>'
+        +'<th style="text-align:center;'+thPad+';border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Valor Unit. Faturado</th>'
       +'</tr></thead><tbody>';
-    var body='';
+    var body='', totalVal=0;
     IC_ITEMS.forEach(function(item){
       var it=M.items[item];
       var qtde=it?it.qtdeSum:0;
       var media=(it&&it.vfatCount)?it.vfatSum/it.vfatCount:null;
+      if(media!=null) totalVal+=media;
       body+='<tr>'
-        +'<td style="text-align:center;padding:8px 22px;border-bottom:1px solid var(--border);font-weight:700">'+item+'</td>'
-        +'<td style="text-align:center;padding:8px 22px;border-bottom:1px solid var(--border)">'+(it?IC_BR0.format(qtde):'<span style="color:var(--muted)">0</span>')+'</td>'
-        +'<td style="text-align:center;padding:8px 22px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">'+(media!=null?'R$ '+IC_BR.format(media):'<span style="color:var(--muted)">—</span>')+'</td>'
+        +'<td style="text-align:center;'+tdPad+';border-bottom:1px solid var(--border);font-weight:700">'+item+'</td>'
+        +'<td style="text-align:center;'+tdPad+';border-bottom:1px solid var(--border)">'+(it?IC_BR0.format(qtde):'<span style="color:var(--muted)">0</span>')+'</td>'
+        +'<td style="text-align:center;'+tdPad+';border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">'+(media!=null?'R$ '+IC_BR.format(media):'<span style="color:var(--muted)">—</span>')+'</td>'
       +'</tr>';
     });
-    host.innerHTML=head+body+'</tbody></table>';
+    var foot=
+      '<tr>'
+        +'<td colspan="2" style="text-align:right;'+tdPad+';border-top:2px solid var(--border);font-weight:700;color:var(--muted)">Total</td>'
+        +'<td style="text-align:center;'+tdPad+';border-top:2px solid var(--border);font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)">R$ '+IC_BR.format(totalVal)+'</td>'
+      +'</tr>';
+    host.innerHTML=head+body+'</tbody><tfoot>'+foot+'</tfoot></table>';
   };
 })();
 </script>
