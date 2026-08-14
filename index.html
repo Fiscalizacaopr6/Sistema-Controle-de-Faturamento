@@ -7714,27 +7714,91 @@ function cvExportarPDF() {
     y += Math.max(lines.length * 10, 12) + 6;
   }
 
-  // Totais (retenção / retirada / depósito / saldo)
-  function totNumber(id) {
-    var el = document.getElementById(id);
-    return el ? el.textContent.trim() : '';
-  }
-  var totRetHtml = document.getElementById('cv-tot-retencao');
-  var totRetTxt = totRetHtml ? totRetHtml.innerText.replace(/\s+/g,' ').trim() : '';
-  var totRirHtml = document.getElementById('cv-tot-retirada');
-  var totRirTxt = totRirHtml ? totRirHtml.innerText.replace(/\s+/g,' ').trim() : '';
-  var deposito = totNumber('cv-deposito');
-  var retirado = totNumber('cv-retirado');
-  var saldo    = totNumber('cv-saldo');
+  // ── Cards de totais (mesmos da tela) ──
+  var t = {n:0,o:0,p:0,q:0,r:0,s:0,t:0,u:0,v:0,w:0};
+  cvFiltradas.forEach(function(l) {
+    var c = cvCalc(l, perc);
+    ['n','o','p','q','r'].forEach(function(k){ if (c[k]) t[k] += c[k]; });
+    if (l.tipo === 'Retirada') {
+      ['s','t','u','v'].forEach(function(k){ t[k] += (cvNum(l[k])||0); });
+      t.w += (c.w || 0);
+    }
+  });
+  function m0(v){ return cvMoeda(v) || 'R$ 0,00'; }
 
-  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,116,139);
-  if (totRetTxt) { doc.text('Retenção: ' + totRetTxt, margin, y); y += 11; }
-  if (totRirTxt) { doc.text('Retirada: ' + totRirTxt, margin, y); y += 11; }
-  if (saldo)     { doc.text('Saldo na conta vinculada: ' + saldo, margin, y); y += 11; }
-  if (deposito)  { doc.text('Depositado: ' + deposito, margin, y); y += 11; }
-  if (retirado)  { doc.text('Retirado: ' + retirado, margin, y); y += 11; }
+  var gap = 10;
+  var cardW = (W - margin*2 - gap*3) / 4;
+  var cardH = 96, cardY = y, lineH = 11;
+
+  // Só a linha "Total" de cada card fica em negrito; o resto, normal.
+  function drawCartao(ix, titulo, rows, blue) {
+    var x = margin + ix * (cardW + gap);
+    if (blue) { doc.setFillColor(239,246,255); doc.setDrawColor(37,99,235); }
+    else      { doc.setFillColor(248,250,252); doc.setDrawColor(226,232,240); }
+    doc.setLineWidth(0.8);
+    doc.roundedRect(x, cardY, cardW, cardH, 5, 5, 'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(100,116,139);
+    doc.text(doc.splitTextToSize(String(titulo).toUpperCase(), cardW - 16).slice(0,2), x+8, cardY+11);
+    var ry = cardY + 34;
+    rows.forEach(function(r) {
+      if (r.total) {
+        doc.setDrawColor(226,232,240); doc.setLineWidth(0.5);
+        doc.line(x+8, ry-7, x+cardW-8, ry-7);
+        doc.setFont('helvetica','bold'); doc.setFontSize(7);
+        doc.setTextColor(30,41,59);  doc.text(String(r.label), x+8, ry);
+        doc.setTextColor(37,99,235); doc.text(String(r.value), x+cardW-8, ry, {align:'right'});
+      } else {
+        doc.setFont('helvetica','normal'); doc.setFontSize(6.6); doc.setTextColor(71,85,105);
+        doc.text(String(r.label), x+8, ry);
+        doc.text(String(r.value), x+cardW-8, ry, {align:'right'});
+      }
+      ry += lineH;
+    });
+  }
+
+  // Card do saldo: só o saldo em negrito; depositado/retirado normais.
+  function drawCartaoDeposito(ix) {
+    var x = margin + ix * (cardW + gap);
+    doc.setFillColor(239,246,255); doc.setDrawColor(37,99,235); doc.setLineWidth(0.8);
+    doc.roundedRect(x, cardY, cardW, cardH, 5, 5, 'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(100,116,139);
+    doc.text(doc.splitTextToSize('VALOR DEPOSITADO NA CONTA VINCULADA', cardW - 16).slice(0,2), x+8, cardY+11);
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(37,99,235);
+    doc.text(m0(t.r - t.w), x+8, cardY+48);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(100,116,139);
+    doc.text('DEPOSITADO', x+8, cardY+64);
+    doc.text('RETIRADO', x+8+cardW/2, cardY+64);
+    doc.setFontSize(8.5); doc.setTextColor(51,65,85);
+    doc.text(m0(t.r), x+8, cardY+75);
+    doc.text(m0(t.w), x+8+cardW/2, cardY+75);
+  }
+
+  var somaPerc = CV_PERC.n + CV_PERC.o + CV_PERC.p + perc;
+  drawCartao(0, 'Percentuais incidentes sobre a remuneração — IN 05, Anexo XII', [
+    {label:'13º salário', value:cvPercTexto(CV_PERC.n)},
+    {label:'Férias e adicional', value:cvPercTexto(CV_PERC.o)},
+    {label:'Rescisão e adicional do FGTS', value:cvPercTexto(CV_PERC.p)},
+    {label:'Incidência sobre o submódulo 4.1', value:cvPercTexto(perc)},
+    {label:'Total', value:cvPercTexto(somaPerc), total:true}
+  ]);
+  drawCartao(1, 'Retenções para depósito', [
+    {label:'13º salário', value:m0(t.n)},
+    {label:'Férias e adicional', value:m0(t.o)},
+    {label:'Rescisão e adicional do FGTS', value:m0(t.p)},
+    {label:'Incidência sobre o submódulo 4.1', value:m0(t.q)},
+    {label:'Total depositado', value:m0(t.r), total:true}
+  ]);
+  drawCartao(2, 'Registro de retiradas', [
+    {label:'13º salário', value:m0(t.s)},
+    {label:'Férias e adicional', value:m0(t.t)},
+    {label:'Rescisão e adicional do FGTS', value:m0(t.u)},
+    {label:'Incidência sobre o submódulo 4.1', value:m0(t.v)},
+    {label:'Total retirado', value:m0(t.w), total:true}
+  ]);
+  drawCartaoDeposito(3);
+
   doc.setTextColor(30, 41, 59);
-  y += 4;
+  y = cardY + cardH + 12;
 
   // Tabela
   var head = ['#'].concat(CV_COLS.map(function(c){ return c.label; }));
