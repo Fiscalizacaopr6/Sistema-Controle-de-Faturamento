@@ -40,7 +40,10 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 .btn-add{background:#10b981;color:#fff}
 .btn-salvar{background:#1e7e34;color:#fff}
 .btn-print{background:#6c757d;color:#fff}
+.btn-copiar{background:#0d9488;color:#fff}
 .btn:hover{opacity:.88}
+/* Coluna Nome: acompanha o tamanho do texto digitado */
+td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
 .status{font-size:11.5px;margin-left:auto;color:#555}
 .status.ok{color:#1e7e34;font-weight:bold}
 .status.erro{color:#d9534f;font-weight:bold}
@@ -81,6 +84,7 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 
     <div class="barra">
       <button class="btn btn-add" onclick="addLinha()">+ Adicionar funcionário</button>
+      <button class="btn btn-copiar" id="btn-copiar-ant" onclick="copiarMesAnterior()" style="display:none">📋 Copiar do mês anterior</button>
       <button class="btn btn-salvar" onclick="salvar(true)">Salvar</button>
       <button class="btn btn-print" onclick="window.print()">Imprimir / PDF (mês atual)</button>
       <span class="status" id="status"></span>
@@ -212,6 +216,9 @@ function renderTabs() {
 function renderTabela() {
   var alvo = document.getElementById('tabela');
   var m = DADOS.meses[MES_ATUAL];
+  // "Copiar do mês anterior" só faz sentido a partir do 2º mês e com o formulário aberto
+  var btnCopiar = document.getElementById('btn-copiar-ant');
+  if (btnCopiar) btnCopiar.style.display = (m && MES_ATUAL > 0 && !_bloqueado) ? '' : 'none';
   if (!m) { alvo.innerHTML = '<div class="vazio">Nenhum mês disponível.</div>'; return; }
   var linhas = linhasDoMes(MES_ATUAL);
   var ths = COLS.map(function(c) {
@@ -261,7 +268,20 @@ function campoHtml(col, l, idx) {
   if (col.tipo === 'dias') return '<input type="number" min="0" max="30" step="1" value="' + esc(v) + '"' + dis + ev + '>';
   if (col.tipo === 'dinheiro') return '<input value="' + esc(v) + '" placeholder="0,00"' + dis + ev + '>';
   if (col.tipo === 'cpf') return '<input value="' + esc(v) + '" placeholder="000.000.000-00"' + dis + ev + '>';
+  if (col.k === 'nome') {
+    var evNome = ' oninput="setCampo(' + idx + ',\'nome\',this.value,this);ajustaLargura(this)"';
+    return '<input class="col-nome" style="width:' + larguraCh(v) + '" value="' + esc(v) + '"' + dis + evNome + '>';
+  }
   return '<input value="' + esc(v) + '"' + dis + ev + '>';
+}
+
+// Largura do campo Nome proporcional ao texto (entre 16 e 44 caracteres).
+function larguraCh(txt) {
+  var n = String(txt == null ? '' : txt).length;
+  return Math.min(44, Math.max(16, n + 3)) + 'ch';
+}
+function ajustaLargura(el) {
+  if (el) el.style.width = larguraCh(el.value);
 }
 
 // Redesenha só o necessário: mexer na remuneração ou nos dias muda os
@@ -324,6 +344,38 @@ function addLinha() {
     var ultimo = inp[inp.length - 1].querySelector('input');
     if (ultimo) ultimo.focus();
   }
+}
+
+// Copia todos os funcionários do mês anterior para o mês atual, trazendo os
+// campos de CPF até Remuneração (todas as colunas de preenchimento). Os
+// valores calculados (verdes) são refeitos pelo próprio sistema.
+function copiarMesAnterior() {
+  if (_bloqueado || !DADOS) return;
+  if (MES_ATUAL <= 0) { alert('Não há mês anterior para copiar.'); return; }
+  var mAtual = DADOS.meses[MES_ATUAL], mAnt = DADOS.meses[MES_ATUAL - 1];
+  if (!mAtual || !mAnt) return;
+  var origem = linhasDoMes(MES_ATUAL - 1);
+  if (!origem.length) {
+    alert('O mês anterior (' + mesRotulo(mAnt) + ') não tem funcionários para copiar.');
+    return;
+  }
+  var jaTem = linhasDoMes(MES_ATUAL).length;
+  var msg = 'Copiar ' + origem.length + ' funcionário(s) de ' + mesRotulo(mAnt)
+    + ' para ' + mesRotulo(mAtual) + '?';
+  if (jaTem) msg += '\n\nAs ' + jaTem + ' linha(s) já lançadas neste mês serão mantidas; os copiados entram além delas.';
+  if (!confirm(msg)) return;
+
+  origem.forEach(function(l) {
+    var nova = {id: novoId(), tipo: l.tipo || 'Retenção', mes: mAtual.mes, ano: String(mAtual.ano)};
+    COLS.forEach(function(col) {
+      nova[col.k] = (l[col.k] === undefined || l[col.k] === null) ? '' : l[col.k];
+    });
+    DADOS.linhas.push(nova);
+  });
+  renderTabs();
+  renderTabela();
+  salvar(true);
+  status('✔ ' + origem.length + ' funcionário(s) copiado(s) de ' + mesRotulo(mAnt) + '.', 'ok');
 }
 
 function removerLinha(idx) {
