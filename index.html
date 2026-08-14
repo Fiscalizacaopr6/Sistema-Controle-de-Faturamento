@@ -382,6 +382,24 @@ tr:last-child td{border-bottom:none}
 .cv-lin.total span:last-child{color:var(--accent)}
 .cv-depos{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--green)}
 .cv-saldo{font-size:11.5px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace}
+/* ── Totalizadora: tema azul escuro + destaque do saldo ─────────────── */
+/* Remapeia o verde para azul-marinho só nesta tela (títulos, tabela, saldo) */
+#view-cvform{--green:#2563eb}
+.cvt-titulo{text-align:center;font-size:24px;font-weight:800;letter-spacing:.6px;color:#fff;background:linear-gradient(135deg,#172554,#1e40af);border-radius:12px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 14px rgba(23,37,84,.35)}
+#view-cvform .cv-box-destaque{border-color:rgba(37,99,235,.5);background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(30,58,138,.04))}
+#view-cvform #cv-tabela th.cv-g1{background:rgba(37,99,235,.16);color:#2563eb}
+.cvt-saldo{font-size:28px;font-weight:800;font-family:'DM Mono',monospace;color:#2563eb;line-height:1.1}
+.cvt-depret{display:flex;gap:22px;margin-top:10px;flex-wrap:wrap}
+.cvt-depret span{display:block;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.cvt-depret b{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text)}
+/* Botões claros e modernos dentro da totalizadora */
+#view-cvform .btn-new{background:#eff6ff;color:#1e3a8a;border:1.5px solid #bfdbfe;border-radius:8px;font-weight:600;transition:background .15s,color .15s}
+#view-cvform .btn-new:hover{background:#2563eb;color:#fff;border-color:#2563eb}
+#view-cvform .btn.clear{background:#f8fafc;color:#334155;border:1.5px solid #e2e8f0;border-radius:8px;transition:background .15s}
+#view-cvform .btn.clear:hover{background:#e2e8f0}
+html:not(.light) #view-cvform .btn-new{background:rgba(37,99,235,.14);color:#93c5fd;border-color:rgba(37,99,235,.4)}
+html:not(.light) #view-cvform .btn-new:hover{background:#2563eb;color:#fff}
+html:not(.light) #view-cvform .btn.clear{background:var(--surface2);color:var(--text);border-color:var(--border)}
 #cv-tbl{width:max-content;min-width:100%}
 #cv-tabela th{padding:8px 8px;font-size:9.5px;letter-spacing:.4px;text-align:center;cursor:default;white-space:normal}
 #cv-tabela td{padding:4px 6px;font-size:11.5px;white-space:nowrap}
@@ -854,11 +872,13 @@ select.doc-inp{cursor:pointer}
     <div class="view" id="view-cvform">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
         <button class="btn-doc" onclick="showView('retencao')">← Voltar</button>
-        <h2 style="font-size:15px;font-weight:600;white-space:nowrap;flex:1" id="cv-titulo">Conta Vinculada Mensal</h2>
+        <h2 style="font-size:13px;font-weight:600;white-space:nowrap;flex:1;color:var(--muted)" id="cv-titulo"></h2>
         <span id="cv-status" style="font-size:11px;color:var(--muted)"></span>
         <button class="btn-export xlsx" onclick="cvExportarExcel()">⬇ Excel</button>
         <button onclick="cvExportarPDF()" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer">⬇ PDF</button>
       </div>
+
+      <div class="cvt-titulo">CONTA VINCULADA TOTALIZADORA</div>
 
       <div class="cv-cab">
         <div class="ef"><label>Contrato</label><input id="cv-contrato" list="cv-dl-contratos" oninput="cvContratoDigitado()"></div>
@@ -883,9 +903,12 @@ select.doc-inp{cursor:pointer}
           <div class="cv-tot-grid" id="cv-tot-retirada"></div>
         </div>
         <div class="cv-box cv-box-destaque">
-          <div class="cv-box-t">Valor para depósito na conta vinculada</div>
-          <div class="cv-depos" id="cv-deposito">—</div>
-          <div class="cv-saldo" id="cv-saldo">Saldo: —</div>
+          <div class="cv-box-t">Valor Depositado na conta vinculada</div>
+          <div class="cvt-saldo" id="cv-saldo">—</div>
+          <div class="cvt-depret">
+            <div><span>Depositado</span><b id="cv-deposito">—</b></div>
+            <div><span>Retirado</span><b id="cv-retirado">—</b></div>
+          </div>
         </div>
       </div>
 
@@ -7316,7 +7339,7 @@ function cvAbrirFormulario(regId) {
 
 function cvMontarTela(reg) {
   document.getElementById('cv-titulo').textContent =
-    'Conta Vinculada Mensal — ' + (reg.contrato || '') + (reg.empresa ? ' · ' + reg.empresa : '');
+    (reg.contrato || '') + (reg.empresa ? ' · ' + reg.empresa : '');
   document.getElementById('cv-contrato').value = CV_ATUAL.contrato;
   document.getElementById('cv-objeto').value = CV_ATUAL.objeto;
   document.getElementById('cv-perc').value = cvPercTexto(cvPercSub());
@@ -7645,10 +7668,12 @@ function cvRenderTotais() {
     + linha('Incidência sobre o submódulo 4.1', cvMoeda(t.v) || 'R$ 0,00')
     + linha('Total retirado', cvMoeda(t.w) || 'R$ 0,00', 'total');
 
+  var elSaldo = document.getElementById('cv-saldo');
+  if (elSaldo) elSaldo.textContent = cvMoeda(t.r - t.w) || 'R$ 0,00';
   var elD = document.getElementById('cv-deposito');
   if (elD) elD.textContent = cvMoeda(t.r) || 'R$ 0,00';
-  var elSaldo = document.getElementById('cv-saldo');
-  if (elSaldo) elSaldo.textContent = 'Saldo (depositado − retirado): ' + (cvMoeda(t.r - t.w) || 'R$ 0,00');
+  var elRet = document.getElementById('cv-retirado');
+  if (elRet) elRet.textContent = cvMoeda(t.w) || 'R$ 0,00';
 }
 
 // ── Exportação ──
@@ -7669,7 +7694,7 @@ function cvExportarPDF() {
   function drawHeader() {
     doc.setFillColor(30, 41, 59); doc.rect(0, 0, W, 56, 'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(255,255,255);
-    doc.text('Conta Vinculada Mensal — Totalizadora', margin, 22);
+    doc.text('Conta Vinculada Totalizadora', margin, 22);
     doc.setFontSize(10); doc.setFont('helvetica','normal');
     var linha2 = 'Contrato: ' + contrato + (empresa ? '   ·   Empresa: ' + empresa : '');
     doc.text(linha2, margin, 40);
@@ -7699,13 +7724,15 @@ function cvExportarPDF() {
   var totRirHtml = document.getElementById('cv-tot-retirada');
   var totRirTxt = totRirHtml ? totRirHtml.innerText.replace(/\s+/g,' ').trim() : '';
   var deposito = totNumber('cv-deposito');
+  var retirado = totNumber('cv-retirado');
   var saldo    = totNumber('cv-saldo');
 
   doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,116,139);
   if (totRetTxt) { doc.text('Retenção: ' + totRetTxt, margin, y); y += 11; }
   if (totRirTxt) { doc.text('Retirada: ' + totRirTxt, margin, y); y += 11; }
-  if (deposito)  { doc.text(deposito, margin, y); y += 11; }
-  if (saldo)     { doc.text(saldo,    margin, y); y += 11; }
+  if (saldo)     { doc.text('Saldo na conta vinculada: ' + saldo, margin, y); y += 11; }
+  if (deposito)  { doc.text('Depositado: ' + deposito, margin, y); y += 11; }
+  if (retirado)  { doc.text('Retirado: ' + retirado, margin, y); y += 11; }
   doc.setTextColor(30, 41, 59);
   y += 4;
 
