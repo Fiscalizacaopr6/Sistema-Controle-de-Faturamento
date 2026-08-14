@@ -7937,8 +7937,6 @@ document.addEventListener('DOMContentLoaded', function() {
       host.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 4px">Nenhum dado de IMR encontrado para as unidades do contrato 04/24.</div>';
       return;
     }
-    // Contagem de unidades efetivamente carregadas
-    var carregadas=results.filter(function(r){ return r.j&&r.j.fields&&r.j.fields.payload; }).length;
     // Mês padrão: o mais recente com data que não seja futuro; senão o último disponível
     var now=new Date(), nowKey=now.getFullYear()*12+now.getMonth();
     var def=IC_ORDER[IC_ORDER.length-1];
@@ -7952,7 +7950,6 @@ document.addEventListener('DOMContentLoaded', function() {
         +'<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px">'
           +'<div>'
             +'<div style="font-size:14px;font-weight:700">Contrato 04/24 — Angel\'s</div>'
-            +'<div style="font-size:11px;color:var(--muted);margin-top:2px">Qtde. faturada (soma) e valor unit. faturado (média) por item, entre as '+carregadas+' unidades</div>'
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px">'
             +'<span style="font-size:11px;color:var(--muted);font-weight:600">Mês</span>'
@@ -7969,11 +7966,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var host=document.getElementById('ic-tabela'); if(!host) return;
     var M=IC_MONTHS[Number(key)]; if(!M){ host.innerHTML=''; return; }
     var head=
-      '<table style="width:100%;border-collapse:collapse;font-size:12px">'
+      '<table style="width:auto;border-collapse:collapse;font-size:12px">'
       +'<thead><tr>'
-        +'<th style="text-align:center;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Item</th>'
-        +'<th style="text-align:center;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Qtde. Faturada</th>'
-        +'<th style="text-align:right;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Valor Unit. Faturado</th>'
+        +'<th style="text-align:center;padding:8px 22px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Item</th>'
+        +'<th style="text-align:center;padding:8px 22px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Qtde. Faturada</th>'
+        +'<th style="text-align:center;padding:8px 22px;border-bottom:2px solid var(--border);color:var(--muted);font-weight:600;font-size:11px">Valor Unit. Faturado</th>'
       +'</tr></thead><tbody>';
     var body='';
     IC_ITEMS.forEach(function(item){
@@ -7981,9 +7978,9 @@ document.addEventListener('DOMContentLoaded', function() {
       var qtde=it?it.qtdeSum:0;
       var media=(it&&it.vfatCount)?it.vfatSum/it.vfatCount:null;
       body+='<tr>'
-        +'<td style="text-align:center;padding:8px 6px;border-bottom:1px solid var(--border);font-weight:700">'+item+'</td>'
-        +'<td style="text-align:center;padding:8px 6px;border-bottom:1px solid var(--border)">'+(it?IC_BR0.format(qtde):'<span style="color:var(--muted)">0</span>')+'</td>'
-        +'<td style="text-align:right;padding:8px 6px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">'+(media!=null?'R$ '+IC_BR.format(media):'<span style="color:var(--muted)">—</span>')+'</td>'
+        +'<td style="text-align:center;padding:8px 22px;border-bottom:1px solid var(--border);font-weight:700">'+item+'</td>'
+        +'<td style="text-align:center;padding:8px 22px;border-bottom:1px solid var(--border)">'+(it?IC_BR0.format(qtde):'<span style="color:var(--muted)">0</span>')+'</td>'
+        +'<td style="text-align:center;padding:8px 22px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums">'+(media!=null?'R$ '+IC_BR.format(media):'<span style="color:var(--muted)">—</span>')+'</td>'
       +'</tr>';
     });
     host.innerHTML=head+body+'</tbody></table>';
