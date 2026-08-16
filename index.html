@@ -8038,7 +8038,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // ── Contratos disponíveis na tela IC (cada um com suas unidades/FORM_IDs) ──
   // Para adicionar outro contrato, basta acrescentar um objeto aqui.
   var IC_CONTRACTS = [
-    { id:'04-24', label:'04/24 — Angel\'s', units:[
+    { id:'04-24', label:'04/24 — Angel\'s', contrato:'04/24', units:[
       {id:'angels-04-24-cap',                        nome:'CAP'},
       {id:'angels-04-24-casa-da-ciencia',            nome:'CASA DA CIÊNCIA'},
       {id:'angels-04-24-cbae',                       nome:'CBAE'},
@@ -8131,6 +8131,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function icFindContract(id){ for(var i=0;i<IC_CONTRACTS.length;i++){ if(IC_CONTRACTS[i].id===id) return IC_CONTRACTS[i]; } return null; }
 
+  // ── Botão "FAZER IC" ──
+  // O ID do contrato no Contratos.gov vem da tela de Contratos (campo
+  // "ID CONTRATOS_GOV" do nó /dados). Ele é o mesmo em todas as linhas/termos
+  // do contrato, então basta achar a primeira linha preenchida — dando
+  // preferência à linha VIGENTE, que é a mais confiável.
+  function icGovId(contratoId){
+    var c=icFindContract(contratoId);
+    var num=(c&&c.contrato)||String(contratoId||'').replace('-','/');
+    if(typeof DADOS==='undefined'||!DADOS) return null;
+    var achado=null;
+    for(var i=0;i<DADOS.length;i++){
+      var d=DADOS[i]; if(!d||String(d['CONTRATO']||'').trim()!==num) continue;
+      var gid=String(d['ID CONTRATOS_GOV']==null?'':d['ID CONTRATOS_GOV']).trim();
+      if(!gid) continue;
+      if(d._st==='VIGENTE') return gid;
+      if(!achado) achado=gid;
+    }
+    return achado;
+  }
+
+  // Habilita/desabilita conforme o contrato selecionado tenha ou não o ID.
+  function icUpdateFazerBtn(){
+    var b=document.getElementById('ic-fazer-btn'); if(!b) return;
+    // Enquanto o /dados não terminou de carregar, mantém o botão ativo: o ID é
+    // resolvido de novo no clique.
+    if(typeof DADOS==='undefined'||!DADOS||!DADOS.length){
+      b.disabled=false; b.style.opacity='1'; b.style.cursor='pointer'; b.title='';
+      return;
+    }
+    var gid=icGovId(icCurrent);
+    b.disabled=!gid;
+    b.style.opacity=gid?'1':'.45';
+    b.style.cursor=gid?'pointer':'not-allowed';
+    b.title=gid
+      ? 'Abrir o Contratos.gov para criar o instrumento de cobrança (ID '+gid+')'
+      : 'Cadastre o ID CONTRATOS_GOV deste contrato na tela de Contratos';
+  }
+
+  window.icFazerIC=function(){
+    var gid=icGovId(icCurrent);
+    if(!gid){
+      alert('Este contrato não tem o "ID CONTRATOS_GOV" cadastrado na tela de Contratos.');
+      return;
+    }
+    window.open('https://contratos.sistema.gov.br/meus-contratos/'+gid+'/instrumento-cobranca/create','_blank');
+  };
+
   // Monta a "casca" do card uma única vez: dropdown de Contrato + área do corpo.
   window.buildIC=function(){
     var host=document.getElementById('ic-content'); if(!host) return;
@@ -8144,6 +8191,7 @@ document.addEventListener('DOMContentLoaded', function() {
           +'<span style="font-size:11px;color:var(--muted);font-weight:600">Contrato</span>'
           +'<select id="ic-contrato-sel" onchange="icSelectContract(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;outline:none;cursor:pointer;min-width:180px">'+copts+'</select>'
           +'<span id="ic-mes-wrap" style="display:flex;align-items:center;gap:10px"></span>'
+          +'<button id="ic-fazer-btn" class="btn-new" onclick="icFazerIC()" style="margin-left:6px;white-space:nowrap">FAZER IC</button>'
         +'</div>'
         +'<div id="ic-body"></div>'
       +'</div>'
@@ -8154,6 +8202,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Seleciona um contrato: usa cache ou busca as unidades no Firestore.
   window.icSelectContract=function(id){
     icCurrent=id;
+    icUpdateFazerBtn();
     var body=document.getElementById('ic-body'); if(!body) return;
     var mw=document.getElementById('ic-mes-wrap'); if(mw) mw.innerHTML='';
     if(icCache[id]){ icApplyContract(id); return; }
@@ -8208,6 +8257,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function icApplyContract(id){
     var data=icCache[id]; var body=document.getElementById('ic-body'); if(!data||!body) return;
     IC_MONTHS=data.months; IC_ITEMS=data.items; IC_ORDER=data.order;
+    icUpdateFazerBtn();   // o /dados já costuma ter chegado quando os IMR terminam
     var mw=document.getElementById('ic-mes-wrap'); if(mw) mw.innerHTML='';
     if(!IC_ORDER.length){
       body.innerHTML='<div style="color:var(--muted);font-size:13px;padding:16px 4px">Nenhum dado de IMR encontrado para este contrato.</div>';
