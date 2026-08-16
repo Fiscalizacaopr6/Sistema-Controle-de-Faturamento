@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Contratos.gov — preencher o Instrumento de Cobrança
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Recebe os itens vindos da tela de IC do Controle de Faturamento (…/instrumento-cobranca/create#ic=…) e preenche sozinho: aba "Itens Instrumento Cobrança", primeiro termo do histórico, "Todos" nos itens e, em cada item, o valor unitário e a quantidade.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://contratos.sistema.gov.br/*
@@ -24,6 +24,8 @@
  *   2. abre a aba "Itens Instrumento Cobrança"
  *   3. em "Histórico do contrato" escolhe SEMPRE o primeiro registro da lista
  *   4. em "Itens do histórico" escolhe "Todos"
+ *      (os dois são <select> vestidos de Select2: a escolha passa pelo change do
+ *       jQuery, senão o widget não atualiza e o campo seguinte não carrega)
  *   5. em cada linha da grade, preenche Valor unitário e Quantidade conforme a
  *      tela de IC. O casamento é SEMPRE pelo "Número compra: 000NN" da descrição
  *      (= número do item do contrato). As linhas do Contratos.gov vêm fora de
@@ -43,7 +45,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '1.1.0';
+  var VERSAO = '1.2.0';
   try { window.__pr6IcScript = VERSAO; } catch (e) {}
 
   var CHAVE       = 'pr6_ic_pendente';
@@ -172,23 +174,49 @@
   var SEL_OPCAO = '[role="option"], .p-dropdown-item, .p-multiselect-item, .ng-option, .dropdown-item,'
     + ' .select2-results__option, .mat-option, li';
 
-  function abaPorTexto(rot) {
-    var alvo = norm(rot), achado = null;
-    var cand = document.querySelectorAll('a, button, li, span, div[role="tab"], [role="tab"]');
+  // Candidatos a "aba", do mais provável ao menos. O texto da aba também aparece
+  // no tooltip do botão "próximo" (#idTextTooltipNext, dentro de #saveActions) —
+  // clicar nele não faz nada, então esses ficam de fora.
+  function candidatosAba(rot) {
+    var alvo = norm(rot), lista = [];
+    var cand = document.querySelectorAll('a, button, li, span, div');
     for (var i = 0; i < cand.length; i++) {
-      if (!visivel(cand[i])) continue;
-      if (norm(texto(cand[i])) === alvo) achado = cand[i];   // fica com o mais interno
+      var e = cand[i];
+      if (norm(texto(e)) !== alvo || !visivel(e)) continue;
+      if (e.closest && e.closest('[role="tooltip"], .br-tooltip, #saveActions')) continue;
+      var nota = 0, p = e;
+      for (var n = 0; n < 3 && p; n++, p = p.parentElement) {
+        if (p.matches && p.matches('a[href^="#"], [role="tab"], [data-toggle="tab"], [data-bs-toggle="tab"], .nav-link, .nav-item, li')) { nota = 3 - n; break; }
+      }
+      lista.push({ el: e, nota: nota });
     }
-    return achado;
+    lista.sort(function (a, b) { return b.nota - a.nota; });
+    return lista.map(function (x) { return x.el; });
   }
 
+  // O campo é um <select> comum vestido de Select2 — o select nativo fica
+  // escondido (.select2-hidden-accessible), então NÃO dá para exigir que ele
+  // esteja visível. O caminho seguro é o "for" do <label>, que casa com o name
+  // do select; só se isso falhar é que subo na árvore, e mesmo assim parando no
+  // primeiro bloco que tenha um único campo — senão acabo pegando o vizinho.
   function campoPorRotulo(rot) {
     var alvo = norm(rot);
     var cand = document.querySelectorAll('label, span, div, p, legend');
     for (var i = 0; i < cand.length; i++) {
-      if (norm(textoProprio(cand[i])) !== alvo) continue;
-      var p = cand[i];
-      for (var n = 0; n < 5 && p; n++, p = p.parentElement) {
+      var lab = cand[i];
+      if (norm(textoProprio(lab)) !== alvo) continue;
+      var alvoId = lab.getAttribute && lab.getAttribute('for');
+      if (alvoId) {
+        var porNome = document.querySelector('[name="' + alvoId + '"]')
+          || document.getElementById(alvoId);
+        if (porNome) return porNome;
+      }
+      var p = lab;
+      for (var n = 0; n < 5 && p.parentElement; n++) {
+        p = p.parentElement;
+        var sels = p.querySelectorAll('select');
+        if (sels.length === 1) return sels[0];
+        if (sels.length > 1) break;                       // já englobei outro campo
         var dd = p.querySelector(SEL_DROPDOWN);
         if (dd && visivel(dd)) return dd;
       }
@@ -215,14 +243,26 @@
   // Abre o dropdown e escolhe: escolher(textos) devolve o índice desejado.
   function escolherNoDropdown(dd, escolher) {
     if (dd.tagName === 'SELECT') {
-      // descarta o "Selecionar registro" (option sem value)
+      // descarta o "-" / "Selecionar registro" (option sem value)
       var opts = [].filter.call(dd.options, function (o) { return o.value; });
       var idx = escolher(opts.map(texto));
       if (idx < 0 || !opts[idx]) return Promise.reject(new Error('opção não encontrada'));
       var alvo = opts[idx];
-      dd.value = alvo.value;
-      dd.dispatchEvent(new Event('input', { bubbles: true }));
-      dd.dispatchEvent(new Event('change', { bubbles: true }));
+      // Select2 e a cascata da página escutam o "change" do jQuery; quando ele
+      // existe, é por ele que a escolha tem de passar, senão o widget continua
+      // mostrando "Selecionar registro" e o campo seguinte não carrega.
+      var valor = dd.multiple ? [alvo.value] : alvo.value;
+      var pronto = false;
+      if (window.jQuery) {
+        try { window.jQuery(dd).val(valor).trigger('change'); pronto = true; } catch (e) {}
+      }
+      if (!pronto) {
+        if (dd.multiple) {
+          [].forEach.call(dd.options, function (o) { o.selected = (o === alvo); });
+        } else { dd.value = alvo.value; }
+        dd.dispatchEvent(new Event('input', { bubbles: true }));
+        dd.dispatchEvent(new Event('change', { bubbles: true }));
+      }
       return Promise.resolve(texto(alvo));
     }
     clicar(dd);
@@ -340,6 +380,34 @@
   }
 
   // ─────────── roteiro ───────────
+  // Clique na aba: tento os candidatos até a aba realmente ficar ativa. Se
+  // nenhum funcionar, sigo assim mesmo — os campos do formulário existem no DOM
+  // mesmo com a aba fechada, então o preenchimento não depende disso.
+  function abrirAba() {
+    var nome = 'Itens Instrumento Cobrança';
+    return esperar(function () {
+      var c = candidatosAba(nome);
+      return c.length ? c : null;
+    }, 10000).then(function (cands) {
+      return (function tentar(i) {
+        if (i >= cands.length) {
+          passo('Não consegui trocar de aba — sigo pelos campos', 'erro');
+          return Promise.resolve();
+        }
+        clicar(cands[i]);
+        return pausa(700).then(function () {
+          var wrap = cands[i].closest ? cands[i].closest('a[href^="#"], [role="tab"], .nav-link, li') : null;
+          var ativo = (wrap && /active|selected/i.test(wrap.className || ''))
+            || /active|selected/i.test(cands[i].className || '');
+          if (ativo) { passo('Aba "' + nome + '"', 'ok'); return; }
+          return tentar(i + 1);
+        });
+      })(0);
+    }).catch(function () {
+      passo('Não achei a aba — sigo pelos campos', 'erro');
+    });
+  }
+
   function rodar() {
     var dados = pendente();
     if (!dados || rodando) return;
@@ -347,19 +415,28 @@
     rodando = true;
     abrirPainel(dados);
 
-    esperar(function () { return abaPorTexto('Itens Instrumento Cobrança'); })
-      .then(function (aba) {
-        clicar(aba);
-        passo('Aba "Itens Instrumento Cobrança"', 'ok');
-        return esperar(function () { return campoPorRotulo('Histórico do contrato'); });
+    abrirAba()
+      .then(function () {
+        return esperar(function () {
+          var dd = campoPorRotulo('Histórico do contrato');
+          // só sigo quando a lista já tem registro de verdade (fora o "-")
+          if (dd && dd.tagName === 'SELECT') {
+            return [].some.call(dd.options, function (o) { return o.value; }) ? dd : null;
+          }
+          return dd;
+        });
       })
       .then(function (dd) {
         return escolherNoDropdown(dd, function () { return 0; });   // sempre o primeiro registro
       })
       .then(function (escolhido) {
         passo('Histórico: ' + escolhido, 'ok');
-        return pausa(600).then(function () {
-          return esperar(function () { return campoPorRotulo('Itens do histórico'); });
+        // a página busca os itens do termo por AJAX: espero o "Todos" aparecer
+        return esperar(function () {
+          var dd = campoPorRotulo('Itens do histórico');
+          if (!dd) return null;
+          if (dd.tagName !== 'SELECT') return dd;
+          return [].some.call(dd.options, function (o) { return o.value && norm(texto(o)) === 'todos'; }) ? dd : null;
         });
       })
       .then(function (dd) {
