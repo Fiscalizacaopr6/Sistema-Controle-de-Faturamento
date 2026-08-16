@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Contratos.gov — preencher o Instrumento de Cobrança
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.4.0
+// @version      1.5.0
 // @description  Recebe os itens vindos da tela de IC do Controle de Faturamento (…/instrumento-cobranca/create#ic=…) e preenche sozinho: aba "Itens Instrumento Cobrança", primeiro termo do histórico, "Todos" nos itens e, em cada item, o valor unitário e a quantidade.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://contratos.sistema.gov.br/*
@@ -33,6 +33,10 @@
  *      (= número do item do contrato). As linhas do Contratos.gov vêm fora de
  *      ordem — 16, 28, 29, 30, 31, 25… —, então nada é preenchido por posição:
  *      linha sem número reconhecido fica vazia e é avisada no painel.
+ *   6. confere o "Valor total" de cada linha (qtde × valor unitário). A página
+ *      recalcula esse campo num handler de digitação, então o preenchimento
+ *      dispara keydown/keyup além de input/change — sem isso o total continua
+ *      com a conta do valor CONTRATADO.
  *
  * Ele NUNCA clica em "Criar Instrumento de Cobrança" — a conferência e o envio
  * continuam sendo seus.
@@ -47,7 +51,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '1.4.0';
+  var VERSAO = '1.5.0';
   try { window.__pr6IcScript = VERSAO; } catch (e) {}
 
   var CHAVE       = 'pr6_ic_pendente';
@@ -363,6 +367,14 @@
   var SEL_VAL = 'input.valorunitario_faturado, input[name*="valorunitario_faturado"]';
   var SEL_QTD = 'input.quantidade_faturado, input[name*="quantidade_faturado"]';
 
+  function inputTotal(caixa, inpVal, inpQtd) {
+    var cands = caixa.querySelectorAll('input[name*="total"], input[class*="total"]');
+    for (var i = 0; i < cands.length; i++) {
+      if (cands[i] !== inpVal && cands[i] !== inpQtd) return cands[i];
+    }
+    return null;
+  }
+
   function linhasItens() {
     var vals = document.querySelectorAll(SEL_VAL);
     var linhas = [];
@@ -386,7 +398,7 @@
       linhas.push({
         num: m ? parseInt(m[1], 10) : null,
         rotulo: (m ? 'item ' + m[1] : 'linha ' + (caixa.getAttribute('data-row-number') || (i + 1))),
-        inpVal: inpVal, inpQtd: inpQtd
+        inpVal: inpVal, inpQtd: inpQtd, inpTotal: inputTotal(caixa, inpVal, inpQtd)
       });
     }
     return linhas.length ? linhas : null;
@@ -408,9 +420,29 @@
     setter.call(inp, '');
     inp.dispatchEvent(new Event('input', { bubbles: true }));
     setter.call(inp, valor);
+    notificar(inp);
+  }
+
+  // O "Valor total" da linha é recalculado pela página num handler de DIGITAÇÃO:
+  // sem um keyup ele continua mostrando a conta feita com o valor contratado.
+  // (Foi o que aparecia como 46.747,58 em vez de 46.774,75.)
+  function notificar(inp) {
+    var tecla = { bubbles: true, key: '0', keyCode: 48, which: 48 };
+    inp.dispatchEvent(new KeyboardEvent('keydown', tecla));
     inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new KeyboardEvent('keyup', tecla));
     inp.dispatchEvent(new Event('change', { bubbles: true }));
+    if (window.jQuery) {
+      try { window.jQuery(inp).trigger('keyup').trigger('change'); } catch (e) {}
+    }
     inp.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+
+  function numeroBR(s) {
+    s = String(s == null ? '' : s).replace(/[^\d,.-]/g, '');
+    if (!s) return null;
+    var n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return isFinite(n) ? n : null;
   }
   function digitar(inp, valor) {
     inp.focus();
@@ -451,7 +483,30 @@
       if (okV && okQ) { feitos++; usados[l.num] = true; } else semCasar.push(l.rotulo);
     });
     var semLinha = Object.keys(porNumero).filter(function (n) { return !usados[n]; });
-    return { feitos: feitos, falhas: semCasar, semLinha: semLinha };
+    return { feitos: feitos, falhas: semCasar, semLinha: semLinha, porNumero: porNumero };
+  }
+
+  // Confere se a página recalculou o "Valor total" (qtde × valor unitário).
+  // Se alguma linha ficou para trás, cutuco o campo de novo e confiro uma
+  // segunda vez — é o equivalente ao "clicar no campo e teclar Tab".
+  function conferirTotais(linhas, porNumero) {
+    function ruins() {
+      var fora = [];
+      linhas.forEach(function (l) {
+        var dado = (l.num != null) ? porNumero[l.num] : null;
+        if (!dado || !l.inpTotal) return;
+        var esperado = Math.round(dado.valor * dado.qtde * 100) / 100;
+        var tem = numeroBR(l.inpTotal.value);
+        if (tem == null || Math.abs(tem - esperado) > 0.02) fora.push(l);
+      });
+      return fora;
+    }
+    var fora = ruins();
+    if (!fora.length) return Promise.resolve([]);
+    fora.forEach(function (l) { notificar(l.inpVal); notificar(l.inpQtd); });
+    return pausa(600).then(function () {
+      return ruins().map(function (l) { return l.rotulo; });
+    });
   }
 
   // ─────────── roteiro ───────────
@@ -514,6 +569,14 @@
         if (r.feitos) passo(r.feitos + ' de ' + linhas.length + ' linha(s) preenchida(s)', 'ok');
         if (r.falhas.length) passo('Linhas sem valor: ' + r.falhas.join(', '), 'erro');
         if (r.semLinha.length) passo('Itens do IC sem linha na tela: ' + r.semLinha.join(', '), 'erro');
+        return pausa(400).then(function () { return conferirTotais(linhas, r.porNumero); });
+      })
+      .then(function (semTotal) {
+        if (semTotal.length) {
+          passo('Total não recalculou: ' + semTotal.join(', ') + ' — clique no valor unitário e tecle Tab', 'erro');
+        } else {
+          passo('Valor total conferido em cada linha', 'ok');
+        }
         passo('Confira e clique em "Criar Instrumento de Cobrança"', '');
         rodando = false;
       })
