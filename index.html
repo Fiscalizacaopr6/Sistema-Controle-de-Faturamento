@@ -8181,13 +8181,38 @@ document.addEventListener('DOMContentLoaded', function() {
       : 'Cadastre o ID CONTRATOS_GOV deste contrato na tela de Contratos';
   }
 
+  // Linhas do mês selecionado, com o MESMO arredondamento que a tabela exibe —
+  // é o que vai preencher o Instrumento de Cobrança no Contratos.gov.
+  function icLinhasDoMes(){
+    var sel=document.getElementById('ic-mes-sel'); if(!sel) return null;
+    var M=IC_MONTHS[Number(sel.value)]; if(!M) return null;
+    var linhas=[];
+    IC_ITEMS.forEach(function(item){
+      var it=M.items[item]; if(!it||!it.vfatCount) return;
+      linhas.push({ item:item, qtde:it.qtdeSum, valor:Math.round(it.vfatSum/it.vfatCount*100)/100 });
+    });
+    return { mes:M.label, linhas:linhas };
+  }
+
+  function icB64(s){ return btoa(unescape(encodeURIComponent(s))); }   // aguenta acento
+
   window.icFazerIC=function(){
     var gid=icGovId(icCurrent);
     if(!gid){
       alert('Este contrato não tem o "ID CONTRATOS_GOV" cadastrado na tela de Contratos.');
       return;
     }
-    window.open('https://contratos.sistema.gov.br/meus-contratos/'+gid+'/instrumento-cobranca/create','_blank');
+    var url='https://contratos.sistema.gov.br/meus-contratos/'+gid+'/instrumento-cobranca/create';
+    // Os valores viajam no "#" (não vão para o servidor). Quem lê e preenche a
+    // tela do Contratos.gov é o userscript ic-contratos.user.js — o dashboard é
+    // outra origem e não pode mexer naquela página por conta própria.
+    var d=icLinhasDoMes(), c=icFindContract(icCurrent);
+    if(d&&d.linhas.length){
+      url+='#ic='+encodeURIComponent(icB64(JSON.stringify({
+        v:1, contrato:(c&&c.contrato)||'', mes:d.mes, itens:d.linhas
+      })));
+    }
+    window.open(url,'_blank');
   };
 
   // Monta a "casca" do card uma única vez: dropdown de Contrato + área do corpo.
