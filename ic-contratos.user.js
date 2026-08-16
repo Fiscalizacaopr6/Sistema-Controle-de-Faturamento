@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Contratos.gov — preencher o Instrumento de Cobrança
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.0.0
+// @version      1.1.0
 // @description  Recebe os itens vindos da tela de IC do Controle de Faturamento (…/instrumento-cobranca/create#ic=…) e preenche sozinho: aba "Itens Instrumento Cobrança", primeiro termo do histórico, "Todos" nos itens e, em cada item, o valor unitário e a quantidade.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://contratos.sistema.gov.br/*
@@ -24,8 +24,11 @@
  *   2. abre a aba "Itens Instrumento Cobrança"
  *   3. em "Histórico do contrato" escolhe SEMPRE o primeiro registro da lista
  *   4. em "Itens do histórico" escolhe "Todos"
- *   5. em cada linha da tabela, preenche Valor unitário e Quantidade conforme a
- *      tela de IC (casa pelo número do item; se não casar, avisa)
+ *   5. em cada linha da grade, preenche Valor unitário e Quantidade conforme a
+ *      tela de IC. O casamento é SEMPRE pelo "Número compra: 000NN" da descrição
+ *      (= número do item do contrato). As linhas do Contratos.gov vêm fora de
+ *      ordem — 16, 28, 29, 30, 31, 25… —, então nada é preenchido por posição:
+ *      linha sem número reconhecido fica vazia e é avisada no painel.
  *
  * Ele NUNCA clica em "Criar Instrumento de Cobrança" — a conferência e o envio
  * continuam sendo seus.
@@ -40,7 +43,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '1.0.0';
+  var VERSAO = '1.1.0';
   try { window.__pr6IcScript = VERSAO; } catch (e) {}
 
   var CHAVE       = 'pr6_ic_pendente';
@@ -235,25 +238,43 @@
     });
   }
 
-  // ─────────── tabela dos itens ───────────
-  function tabelaItens() {
-    var tabelas = document.querySelectorAll('table');
-    for (var i = 0; i < tabelas.length; i++) {
-      var ths = tabelas[i].querySelectorAll('th');
-      var cab = [].map.call(ths, function (th) { return norm(texto(th)); });
-      var iVal = cab.findIndex(function (t) { return t.indexOf('valor unitario') === 0; });
-      var iQtd = cab.findIndex(function (t) { return t.indexOf('quantidade') === 0; });
-      if (iVal < 0 || iQtd < 0) continue;
-      var linhas = [].filter.call(tabelas[i].querySelectorAll('tbody tr'), function (tr) {
-        return tr.querySelector('input');
+  // ─────────── linhas dos itens ───────────
+  // A grade do Contratos.gov não é <table>: cada item é um
+  //   div.repeatable-element[data-repeatable-identifier="contratofaturasitem"]
+  // com input.valorunitario_faturado e input.quantidade_faturado dentro.
+  // O número do item do contrato NÃO é o código do catálogo (23647…) nem a
+  // posição da linha — as linhas vêm fora de ordem. Ele aparece na descrição
+  // como "Número compra: 00016".
+  var SEL_VAL = 'input.valorunitario_faturado, input[name*="valorunitario_faturado"]';
+  var SEL_QTD = 'input.quantidade_faturado, input[name*="quantidade_faturado"]';
+
+  function linhasItens() {
+    var vals = document.querySelectorAll(SEL_VAL);
+    var linhas = [];
+    for (var i = 0; i < vals.length; i++) {
+      var inpVal = vals[i];
+      var caixa = inpVal.closest ? inpVal.closest('[data-repeatable-identifier]') : null;
+      var inpQtd = caixa ? caixa.querySelector(SEL_QTD) : null;
+      if (!inpQtd) {                       // sem o marcador: subo até o bloco que tem SÓ este item
+        var p = inpVal;
+        for (var n = 0; n < 8 && p.parentElement; n++) {
+          p = p.parentElement;
+          if (p.querySelectorAll(SEL_VAL).length !== 1) { p = null; break; }
+          var q = p.querySelector(SEL_QTD);
+          if (q) { inpQtd = q; caixa = p; break; }
+        }
+      }
+      if (!inpQtd || !caixa) continue;
+      var desc = caixa.querySelector('.descricao_item');
+      var txt = texto(desc) || texto(caixa);
+      var m = txt.match(/n[úu]mero\s*compra:?\s*0*(\d+)/i);
+      linhas.push({
+        num: m ? parseInt(m[1], 10) : null,
+        rotulo: (m ? 'item ' + m[1] : 'linha ' + (caixa.getAttribute('data-row-number') || (i + 1))),
+        inpVal: inpVal, inpQtd: inpQtd
       });
-      if (!linhas.length) continue;
-      return {
-        iItem: cab.findIndex(function (t) { return t.indexOf('item') === 0; }),
-        iVal: iVal, iQtd: iQtd, linhas: linhas
-      };
     }
-    return null;
+    return linhas.length ? linhas : null;
   }
 
   // Preenche respeitando máscara: escreve pelo setter nativo, avisa o framework
@@ -297,27 +318,25 @@
     return m ? parseInt(m[0], 10) : null;
   }
 
-  function preencherItens(dados, tab) {
+  // Casa SEMPRE pelo número do item. Não existe encaixe por ordem: as linhas do
+  // Contratos.gov vêm embaralhadas (16, 28, 29, 30, 31, 25…), então preencher
+  // pela posição colocaria o valor de um item na linha de outro.
+  function preencherItens(dados, linhas) {
     var porNumero = {};
     dados.itens.forEach(function (i) {
       var n = numeroDe(String(i.item));
       if (n != null) porNumero[n] = i;
     });
-    var feitos = 0, semCasar = [];
-    tab.linhas.forEach(function (tr, pos) {
-      var cels = tr.cells;
-      var rotulo = tab.iItem >= 0 && cels[tab.iItem] ? texto(cels[tab.iItem]) : '';
-      var n = numeroDe(rotulo);
-      var dado = (n != null && porNumero[n]) ? porNumero[n]
-        : (tab.linhas.length === dados.itens.length ? dados.itens[pos] : null);   // mesma quantidade de linhas: casa pela ordem
-      if (!dado) { semCasar.push(rotulo || ('linha ' + (pos + 1))); return; }
-      var inpVal = cels[tab.iVal] && cels[tab.iVal].querySelector('input');
-      var inpQtd = cels[tab.iQtd] && cels[tab.iQtd].querySelector('input');
-      var okV = preencher(inpVal, BR.format(dado.valor));
-      var okQ = preencher(inpQtd, String(dado.qtde));
-      if (okV && okQ) feitos++; else semCasar.push(rotulo || ('linha ' + (pos + 1)));
+    var feitos = 0, semCasar = [], usados = {};
+    linhas.forEach(function (l) {
+      var dado = (l.num != null) ? porNumero[l.num] : null;
+      if (!dado) { semCasar.push(l.rotulo); return; }
+      var okV = preencher(l.inpVal, BR.format(dado.valor));   // 6.064,15 — conferido na tela real
+      var okQ = preencher(l.inpQtd, String(dado.qtde));
+      if (okV && okQ) { feitos++; usados[l.num] = true; } else semCasar.push(l.rotulo);
     });
-    return { feitos: feitos, falhas: semCasar };
+    var semLinha = Object.keys(porNumero).filter(function (n) { return !usados[n]; });
+    return { feitos: feitos, falhas: semCasar, semLinha: semLinha };
   }
 
   // ─────────── roteiro ───────────
@@ -351,12 +370,13 @@
       })
       .then(function (escolhido) {
         passo('Itens do histórico: ' + escolhido, 'ok');
-        return esperar(function () { return tabelaItens(); });
+        return esperar(function () { return linhasItens(); });
       })
-      .then(function (tab) {
-        var r = preencherItens(dados, tab);
-        if (r.feitos) passo(r.feitos + ' item(ns) preenchido(s)', 'ok');
-        if (r.falhas.length) passo('Não preenchi: ' + r.falhas.join(', '), 'erro');
+      .then(function (linhas) {
+        var r = preencherItens(dados, linhas);
+        if (r.feitos) passo(r.feitos + ' de ' + linhas.length + ' linha(s) preenchida(s)', 'ok');
+        if (r.falhas.length) passo('Linhas sem valor: ' + r.falhas.join(', '), 'erro');
+        if (r.semLinha.length) passo('Itens do IC sem linha na tela: ' + r.semLinha.join(', '), 'erro');
         passo('Confira e clique em "Criar Instrumento de Cobrança"', '');
         rodando = false;
       })
@@ -379,11 +399,10 @@
         historico: !!campoPorRotulo('Histórico do contrato'),
         itensHistorico: !!campoPorRotulo('Itens do histórico'),
         opcoesAbertas: opcoesAbertas().map(texto),
-        tabela: (function () {
-          var t = tabelaItens();
-          return t ? { linhas: t.linhas.length, colValor: t.iVal, colQtde: t.iQtd, colItem: t.iItem } : null;
-        })(),
-        cabecalhos: [].map.call(document.querySelectorAll('th'), texto)
+        linhas: (function () {
+          var l = linhasItens();
+          return l ? l.map(function (x) { return { num: x.num, rotulo: x.rotulo }; }) : null;
+        })()
       };
       console.log(o);
       return o;
