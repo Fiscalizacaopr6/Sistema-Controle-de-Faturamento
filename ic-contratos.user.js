@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Contratos.gov — preencher o Instrumento de Cobrança
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.2.0
+// @version      1.3.0
 // @description  Recebe os itens vindos da tela de IC do Controle de Faturamento (…/instrumento-cobranca/create#ic=…) e preenche sozinho: aba "Itens Instrumento Cobrança", primeiro termo do histórico, "Todos" nos itens e, em cada item, o valor unitário e a quantidade.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://contratos.sistema.gov.br/*
@@ -45,7 +45,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '1.2.0';
+  var VERSAO = '1.3.0';
   try { window.__pr6IcScript = VERSAO; } catch (e) {}
 
   var CHAVE       = 'pr6_ic_pendente';
@@ -174,21 +174,45 @@
   var SEL_OPCAO = '[role="option"], .p-dropdown-item, .p-multiselect-item, .ng-option, .dropdown-item,'
     + ' .select2-results__option, .mat-option, li';
 
-  // Candidatos a "aba", do mais provável ao menos. O texto da aba também aparece
-  // no tooltip do botão "próximo" (#idTextTooltipNext, dentro de #saveActions) —
-  // clicar nele não faz nada, então esses ficam de fora.
+  // Nomes dos campos (o id do container do Select2 entrega o name do select:
+  // select2-contratohistorico_id-…-container → select[name=contratohistorico_id]).
+  var CAMPO_HISTORICO = 'contratohistorico_id';
+  var CAMPO_ITENS     = 'contratoitem_id';
+
+  function campoPorNome(nome) { return document.querySelector('select[name="' + nome + '"]'); }
+
+  // O campo está na aba aberta? O select nativo é escondido pelo Select2, então
+  // quem responde isso é o bloco em volta dele.
+  function campoNaTela(nome) {
+    var s = campoPorNome(nome);
+    if (!s) return false;
+    var caixa = (s.closest && s.closest('[bp-field-wrapper], .col-md-6, .form-group')) || s.parentElement;
+    return visivel(caixa);
+  }
+
+  // Candidatos a "aba", do mais provável ao menos. A aba de verdade é o
+  // <button> dentro de nav > ul > li; o mesmo texto ainda aparece no tooltip do
+  // botão "próximo" (#idTextTooltipNext, dentro de #saveActions), e clicar nele
+  // não faz nada — por isso esses ficam de fora.
   function candidatosAba(rot) {
     var alvo = norm(rot), lista = [];
-    var cand = document.querySelectorAll('a, button, li, span, div');
+    var cand = document.querySelectorAll('button, a, li, span, div');
     for (var i = 0; i < cand.length; i++) {
       var e = cand[i];
       if (norm(texto(e)) !== alvo || !visivel(e)) continue;
       if (e.closest && e.closest('[role="tooltip"], .br-tooltip, #saveActions')) continue;
-      var nota = 0, p = e;
-      for (var n = 0; n < 3 && p; n++, p = p.parentElement) {
-        if (p.matches && p.matches('a[href^="#"], [role="tab"], [data-toggle="tab"], [data-bs-toggle="tab"], .nav-link, .nav-item, li')) { nota = 3 - n; break; }
+      var nota = 0;
+      if (e.closest && e.closest('nav ul li, [role="tablist"], .br-tab')) {
+        nota = 10;
+        var botao = e.closest('button, a[href], [role="tab"]');
+        if (botao) { e = botao; nota = 12; }          // clico no botão, não no <span> de dentro
+      } else {
+        var p = e;
+        for (var n = 0; n < 3 && p; n++, p = p.parentElement) {
+          if (p.matches && p.matches('a[href^="#"], [role="tab"], [data-toggle="tab"], [data-bs-toggle="tab"], .nav-link, .nav-item, li')) { nota = 3 - n; break; }
+        }
       }
-      lista.push({ el: e, nota: nota });
+      if (!lista.some(function (x) { return x.el === e; })) lista.push({ el: e, nota: nota });
     }
     lista.sort(function (a, b) { return b.nota - a.nota; });
     return lista.map(function (x) { return x.el; });
@@ -395,13 +419,10 @@
           return Promise.resolve();
         }
         clicar(cands[i]);
-        return pausa(700).then(function () {
-          var wrap = cands[i].closest ? cands[i].closest('a[href^="#"], [role="tab"], .nav-link, li') : null;
-          var ativo = (wrap && /active|selected/i.test(wrap.className || ''))
-            || /active|selected/i.test(cands[i].className || '');
-          if (ativo) { passo('Aba "' + nome + '"', 'ok'); return; }
-          return tentar(i + 1);
-        });
+        // sinal de que a aba abriu mesmo: o campo do histórico passou a aparecer
+        return esperar(function () { return campoNaTela(CAMPO_HISTORICO) || null; }, 1500)
+          .then(function () { passo('Aba "' + nome + '"', 'ok'); })
+          .catch(function () { return tentar(i + 1); });
       })(0);
     }).catch(function () {
       passo('Não achei a aba — sigo pelos campos', 'erro');
@@ -418,7 +439,7 @@
     abrirAba()
       .then(function () {
         return esperar(function () {
-          var dd = campoPorRotulo('Histórico do contrato');
+          var dd = campoPorNome(CAMPO_HISTORICO) || campoPorRotulo('Histórico do contrato');
           // só sigo quando a lista já tem registro de verdade (fora o "-")
           if (dd && dd.tagName === 'SELECT') {
             return [].some.call(dd.options, function (o) { return o.value; }) ? dd : null;
@@ -433,7 +454,7 @@
         passo('Histórico: ' + escolhido, 'ok');
         // a página busca os itens do termo por AJAX: espero o "Todos" aparecer
         return esperar(function () {
-          var dd = campoPorRotulo('Itens do histórico');
+          var dd = campoPorNome(CAMPO_ITENS) || campoPorRotulo('Itens do histórico');
           if (!dd) return null;
           if (dd.tagName !== 'SELECT') return dd;
           return [].some.call(dd.options, function (o) { return o.value && norm(texto(o)) === 'todos'; }) ? dd : null;
@@ -472,9 +493,10 @@
         versao: VERSAO,
         url: location.pathname + location.hash.slice(0, 20),
         dados: pendente(),
-        aba: !!abaPorTexto('Itens Instrumento Cobrança'),
-        historico: !!campoPorRotulo('Histórico do contrato'),
-        itensHistorico: !!campoPorRotulo('Itens do histórico'),
+        aba: candidatosAba('Itens Instrumento Cobrança').length,
+        historico: !!(campoPorNome(CAMPO_HISTORICO) || campoPorRotulo('Histórico do contrato')),
+        itensHistorico: !!(campoPorNome(CAMPO_ITENS) || campoPorRotulo('Itens do histórico')),
+        historicoNaTela: campoNaTela(CAMPO_HISTORICO),
         opcoesAbertas: opcoesAbertas().map(texto),
         linhas: (function () {
           var l = linhasItens();
