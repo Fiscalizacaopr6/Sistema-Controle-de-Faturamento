@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Contratos.gov — preencher o Instrumento de Cobrança
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.3.0
+// @version      1.4.0
 // @description  Recebe os itens vindos da tela de IC do Controle de Faturamento (…/instrumento-cobranca/create#ic=…) e preenche sozinho: aba "Itens Instrumento Cobrança", primeiro termo do histórico, "Todos" nos itens e, em cada item, o valor unitário e a quantidade.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://contratos.sistema.gov.br/*
@@ -23,9 +23,11 @@
  *   1. guarda o "#ic=" (vale 30 min, sobrevive a login/recarregamento) e limpa a URL
  *   2. abre a aba "Itens Instrumento Cobrança"
  *   3. em "Histórico do contrato" escolhe SEMPRE o primeiro registro da lista
- *   4. em "Itens do histórico" escolhe "Todos"
- *      (os dois são <select> vestidos de Select2: a escolha passa pelo change do
- *       jQuery, senão o widget não atualiza e o campo seguinte não carrega)
+ *   4. em "Itens do histórico" escolhe "Todos". Este campo é um Select2 que
+ *      busca a lista por AJAX ao abrir — o <select> nativo fica vazio até a
+ *      escolha —, então aqui é preciso abrir o widget e clicar na opção. Já o
+ *      "Histórico do contrato" tem as opções no próprio <select>, e é resolvido
+ *      pelo change do jQuery (é o que o Select2 escuta).
  *   5. em cada linha da grade, preenche Valor unitário e Quantidade conforme a
  *      tela de IC. O casamento é SEMPRE pelo "Número compra: 000NN" da descrição
  *      (= número do item do contrato). As linhas do Contratos.gov vêm fora de
@@ -45,7 +47,7 @@
 (function () {
   'use strict';
 
-  var VERSAO = '1.3.0';
+  var VERSAO = '1.4.0';
   try { window.__pr6IcScript = VERSAO; } catch (e) {}
 
   var CHAVE       = 'pr6_ic_pendente';
@@ -180,6 +182,55 @@
   var CAMPO_ITENS     = 'contratoitem_id';
 
   function campoPorNome(nome) { return document.querySelector('select[name="' + nome + '"]'); }
+
+  // A parte clicável do Select2 (o select nativo é escondido). O container fica
+  // logo depois do select; o id dele é select2-<name>-<sufixo>-container.
+  function widgetSelect2(nome) {
+    var s = campoPorNome(nome);
+    var cont = null;
+    if (s) {
+      var irmao = s.nextElementSibling;
+      if (irmao && /select2/.test(irmao.className || '')) cont = irmao;
+      else if (s.parentElement) cont = s.parentElement.querySelector('.select2-container');
+    }
+    if (!cont) {
+      var alvo = document.querySelector('[id^="select2-' + nome + '"][id$="-container"]');
+      cont = alvo && alvo.closest ? alvo.closest('.select2-container') || alvo.parentElement : alvo;
+    }
+    if (!cont) return null;
+    return cont.querySelector('.select2-selection') || cont;
+  }
+
+  // "Todos" no campo Itens do histórico. Quando a opção já está no <select>,
+  // resolvo por ele; quando não está — que é o caso do Contratos.gov, onde o
+  // Select2 busca a lista por AJAX só ao abrir — abro o widget, espero a lista
+  // chegar e clico na opção.
+  function escolherItensTodos() {
+    function ehTodos(t) { return norm(t) === 'todos'; }
+    var sel = campoPorNome(CAMPO_ITENS) || campoPorRotulo('Itens do histórico');
+    if (sel && sel.tagName === 'SELECT'
+        && [].some.call(sel.options, function (o) { return o.value && ehTodos(texto(o)); })) {
+      return escolherNoDropdown(sel, function (textos) { return textos.findIndex(ehTodos); });
+    }
+    var widget = widgetSelect2(CAMPO_ITENS);
+    if (!widget) return Promise.reject(new Error('não achei o campo "Itens do histórico"'));
+    clicar(widget);
+    return esperar(function () {
+      var ops = opcoesAbertas().filter(function (o) {
+        var t = norm(texto(o));
+        return t && t.indexOf('buscando') < 0 && t.indexOf('carregando') < 0
+          && t.indexOf('searching') < 0 && t.indexOf('nenhum resultado') < 0;
+      });
+      if (!ops.length) return null;
+      var todos = ops.filter(function (o) { return ehTodos(texto(o)); });
+      if (todos.length) return todos[0];
+      return ops.length === 1 ? ops[0] : null;      // lista com uma opção só: é ela
+    }).then(function (op) {
+      var t = texto(op);
+      clicar(op);
+      return t;
+    });
+  }
 
   // O campo está na aba aberta? O select nativo é escondido pelo Select2, então
   // quem responde isso é o bloco em volta dele.
@@ -452,19 +503,7 @@
       })
       .then(function (escolhido) {
         passo('Histórico: ' + escolhido, 'ok');
-        // a página busca os itens do termo por AJAX: espero o "Todos" aparecer
-        return esperar(function () {
-          var dd = campoPorNome(CAMPO_ITENS) || campoPorRotulo('Itens do histórico');
-          if (!dd) return null;
-          if (dd.tagName !== 'SELECT') return dd;
-          return [].some.call(dd.options, function (o) { return o.value && norm(texto(o)) === 'todos'; }) ? dd : null;
-        });
-      })
-      .then(function (dd) {
-        return escolherNoDropdown(dd, function (textos) {
-          var i = textos.findIndex(function (t) { return norm(t) === 'todos'; });
-          return i >= 0 ? i : 0;
-        });
+        return pausa(800).then(escolherItensTodos);   // respiro para a página reagir à troca do termo
       })
       .then(function (escolhido) {
         passo('Itens do histórico: ' + escolhido, 'ok');
