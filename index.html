@@ -2670,6 +2670,60 @@ function buildFiscaisCards() {
   renderFiscaisTable();
 }
 
+function fiscalInlineSalvar(id, campo, valor) {
+  var f = FISCAIS.find(function(x){ return x.id === id; });
+  if (!f) return;
+  // fcFiltered guarda as instâncias antigas (o listener do Firebase recria os
+  // objetos a cada save). Atualiza as duas para o export e o próximo render
+  // não saírem defasados.
+  var g = fcFiltered.find(function(x){ return x.id === id; });
+  function set(campo, valor) { f[campo] = valor; if (g && g !== f) g[campo] = valor; }
+  set(campo, valor);
+  // Escolher o contrato preenche a empresa e o status, como no cadastro novo.
+  if (campo === 'contrato') {
+    var d = DADOS.find(function(x){ return x['CONTRATO'] === valor; });
+    var nome = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
+    if (nome) set('empresa', nome);
+    set('statusContrato', d ? (d._st === 'VIGENTE' ? 'Contrato Vigente' : 'Contrato Encerrado') : '');
+  }
+  saveFiscaisToStorage();
+  // O contrato muda a empresa e o selo de Status da linha: redesenha a tabela
+  // preservando a página atual.
+  if (campo === 'contrato') {
+    var _p = fcPage;
+    buildFiscaisCards();
+    var _tp = Math.ceil(fcFiltered.length / fcPer) || 1;
+    fcPage = Math.min(_p, _tp);
+    renderFiscaisTable();
+  }
+}
+
+// Contratos em ordem (ano mais recente primeiro), compartilhado pelo cadastro
+// novo e pela edição inline.
+function fiscalContratosOrdenados() {
+  var contratos = Array.from(new Set(DADOS.map(function(d){ return d['CONTRATO']||''; }).filter(Boolean)));
+  contratos.sort(function(a, b){
+    var ya = parseInt((anoDoContrato(a)||'0'), 10);
+    var yb = parseInt((anoDoContrato(b)||'0'), 10);
+    if (ya !== yb) return yb - ya;
+    return parseInt((a.split('/')[0]||'0'),10) - parseInt((b.split('/')[0]||'0'),10);
+  });
+  return contratos;
+}
+
+// São 200+ contratos: a lista só é montada quando o select recebe o foco, para
+// não criar milhares de <option> a cada render da tabela.
+function fiscalContratoOpts(sel) {
+  if (sel.getAttribute('data-full')) return;
+  sel.setAttribute('data-full', '1');
+  var atual = sel.value;
+  sel.innerHTML = '<option value="">— Selecione —</option>'
+    + fiscalContratosOrdenados().map(function(c){
+        return '<option value="'+esc(c)+'">'+esc(c)+'</option>';
+      }).join('');
+  sel.value = atual;
+}
+
 function renderFiscaisTable() {
   var canEdit = canEditView('fiscais');
   var wrap = document.getElementById('fiscal-cards');
@@ -2685,6 +2739,42 @@ function renderFiscaisTable() {
   var start = (fcPage - 1) * fcPer;
   var slice = fcFiltered.slice(start, start + fcPer);
   var sitColor = {'Titular':'var(--blue)','Substituto':'var(--amber)','Presidente':'var(--purple)','Presidente substituto':'var(--purple)','Membro de comissão':'var(--green)'};
+  // Edição inline (mesmo estilo transparente das telas Empresas/Conta Vinculada).
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
+  var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
+  function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
+    if (!canEdit) return esc(upper ? String(val || '').toUpperCase() : (val || ''));
+    var oninput = upper ? ' oninput="this.value=this.value.toUpperCase()"' : '';
+    return '<input value="'+esc(val||'')+'" '+(extraAttrs||'')+oninput
+      +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';fiscalInlineSalvar(\''+id+'\',\''+campo+'\',this.value'+(upper?'.toUpperCase()':'')+'.trim())">';
+  }
+  function edTel(id, campo, val) {
+    if (!canEdit) return esc(val || '');
+    return '<input value="'+esc(val||'')+'" oninput="maskPhone(this)" maxlength="15"'
+      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';fiscalInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
+  }
+  function edSit(f) {
+    var cor = f.situacao ? (sitColor[f.situacao]||'var(--muted)') : 'var(--muted)';
+    if (!canEdit) return f.situacao
+      ? '<span style="color:'+cor+';font-weight:600">'+esc(f.situacao)+'</span>'
+      : '<span style="color:var(--muted)">—</span>';
+    return '<select style="'+inpBase+';color:'+cor+';font-weight:600" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
+      +' onchange="fiscalInlineSalvar(\''+f.id+'\',\'situacao\',this.value)">'
+      +'<option value=""'+(f.situacao?'':' selected')+'>—</option>'
+      + SITUACOES.map(function(s){ return '<option value="'+s+'"'+(s===(f.situacao||'')?' selected':'')+'>'+s+'</option>'; }).join('')
+      +'</select>';
+  }
+  function edContrato(f) {
+    var estilo = ';font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600';
+    if (!canEdit) return esc(f.contrato);
+    return '<select style="'+inpBase+estilo+'" onmousedown="fiscalContratoOpts(this)" onfocus="fiscalContratoOpts(this);'+inpFocus+'" onblur="'+inpBlur+'"'
+      +' onchange="fiscalInlineSalvar(\''+f.id+'\',\'contrato\',this.value)">'
+      +'<option value="'+esc(f.contrato||'')+'" selected>'+esc(f.contrato||'—')+'</option>'
+      +'</select>';
+  }
   var rows = slice.map(function(f) {
     var dado = DADOS.find(function(d){ return (d['CONTRATO']||'').trim() === (f.contrato||'').trim(); });
     var st = dado ? (dado._st || '') : '';
@@ -2694,26 +2784,26 @@ function renderFiscaisTable() {
       : st === 'ENCERRADO'
         ? '<span class="badge br" style="font-size:10px">Encerrado</span>'
         : '<span style="color:var(--muted);font-size:11px">—</span>';
-    var sitCell = f.situacao ? '<span style="color:'+(sitColor[f.situacao]||'var(--muted)')+';font-weight:600">'+esc(f.situacao)+'</span>' : '<span style="color:var(--muted)">—</span>';
     var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="openEditFiscalModal(\''+f.id+'\')">Editar</button>'
-        +' <button class="btn-usr-del" onclick="confirmDeleteFiscal(\''+f.id+'\')">Excluir</button>'
+      ? '<button class="btn-usr-del" onclick="confirmDeleteFiscal(\''+f.id+'\')">Excluir</button>'
       : '';
     return '<tr style="'+rowStyle+'">'
-      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc(f.nome)+'</td>'
-      +'<td>'+sitCell+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+esc(f.contrato)+'</td>'
+      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+edInp(f.id,'nome',(f.nome||'').toUpperCase(),'',';font-weight:600',true)+'</td>'
+      +'<td>'+edSit(f)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+edContrato(f)+'</td>'
       +'<td>'+stBadge+'</td>'
-      +'<td style="white-space:nowrap">'+esc(f.empresa)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+esc(f.unidade)+'</td>'
-      +'<td style="font-size:11px">'+esc(f.email)+'</td>'
-      +'<td style="font-size:11px">'+esc(f.email2)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(f.telefone)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+esc(f.enderecoSei)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(f.portaria)+'</td>'
+      +'<td style="white-space:nowrap">'+edInp(f.id,'empresa',f.empresa,'list="fc-dl-empresas"')+'</td>'
+      +'<td style="font-size:11px;color:var(--muted)">'+edInp(f.id,'unidade',f.unidade,'',';font-size:11px;color:var(--muted)')+'</td>'
+      +'<td style="font-size:11px">'+edInp(f.id,'email',f.email,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-size:11px">'+edInp(f.id,'email2',f.email2,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(f.id,'telefone',f.telefone)+'</td>'
+      +'<td style="font-size:11px;color:var(--muted)">'+edInp(f.id,'enderecoSei',f.enderecoSei,'',';font-size:11px;color:var(--muted)')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edInp(f.id,'portaria',f.portaria,'',';font-family:\'DM Mono\',monospace;font-size:11px')+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
+  var empresasDl = Array.from(new Set(DADOS.map(function(d){ return (d['EMPRESA']||'').trim(); }).filter(Boolean))).sort()
+    .map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
   var pag = fcPaginationHtml(totalPages);
   wrap.innerHTML = '<div class="table-wrap">'
     +'<div class="table-info"><span>'+fcFiltered.length+' fiscal(is)</span><span>Página '+fcPage+' de '+totalPages+'</span></div>'
@@ -2725,6 +2815,7 @@ function renderFiscaisTable() {
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +pag
+    +'<datalist id="fc-dl-empresas">'+empresasDl+'</datalist>'
     +'</div>';
   setTimeout(fcStickyScrollSync, 0);
 }
@@ -2780,15 +2871,8 @@ function fiscalFormHtml(f) {
   f = f || {};
   var sitOpts = '<option value="">— Selecione —</option>'
     + SITUACOES.map(function(s){ return '<option value="'+s+'"'+(s===(f.situacao||'')?' selected':'')+'>'+s+'</option>'; }).join('');
-  var contratosUnicos = Array.from(new Set(DADOS.map(function(d){ return d['CONTRATO']||''; }).filter(Boolean)));
-  contratosUnicos.sort(function(a, b){
-    var ya = parseInt((anoDoContrato(a)||'0'), 10);
-    var yb = parseInt((anoDoContrato(b)||'0'), 10);
-    if (ya !== yb) return yb - ya;
-    return parseInt((a.split('/')[0]||'0'),10) - parseInt((b.split('/')[0]||'0'),10);
-  });
   var contratoOpts = '<option value="">— Selecione —</option>'
-    + contratosUnicos.map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
+    + fiscalContratosOrdenados().map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   return '<div class="eform">'
     +'<div class="ef full"><label>Nome *</label>'
       + '<input id="ff-nome" value="'+esc((f.nome||'').toUpperCase())+'" autocapitalize="characters" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'
@@ -2888,29 +2972,6 @@ function saveNewFiscal() {
   if (!f.nome) { alert('O nome é obrigatório.'); return; }
   f.id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
   FISCAIS.push(f);
-  saveFiscaisToStorage();
-  closeMo();
-  buildFiscaisCards();
-}
-
-function openEditFiscalModal(id) {
-  var f = FISCAIS.find(function(x){ return x.id === id; });
-  if (!f) return;
-  document.getElementById('mo-t').textContent = 'Editar Fiscal';
-  document.getElementById('mo-s').textContent = f.nome;
-  document.getElementById('mo-b').innerHTML = fiscalFormHtml(f);
-  document.getElementById('mo-actions').innerHTML =
-    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
-    +'<button class="btn-save" onclick="saveEditFiscal(\''+id+'\')">Salvar Alterações</button>';
-  document.getElementById('mo').classList.add('open');
-}
-
-function saveEditFiscal(id) {
-  var idx = FISCAIS.findIndex(function(x){ return x.id === id; });
-  if (idx === -1) return;
-  var vals = readFiscalForm();
-  if (!vals.nome) { alert('O nome é obrigatório.'); return; }
-  Object.assign(FISCAIS[idx], vals);
   saveFiscaisToStorage();
   closeMo();
   buildFiscaisCards();
@@ -3457,6 +3518,18 @@ function buildUnidadesTable() {
   renderUnidadesTable();
 }
 
+function unidadeInlineSalvar(id, campo, valor) {
+  var u = UNIDADES.find(function(x){ return x.id === id; });
+  if (!u) return;
+  u[campo] = valor;
+  // unFiltered guarda as instâncias antigas (o listener do Firebase recria os
+  // objetos a cada save). Atualiza as duas para o export e o próximo render
+  // não saírem defasados.
+  var f = unFiltered.find(function(x){ return x.id === id; });
+  if (f && f !== u) f[campo] = valor;
+  saveUnidadesToStorage();
+}
+
 function renderUnidadesTable() {
   var canEdit = canEditView('unidades');
   var wrap = document.getElementById('unidade-table');
@@ -3471,18 +3544,46 @@ function renderUnidadesTable() {
   var totalPages = Math.ceil(unFiltered.length / unPer);
   var start = (unPage - 1) * unPer;
   var slice = unFiltered.slice(start, start + unPer);
+  // Edição inline (mesmo estilo transparente das telas Empresas/Conta Vinculada).
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
+  var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
+  function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
+    if (!canEdit) return esc(upper ? String(val || '').toUpperCase() : (val || ''));
+    var oninput = upper ? ' oninput="this.value=this.value.toUpperCase()"' : '';
+    return '<input value="'+esc(val||'')+'" '+(extraAttrs||'')+oninput
+      +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';unidadeInlineSalvar(\''+id+'\',\''+campo+'\',this.value'+(upper?'.toUpperCase()':'')+'.trim())">';
+  }
+  function edTel(id, campo, val) {
+    if (!canEdit) return esc(val || '');
+    return '<input value="'+esc(val||'')+'" oninput="maskPhone(this)" maxlength="15"'
+      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';unidadeInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
+  }
+  // O nome da unidade vira campo editável, mas o atalho para o site (quando há
+  // link cadastrado) continua acessível pelo ícone ao lado.
+  function edUnidade(u) {
+    if (!canEdit) return unidadeNomeHtml(u.unidade);
+    var url = unidadeLink(u.unidade);
+    var link = url
+      ? '<a class="un-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer"'
+        +' title="Abrir o site: '+esc(url)+'" style="flex:0 0 auto;border-bottom:none">↗</a>'
+      : '';
+    return '<div style="display:flex;align-items:center;gap:4px">'
+      + edInp(u.id,'unidade',u.unidade,'',';font-size:11px') + link + '</div>';
+  }
   var rows = slice.map(function(u) {
     var actions = canEdit
-      ? '<button class="btn-usr-edit" onclick="openEditUnidadeModal(\''+u.id+'\')">Editar</button>'
-        +' <button class="btn-usr-del" onclick="confirmDeleteUnidade(\''+u.id+'\')">Excluir</button>'
+      ? '<button class="btn-usr-del" onclick="confirmDeleteUnidade(\''+u.id+'\')">Excluir</button>'
       : '';
     return '<tr>'
-      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+esc((u.nome||'').toUpperCase())+'</td>'
-      +'<td style="color:var(--accent);font-weight:600;white-space:nowrap">'+esc(u.cargo)+'</td>'
-      +'<td style="font-size:11px">'+unidadeNomeHtml(u.unidade)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(u.sigla)+'</td>'
-      +'<td style="font-size:11px">'+esc(u.email)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+esc(u.telefone)+'</td>'
+      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+edInp(u.id,'nome',(u.nome||'').toUpperCase(),'',';font-weight:600',true)+'</td>'
+      +'<td style="color:var(--accent);font-weight:600;white-space:nowrap">'+edInp(u.id,'cargo',u.cargo,'list="un-dl-cargo"',';color:var(--accent);font-weight:600')+'</td>'
+      +'<td style="font-size:11px">'+edUnidade(u)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edInp(u.id,'sigla',u.sigla,'',';font-family:\'DM Mono\',monospace;font-size:11px')+'</td>'
+      +'<td style="font-size:11px">'+edInp(u.id,'email',u.email,'type="email"',';font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(u.id,'telefone',u.telefone)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -3497,6 +3598,7 @@ function renderUnidadesTable() {
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +pag
+    +'<datalist id="un-dl-cargo">'+unidadeCargoDatalist()+'</datalist>'
     +'</div>';
   setTimeout(function(){ fcStickyScrollSyncFor('unidades'); }, 0);
 }
@@ -3521,6 +3623,14 @@ function unGoPage(p) {
   renderUnidadesTable();
   var el = document.getElementById('unidade-table');
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// Cargos já cadastrados (distintos), para o datalist da edição inline
+function unidadeCargoDatalist() {
+  var set = {};
+  UNIDADES.forEach(function(u){ var c = (u.cargo||'').trim(); if (c) set[c] = 1; });
+  return Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); })
+    .map(function(c){ return '<option value="'+esc(c)+'">'; }).join('');
 }
 
 // Opções de Cargo já cadastradas (distintas), para a lista suspensa
@@ -3566,29 +3676,6 @@ function saveNewUnidade() {
   if (!u.nome) { alert('O nome é obrigatório.'); return; }
   u.id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
   UNIDADES.push(u);
-  saveUnidadesToStorage();
-  closeMo();
-  buildUnidadesTable();
-}
-
-function openEditUnidadeModal(id) {
-  var u = UNIDADES.find(function(x){ return x.id === id; });
-  if (!u) return;
-  document.getElementById('mo-t').textContent = 'Editar Entrada';
-  document.getElementById('mo-s').textContent = u.nome;
-  document.getElementById('mo-b').innerHTML = unidadeFormHtml(u);
-  document.getElementById('mo-actions').innerHTML =
-    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
-    +'<button class="btn-save-e" onclick="saveEditUnidade(\''+id+'\')">Salvar</button>';
-  document.getElementById('mo').classList.add('open');
-}
-
-function saveEditUnidade(id) {
-  var u = UNIDADES.find(function(x){ return x.id === id; });
-  if (!u) return;
-  var form = readUnidadeForm();
-  if (!form.nome) { alert('O nome é obrigatório.'); return; }
-  Object.assign(u, form);
   saveUnidadesToStorage();
   closeMo();
   buildUnidadesTable();
