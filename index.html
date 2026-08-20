@@ -1090,7 +1090,7 @@ function roleClass(r) { return 'role-' + normalizeRole(r); }
 
 // Pode o nível 'role' VER a tela 'view'?
 // Telas que só aparecem a partir de certo nível (além da regra Área 51)
-var VIEW_MIN_LEVEL = { usuarios: 3 };  // Usuários: só n3+ (n1 e n2 não veem)
+var VIEW_MIN_LEVEL = { usuarios: 3, imr: 3 };  // Usuários e IMR: só n3+ (n1 e n2 não veem)
 function levelNum(role) { role = normalizeRole(role); return role === 'area51' ? 99 : parseInt(role.slice(1), 10) || 0; }
 function canViewView(view, role) {
   role = normalizeRole(role || currentRole);
