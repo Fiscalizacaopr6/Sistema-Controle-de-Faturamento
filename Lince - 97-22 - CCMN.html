@@ -346,6 +346,13 @@ function initCloud(){
     },function(err){setCloudStatus('⚠ Nuvem indisponível (usando cópia local)');});
   }catch(e){cloudReady=false;setCloudStatus('⚠ Falha ao conectar à nuvem');}
 }
+function applyLockUI(){
+  applyLock();
+  const bl=document.getElementById('btnLock'),bu=document.getElementById('btnUnlock'),blm=document.getElementById('btnLimpar');
+  if(bl)bl.style.display=globalLocked?'none':'inline-block';
+  if(bu)bu.style.display=globalLocked?'inline-block':'none';
+  if(blm)blm.style.display=globalLocked?'none':'inline-block';
+}
 function applyRemote(payload){
   const a=document.activeElement;
   const editing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
@@ -362,8 +369,10 @@ function applyRemote(payload){
     if(payload.matSalvo) db.matSalvo=payload.matSalvo;
     if(payload.imr) db.imr=payload.imr;
     if(payload.area) db.area=payload.area;
+    if(payload.locked!==undefined){db.locked=payload.locked;db.pwd=payload.pwd||'';globalLocked=!!payload.locked;globalPwd=db.pwd;}
     fillForm();
     buildMeses(db.contrato.inicio);
+    applyLockUI();
     if(activeTab==='materiais') renderMateriais();
     else if(activeTab==='imr') renderIMR();
     else if(activeTab==='area') renderArea();
@@ -608,6 +617,9 @@ function loadDB(){
     if(p.lancamentos)db.lancamentos=p.lancamentos;
     if(p.imr)        db.imr=p.imr;
     if(p.area)       db.area=p.area;
+    if(p.matSalvo)   db.matSalvo=p.matSalvo;
+    if(p.locked!==undefined) db.locked=p.locked;
+    if(p.pwd!==undefined)    db.pwd=p.pwd;
   }catch(e){console.warn(e);}
 }
 function fillForm(){
@@ -1652,6 +1664,7 @@ function lockAll(){
   const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
   if(!pwd||pwd.length<4){alert('Senha inválida.');return;}
   globalPwd=pwd;globalLocked=true;applyLock();
+  db.locked=true;db.pwd=pwd;autosave(); // persiste a trava (permanece travado ao recarregar)
   document.getElementById('btnLock').style.display='none';
   document.getElementById('btnUnlock').style.display='inline-block';
   document.getElementById('btnLimpar').style.display='none';
@@ -1662,6 +1675,7 @@ function unlockAll(){
   const pwd=prompt('Digite a senha para desbloquear:');
   if(pwd!==globalPwd){alert('❌ Senha incorreta.');return;}
   globalLocked=false;globalPwd='';applyLock();
+  db.locked=false;db.pwd='';autosave(); // persiste o destravamento
   document.getElementById('btnLock').style.display='inline-block';
   document.getElementById('btnUnlock').style.display='none';
   document.getElementById('btnLimpar').style.display='inline-block';
@@ -2210,6 +2224,13 @@ function renderAreaForm(period,u){
 // ─── INICIALIZAÇÃO ────────────────────────────────────────────────
 loadDB();fillForm();
 buildMeses(db.contrato.inicio); // ajusta meses conforme início de vigência salvo
+// Restaura o estado de trava salvo — permanece travado ao recarregar/reentrar no sistema
+if(db.locked){
+  globalLocked=true; globalPwd=db.pwd||''; applyLock();
+  document.getElementById('btnLock').style.display='none';
+  document.getElementById('btnUnlock').style.display='inline-block';
+  document.getElementById('btnLimpar').style.display='none';
+}
 if(INIT_LOCKED&&INIT_DATA_EXPORT){
   Object.assign(db,INIT_DATA_EXPORT);fillForm();
   globalPwd=INIT_PWD;globalLocked=true;applyLock();
