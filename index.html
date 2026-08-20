@@ -6789,13 +6789,18 @@ function docMesOpcoesHtml(atual) {
     + (outras.length ? '<optgroup label="Outras referências">' + docOpcoesHtml(outras, atual) + '</optgroup>' : '');
 }
 
+// Unidades sempre disponíveis no cadastro, mesmo sem registro anterior.
+var DOC_UNIDADES_EXTRA = ['SGTIC'];
+
 // As unidades já usadas pelo contrato ficam no topo; as demais continuam
 // acessíveis logo abaixo, para não travar uma unidade nova.
 function docUnidadeOpcoesHtml(contrato, atual) {
   var doContrato = docUnidadesDoContrato(contrato);
   var noContrato = {};
   doContrato.forEach(function(u) { noContrato[u] = 1; });
-  var demais = docDistinct('unidade').filter(function(u) { return !noContrato[u]; })
+  var pool = docDistinct('unidade').slice();
+  DOC_UNIDADES_EXTRA.forEach(function(u) { if (pool.indexOf(u) === -1) pool.push(u); });
+  var demais = pool.filter(function(u) { return !noContrato[u]; })
     .sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
   return '<option value="">— Selecione —</option>'
     + (doContrato.length ? '<optgroup label="Unidades deste contrato">' + docOpcoesHtml(doContrato, atual) + '</optgroup>' : '')
