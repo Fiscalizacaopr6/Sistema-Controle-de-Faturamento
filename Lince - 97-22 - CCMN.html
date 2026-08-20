@@ -666,9 +666,6 @@ function showTab(tab){
   // Botão Salvar PDF só nas abas que entram no PDF (não em Contrato/Relatório)
   const pdfBtn=document.getElementById('btnPDF');
   if(pdfBtn) pdfBtn.style.display=(tab==='materiais'||tab==='imr'||tab==='area')?'inline-block':'none';
-  // Na aba Materiais o botão vira "Limpar Materiais" (só as linhas); nas demais, "Limpar Tudo"
-  const limparBtn=document.getElementById('btnLimpar');
-  if(limparBtn) limparBtn.textContent=(tab==='materiais')?'🗑 Limpar Materiais':'🗑 Limpar Tudo';
 }
 
 // ─── PÍLULAS ─────────────────────────────────────────────────────
@@ -691,6 +688,14 @@ function renderMateriais(uid){
   if(!db.materiais[u]) db.materiais[u]=[];
   const itens=db.materiais[u];
 
+  // Travado: as colunas de meses já preenchidos somem da tela (não podem mais ser
+  // editadas); meses ainda vazios continuam visíveis. Destravado: mostra todas.
+  const mesPreenchido=mes=>{
+    const its=db.lancamentos[mes]?.[u]?.itens;
+    return !!its&&Object.keys(its).some(id=>(+its[id]||0)>0);
+  };
+  const mesVisivel=idx=>!globalLocked||!mesPreenchido(MESES[idx]);
+
   const _previsto=(db.materiais[u]||[]).reduce((s,it)=>s+fl2(it.qtdMensal*getLatestPreco(it)),0);
   let h=`<div class="sec-title"><span>MATERIAIS – ${escH(unNome(u))}</span>
     <span style="font-size:10px;font-weight:normal;background:rgba(255,255,255,.15);padding:2px 10px;border-radius:3px;white-space:nowrap;">
@@ -707,7 +712,8 @@ function renderMateriais(uid){
   h+=`<th rowspan="3" style="width:72px;">Valor<br>Unit. (R$)</th>`;
   h+=`<th rowspan="3" style="width:65px;">Qtd Prev.<br>/Mês</th>`;
   ANOS.forEach(a=>{
-    h+=`<th colspan="${a.end-a.start}" style="background:#162d56;font-size:9.5px;letter-spacing:.5px;">${a.label}</th>`;
+    let csp=0; for(let i=a.start;i<a.end&&i<MESES.length;i++) if(mesVisivel(i)) csp++;
+    if(csp>0) h+=`<th colspan="${csp}" style="background:#162d56;font-size:9.5px;letter-spacing:.5px;">${a.label}</th>`;
   });
   h+=`<th rowspan="3" style="width:92px;">Qtd Total<br>Estimada</th>`;
   h+=`<th rowspan="3" style="width:70px;">Saldo</th>`;
@@ -715,14 +721,15 @@ function renderMateriais(uid){
   h+=`</tr><tr>`;
 
   // Linha 2: R$ total gasto por mês
-  MESES.forEach(mes=>{
+  MESES.forEach((mes,i)=>{
+    if(!mesVisivel(i)) return;
     const tot=totalMes(mes,u);
     h+=`<th class="mh-total" id="mh_${mes.replace('-','_')}">${tot>0?BRL(tot):'R$&nbsp;–'}</th>`;
   });
   h+=`</tr><tr>`;
 
   // Linha 3: nomes dos meses
-  MESES.forEach(m=>{ h+=`<th class="mh-name">${m}</th>`; });
+  MESES.forEach((m,i)=>{ if(!mesVisivel(i)) return; h+=`<th class="mh-name">${m}</th>`; });
   h+=`</tr></thead><tbody>`;
 
   // ── LINHAS DE ITENS ──
@@ -781,6 +788,7 @@ function renderMateriais(uid){
     // Células auto-propagadas ficam com fundo levemente azulado
     // A célula de "origem" de cada bloco é detectada pelo padrão de propagação
     MESES.forEach((mes,idx)=>{
+      if(!mesVisivel(idx)) return;
       const qr=+db.lancamentos[mes]?.[u]?.itens?.[it.id]||0;
       // Detecta se a célula é auto-propagada (não é origem do bloco)
       // Para exibição visual, verificamos se a célula anterior tem o mesmo valor
@@ -1151,9 +1159,39 @@ function calcIMR(itens){
 function getIMRData(period,u){
   if(!db.imr)db.imr={};
   if(!db.imr[period])db.imr[period]={};
-  if(!db.imr[period][u])db.imr[period][u]={itens:{},numPrevisto:0,numPresente:0,valorMO:0,diasTrabalhados:0,creche:{retido:0,aprovados:0,valorBDI:0}};
-  if(!db.imr[period][u].creche)db.imr[period][u].creche={retido:0,aprovados:0,valorBDI:0};
+  if(!db.imr[period][u])db.imr[period][u]={itens:{},numPrevisto:0,numPresente:0,valorMO:0,diasTrabalhados:0,creche:{retido:null,aprovEnc:0,aprovServ:0,valEnc:null,valServ:null}};
+  if(!db.imr[period][u].creche)db.imr[period][u].creche={retido:null,aprovEnc:0,aprovServ:0,valEnc:null,valServ:null};
   return db.imr[period][u];
+}
+
+// ─── REEMBOLSO CRECHE: propagação mês a mês (igual à planilha) ─────
+// Campos que se propagam do mês anterior (Retido, Valor Enc., Valor Serv.):
+// mantêm-se iguais ao mês anterior até serem sobrescritos; a alteração de um
+// mês vale daquele mês em diante. Retorna o valor efetivo para period/unidade.
+function crecheCarry(period,u,key){
+  const idx=MESES.indexOf(period);
+  if(idx<0) return 0;
+  for(let i=idx;i>=0;i--){
+    const v=fl2(db.imr?.[MESES[i]]?.[u]?.creche?.[key]||0);
+    if(v) return v; // ignora 0/null/vazio (mês sem valor herda o anterior)
+  }
+  return 0;
+}
+// Total dos reembolsos de um mês = Aprov.Enc×ValorEnc + Aprov.Serv×ValorServ
+// (aprovados são do próprio mês; valores unitários são herdados/propagados).
+function crecheTotalMes(period,u){
+  const cr=db.imr?.[period]?.[u]?.creche;
+  const aprovEnc=+(cr?.aprovEnc||0);
+  const aprovServ=+(cr?.aprovServ||0);
+  return fl2(aprovEnc*crecheCarry(period,u,'valEnc')+aprovServ*crecheCarry(period,u,'valServ'));
+}
+// Saldo acumulado (planilha N50): Σ (Retido − Total) de MESES[0] até o período.
+function crecheSaldoAcum(period,u){
+  const idx=MESES.indexOf(period);
+  if(idx<0) return 0;
+  let saldo=0;
+  for(let i=0;i<=idx;i++) saldo+=crecheCarry(MESES[i],u,'retido')-crecheTotalMes(MESES[i],u);
+  return fl2(saldo);
 }
 
 let activeIMRPeriod=MESES[0];
@@ -1242,11 +1280,8 @@ function updateIMRResults(period,unit){
   const moVal=fl2(totalAreaPeriod(period)); // automático: total da aba Área no período
   const dias=Math.min(30,Math.max(0,+(d.diasTrabalhados)||0));
   const moEfetivo=dias>0?fl2(moVal*dias/30):moVal;
-  const retido=fl2(d.creche?.retido||0);
-  const aprov=+(d.creche?.aprovados||0);
-  const bdi=fl2(d.creche?.valorBDI||0);
-  const totalReemb=fl2(aprov*bdi);
-  const saldoCreche=fl2(retido-totalReemb);
+  const totalReemb=crecheTotalMes(period,unit);      // Enc×ValEnc + Serv×ValServ
+  const saldoCreche=crecheSaldoAcum(period,unit);    // acumulado (planilha N50)
   const totalMensalVal=fl2(moEfetivo+matVal+totalReemb);
   const descontoQ=calc.grade!=='-'?fl2(moEfetivo*(1-calc.pct)):0;
   const liberado=fl2(totalMensalVal-descontoQ);
@@ -1283,11 +1318,13 @@ function renderIMRForm(){
   const moVal=fl2(totalAreaPeriod(period)); // automático: total da aba Área no período
   const dias=Math.min(30,Math.max(0,+(d.diasTrabalhados)||0));
   const moEfetivo=dias>0?fl2(moVal*dias/30):moVal;
-  const retido=fl2(d.creche?.retido||0);
-  const aprov=+(d.creche?.aprovados||0);
-  const bdi=fl2(d.creche?.valorBDI||0);
-  const totalReemb=fl2(aprov*bdi);
-  const saldoCreche=fl2(retido-totalReemb);
+  const retido=crecheCarry(period,u,'retido');       // herdado do mês anterior
+  const aprovEnc=+(d.creche?.aprovEnc||0);            // aprovados do próprio mês
+  const aprovServ=+(d.creche?.aprovServ||0);
+  const valEnc=crecheCarry(period,u,'valEnc');        // herdado do mês anterior
+  const valServ=crecheCarry(period,u,'valServ');      // herdado do mês anterior
+  const totalReemb=crecheTotalMes(period,u);          // Enc×ValEnc + Serv×ValServ
+  const saldoCreche=crecheSaldoAcum(period,u);        // acumulado (planilha N50)
   const totalMensalVal=fl2(moEfetivo+matVal+totalReemb);
   const descontoQ=calc.grade!=='-'?fl2(moEfetivo*(1-calc.pct)):0;
   const liberado=fl2(totalMensalVal-descontoQ);
@@ -1347,7 +1384,11 @@ function renderIMRForm(){
     <div style="font-size:9px;color:#777;align-self:center" id="imr_ev_${u}">${calc.ev} de ${IMR_ITEMS.length} itens avaliados</div>
   </div>`;
 
-  // ── Tabela de conceitos ──
+  // ── Tabela de conceitos + Serventes (lado a lado) ──
+  h+=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">`;
+
+  // Coluna esquerda: tabela de conceitos
+  h+=`<div style="flex:1 1 340px;min-width:300px;">`;
   h+=`<table class="imr-grade-tbl"><thead><tr><th>Conceito</th><th style="text-align:left">Resultado</th><th>% Liberação</th></tr></thead><tbody>`;
   IMR_GRADES.forEach(gr=>{
     const active=gr.g===calc.grade;
@@ -1358,9 +1399,11 @@ function renderIMRForm(){
     </tr>`;
   });
   h+=`</tbody></table>`;
+  h+=`</div>`;
 
-  // ── Serventes ──
-  h+=`<div class="sec-title" style="background:#2e7d32;margin-top:10px;"><span>SERVENTES</span></div>`;
+  // Coluna direita: Serventes
+  h+=`<div style="flex:1 1 300px;min-width:280px;">`;
+  h+=`<div class="sec-title" style="background:#2e7d32;margin-top:8px;"><span>SERVENTES</span></div>`;
   h+=`<div class="imr-emp-grid">
     <div class="imr-emp-row"><span>Número de serventes <b>previstos</b> para esta unidade:</span>
       <input class="mi" type="number" value="${d.numPrevisto||''}" placeholder="0" ${lk} style="width:70px;text-align:center;"
@@ -1371,6 +1414,52 @@ function renderIMRForm(){
         onchange="setIMRField('${period}',${u},'numPresente',+this.value||0)">
     </div>
   </div>`;
+  h+=`</div>`;
+
+  h+=`</div>`;// fecha flex conceitos+serventes
+
+  // ── Reembolso Creche ──
+  h+=`<div class="imr-creche-hdr">🏠 REEMBOLSO CRECHE</div>`;
+  h+=`<table class="imr-val-tbl" style="border-top:none;">
+    <tr><td>Valor Reembolso Creche Retido (R$)</td>
+      <td><input class="mi r" type="number" step="0.01" value="${retido||''}" placeholder="0" ${lk}
+        style="width:130px;text-align:right;"
+        onchange="setIMRField('${period}',${u},'creche.retido',+this.value||0)"></td>
+    </tr>
+    <tr><td>Reembolsos Aprovados Encarregado</td>
+      <td><input class="mi r" type="number" value="${aprovEnc||''}" placeholder="0"
+        style="width:130px;text-align:center;"
+        onchange="setIMRField('${period}',${u},'creche.aprovEnc',+this.value||0)"></td>
+    </tr>
+    <tr><td>Reembolsos Aprovados Servente</td>
+      <td><input class="mi r" type="number" value="${aprovServ||''}" placeholder="0"
+        style="width:130px;text-align:center;"
+        onchange="setIMRField('${period}',${u},'creche.aprovServ',+this.value||0)"></td>
+    </tr>
+    <tr><td>Valor Reembolso Encarregado (R$)</td>
+      <td><input class="mi r" type="number" step="0.01" value="${valEnc||''}" placeholder="0" ${lk}
+        style="width:130px;text-align:right;"
+        onchange="setIMRField('${period}',${u},'creche.valEnc',+this.value||0)"></td>
+    </tr>
+    <tr><td>Valor Reembolso Servente (R$)</td>
+      <td><input class="mi r" type="number" step="0.01" value="${valServ||''}" placeholder="0" ${lk}
+        style="width:130px;text-align:right;"
+        onchange="setIMRField('${period}',${u},'creche.valServ',+this.value||0)"></td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Valor total dos Reembolsos (R$) <small style="font-weight:normal">(Enc.×Valor Enc. + Serv.×Valor Serv.)</small></td>
+      <td id="imr_creche_total_${u}">${BRL(totalReemb)}</td>
+    </tr>
+    <tr class="imr-calc-row${saldoCreche<0?' imr-neg':''}">
+      <td>Saldo de Reembolso (R$) <small style="font-weight:normal">(acumulado: saldo anterior + Retido – Total)</small></td>
+      <td id="imr_creche_saldo_${u}">${BRL(saldoCreche)}</td>
+    </tr>
+    <tr id="imr_creche_warn_${u}" style="display:${saldoCreche<0?'':'none'}">
+      <td colspan="2" style="background:#ffebee;color:#c62828;font-size:9px;font-style:italic;padding:4px 8px;">
+        ⚠ Atenção: será necessário aditivar o contrato para suportar a despesa.
+      </td>
+    </tr>
+  </table>`;
 
   // ── Valores do período ──
   h+=`<div class="sec-title" style="background:#1f3864;margin-top:4px;"><span>VALORES DO PERÍODO</span></div>`;
@@ -1411,39 +1500,6 @@ function renderIMRForm(){
     <tr class="imr-calc-row imr-lib-row">
       <td><b>Valor liberado para Faturamento (R$)</b></td>
       <td id="imr_lib_${u}">${BRL(liberado)}</td>
-    </tr>
-  </table>`;
-
-  // ── Reembolso Creche ──
-  h+=`<div class="imr-creche-hdr">🏠 REEMBOLSO DE CRECHE</div>`;
-  h+=`<table class="imr-val-tbl" style="border-top:none;">
-    <tr><td>Valor Reembolso Creche Retido (R$)</td>
-      <td><input class="mi r" type="number" step="0.01" value="${retido||''}" placeholder="0" ${lk}
-        style="width:130px;text-align:right;"
-        onchange="setIMRField('${period}',${u},'creche.retido',+this.value||0)"></td>
-    </tr>
-    <tr><td>Reembolsos Aprovados (quantidade)</td>
-      <td><input class="mi r" type="number" value="${aprov||''}" placeholder="0"
-        style="width:130px;text-align:center;"
-        onchange="setIMRField('${period}',${u},'creche.aprovados',+this.value||0)"></td>
-    </tr>
-    <tr><td>Valor Reembolso + BDI (R$) <i>por colaborador</i></td>
-      <td><input class="mi r" type="number" step="0.01" value="${bdi||''}" placeholder="0" ${lk}
-        style="width:130px;text-align:right;"
-        onchange="setIMRField('${period}',${u},'creche.valorBDI',+this.value||0)"></td>
-    </tr>
-    <tr class="imr-calc-row">
-      <td>Valor Total dos Reembolsos (R$) <small style="font-weight:normal">(Aprovados × Reembolso+BDI)</small></td>
-      <td id="imr_creche_total_${u}">${BRL(totalReemb)}</td>
-    </tr>
-    <tr class="imr-calc-row${saldoCreche<0?' imr-neg':''}">
-      <td>Saldo de Reembolso (R$) <small style="font-weight:normal">(Retido – Total Reembolsos)</small></td>
-      <td id="imr_creche_saldo_${u}">${BRL(saldoCreche)}</td>
-    </tr>
-    <tr id="imr_creche_warn_${u}" style="display:${saldoCreche<0?'':'none'}">
-      <td colspan="2" style="background:#ffebee;color:#c62828;font-size:9px;font-style:italic;padding:4px 8px;">
-        ⚠ Atenção: será necessário aditivar o contrato para suportar a despesa.
-      </td>
     </tr>
   </table>`;
 
@@ -1723,6 +1779,7 @@ function salvarPDF(){
   pa.innerHTML=buildPrintDoc();
   document.body.classList.add('printing');
   fitAllSheets();
+  if(globalLocked) alert('Para editar novamente este mês entrar em contato com o servidor do faturamento responsável');
   window.print();
 }
 function cleanupPrint(){
@@ -1731,16 +1788,6 @@ function cleanupPrint(){
 }
 window.addEventListener('afterprint',cleanupPrint);
 function limparTudo(){
-  // Na aba Materiais, "Limpar Tudo" exclui só as linhas de material (todas as
-  // unidades) e seus lançamentos mensais — o resto do formulário é preservado.
-  if(activeTab==='materiais'){
-    if(!confirm('⚠ Excluir TODAS as linhas de material (todas as unidades) e seus lançamentos mensais?')) return;
-    db.materiais=Object.fromEntries(Array.from({length:N},(_,i)=>[i+1,[]]));
-    db.lancamentos={};
-    autosave();
-    renderMateriais(activeMatUnit);
-    return;
-  }
   if(!confirm('⚠ Limpar TODOS os dados?')) return;
   localStorage.removeItem('imr_lince-97-22-ccmn');location.reload();
 }
@@ -2053,16 +2100,6 @@ function renderAreaForm(period,u){
 
   let lastGrupo=-1, lastTipo='__';
 
-  // Com o formulário travado, oculta linhas sem M² contratado (e cabeçalhos de
-  // grupo/seção que ficariam vazios); os totais passam a somar só as visíveis.
-  const rowVisible={}, grpVis={}, tipoVis={};
-  AREA_LINHAS.forEach(function(ln){
-    const c=contrato[ln.key]||{};
-    const vis=!globalLocked || (+(c.m2||0))>0;
-    rowVisible[ln.key]=vis;
-    if(vis){ grpVis[ln.grupo]=true; if(ln.tipo) tipoVis[ln.grupo+'|'+ln.tipo]=true; }
-  });
-
   AREA_LINHAS.forEach(function(ln){
     const c=contrato[ln.key]||{};
     const m2c=+(c.m2||0);
@@ -2072,21 +2109,18 @@ function renderAreaForm(period,u){
     const latestVm2=getAreaLatestVm2(u,ln.codeKey);
     const m2a=+(lanc[ln.key]||0);
     const vl=fl2(m2a*vm2AtPeriod);
-
-    if(ln.grupo!==lastGrupo){
-      lastGrupo=ln.grupo; lastTipo='__';
-      if(grpVis[ln.grupo]) h+='<tr class="area-grupo-hdr"><td colspan="8">&#128203; Carga semanal: '+escH(AREA_GRUPOS[ln.grupo])+'</td></tr>';
-    }
-    if(ln.tipo&&ln.isFirst&&ln.tipo!==lastTipo){
-      lastTipo=ln.tipo;
-      if(tipoVis[ln.grupo+'|'+ln.tipo]) h+='<tr class="area-secao-hdr"><td colspan="8">'+escH(ln.tipo)+'</td></tr>';
-    }
-
-    if(!rowVisible[ln.key]) return; // travado: linha sem M² é ocultada
-
     totalM2C=fl2(totalM2C+m2c);
     totalM2A=fl2(totalM2A+m2a);
     totalVL=fl2(totalVL+vl);
+
+    if(ln.grupo!==lastGrupo){
+      lastGrupo=ln.grupo; lastTipo='__';
+      h+='<tr class="area-grupo-hdr"><td colspan="8">&#128203; Carga semanal: '+escH(AREA_GRUPOS[ln.grupo])+'</td></tr>';
+    }
+    if(ln.tipo&&ln.isFirst&&ln.tipo!==lastTipo){
+      lastTipo=ln.tipo;
+      h+='<tr class="area-secao-hdr"><td colspan="8">'+escH(ln.tipo)+'</td></tr>';
+    }
 
     // valores editáveis por unidade (com fallback para o padrão de AREA_LINHAS)
     const valCod   =getAreaLinhaVal(u,ln.key,'cod');
@@ -2139,7 +2173,6 @@ function renderAreaForm(period,u){
 // ─── INICIALIZAÇÃO ────────────────────────────────────────────────
 loadDB();fillForm();
 buildMeses(db.contrato.inicio); // ajusta meses conforme início de vigência salvo
-initCloud();
 if(INIT_LOCKED&&INIT_DATA_EXPORT){
   Object.assign(db,INIT_DATA_EXPORT);fillForm();
   globalPwd=INIT_PWD;globalLocked=true;applyLock();
@@ -2147,6 +2180,15 @@ if(INIT_LOCKED&&INIT_DATA_EXPORT){
   document.getElementById('btnUnlock').style.display='inline-block';
   document.getElementById('btnLimpar').style.display='none';
 }
+
+// Evita que o scroll do mouse altere o valor de campos numéricos:
+// ao rolar sobre um input[type=number] focado, tira o foco para a página/lista rolar.
+document.addEventListener('wheel',function(e){
+  const a=document.activeElement;
+  if(a&&a.tagName==='INPUT'&&a.type==='number'&&(a===e.target||a.contains(e.target))) a.blur();
+},{passive:true});
+
+initCloud();
 </script>
 
 <!-- MODAL: Atualização de Preços de Área -->
