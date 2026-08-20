@@ -359,6 +359,7 @@ function applyRemote(payload){
     if(payload.unidades) db.unidades=payload.unidades;
     if(payload.materiais) db.materiais=payload.materiais;
     if(payload.lancamentos) db.lancamentos=payload.lancamentos;
+    if(payload.matSalvo) db.matSalvo=payload.matSalvo;
     if(payload.imr) db.imr=payload.imr;
     if(payload.area) db.area=payload.area;
     fillForm();
@@ -688,13 +689,15 @@ function renderMateriais(uid){
   if(!db.materiais[u]) db.materiais[u]=[];
   const itens=db.materiais[u];
 
-  // Travado: as colunas de meses já preenchidos somem da tela (não podem mais ser
-  // editadas); meses ainda vazios continuam visíveis. Destravado: mostra todas.
+  // Destravado: TODAS as colunas de meses ficam visíveis (editáveis).
+  // Travado: só somem as colunas dos meses que já foram SALVOS (botão Salvar);
+  // meses não salvos continuam visíveis. Assim o ocultar só ocorre após Salvar.
   const mesPreenchido=mes=>{
     const its=db.lancamentos[mes]?.[u]?.itens;
     return !!its&&Object.keys(its).some(id=>(+its[id]||0)>0);
   };
-  const mesVisivel=idx=>!globalLocked||!mesPreenchido(MESES[idx]);
+  const mesSalvo=mes=>!!(db.matSalvo&&db.matSalvo[u]&&db.matSalvo[u][mes]);
+  const mesVisivel=idx=>!(globalLocked&&mesSalvo(MESES[idx]));
 
   const _previsto=(db.materiais[u]||[]).reduce((s,it)=>s+fl2(it.qtdMensal*getLatestPreco(it)),0);
   let h=`<div class="sec-title"><span>MATERIAIS – ${escH(unNome(u))}</span>
@@ -820,6 +823,11 @@ function renderMateriais(uid){
     h+=`<button class="add-btn" style="background:#b26a00;" onclick="openBulkPrecoModal(${u})">🔄 Atualizar Preços</button>`;
     h+=`</div>`;
   }
+  // Botão Salvar — visível travado e destravado. Com o form travado, oculta as
+  // colunas dos meses preenchidos da unidade atual (após confirmação).
+  h+=`<div style="margin-top:6px;">`;
+  h+=`<button class="btn btn-green" onclick="salvarMateriais(${u})">💾 Salvar</button>`;
+  h+=`</div>`;
   document.getElementById('matContent').innerHTML=h;
   applyStickyHeader();
 }
@@ -1108,6 +1116,20 @@ function saveMesItem(mes,u,itemId,val){
       sd.className=`calc${saldo<0?' neg':''}`;
     }
   }
+}
+
+// Salva/fecha os meses preenchidos da unidade: com o form travado essas colunas
+// somem e não podem mais ser editadas (só o servidor, destravando o formulário).
+function salvarMateriais(u){
+  if(!confirm('após salvar não será possível editar os valores, para isso deverá entrar em contato com o servidor responsável do faturamento.')) return;
+  if(!db.matSalvo) db.matSalvo={};
+  if(!db.matSalvo[u]) db.matSalvo[u]={};
+  MESES.forEach(mes=>{
+    const its=db.lancamentos[mes]?.[u]?.itens;
+    if(its&&Object.keys(its).some(id=>(+its[id]||0)>0)) db.matSalvo[u][mes]=true;
+  });
+  autosave();
+  renderMateriais(u);
 }
 
 // ─── IMR ──────────────────────────────────────────────────────────
@@ -2143,8 +2165,18 @@ function renderAreaForm(period,u){
     h+='<td style="padding:1px 3px;"><input class="mi" value="'+escH(valIns)+'" '+lk+' style="width:90px;font-size:9px;" oninput="setAreaLinhaData('+u+',\''+ln.key+'\',\'ins\',this.value)"></td>';
     // M² contratado
     h+='<td style="padding:2px 4px;"><input class="mi r" type="number" step="0.01" min="0" value="'+(m2c||'')+'" placeholder="0" '+lk+' style="width:78px;text-align:right;" onchange="setAreaContrato('+u+',\''+ln.key+'\',\'m2\',+this.value||0)"></td>';
-    // Valor m² – sempre como texto BRL centralizado (edição via modal "Atualizar Preços")
-    h+='<td style="text-align:center;padding:2px 6px;font-size:10px;">'+(ln.isFirst?'<b>':'')+BRL(vm2AtPeriod)+(ln.isFirst?'</b>':'')+'</td>';
+    // Valor m² – editável (input) com o formulário destravado; texto BRL não editável quando travado.
+    // Quando há histórico de preços (>1), continua só por modal "Atualizar Preços".
+    h+='<td style="text-align:center;padding:2px 6px;font-size:10px;">';
+    if(!globalLocked && !multiVm2){
+      h+='<input class="mi r" type="number" step="0.01" min="0" value="'+(vm2AtPeriod||'')+'" placeholder="0" '
+        +'style="width:74px;text-align:center;'+(ln.isFirst?'font-weight:bold;':'')+'" '
+        +'onchange="setAreaVm2Base('+u+',\''+ln.codeKey+'\',+this.value||0)">';
+    }else{
+      h+=(ln.isFirst?'<b>':'')+BRL(vm2AtPeriod)+(ln.isFirst?'</b>':'')
+        +(multiVm2&&!globalLocked?' <small style="color:#888;">(via Atualizar Preços)</small>':'');
+    }
+    h+='</td>';
     // M² aferido
     h+='<td style="padding:2px 4px;"><input class="mi r" type="number" step="0.01" min="0" value="'+(m2a||'')+'" placeholder="0" style="width:78px;text-align:right;" onchange="setAreaLanc(\''+period+'\','+u+',\''+ln.key+'\',+this.value||0)"></td>';
     h+='<td class="area-calc">'+BRL(vl)+'</td>';
