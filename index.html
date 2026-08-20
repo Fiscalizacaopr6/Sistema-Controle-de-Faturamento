@@ -1295,6 +1295,10 @@ function applyPermissionsUI() {
   // Backup completo: só Área 51
   var bk = document.getElementById('btn-backup-admin');
   if (bk) bk.style.display = (normalizeRole(currentRole) === 'area51') ? '' : 'none';
+
+  // Dica de replicar valores (Documentos): só nível 4+
+  var hint = document.getElementById('doc-hint-replicar');
+  if (hint) hint.style.display = (levelNum(currentRole) >= 4) ? '' : 'none';
 }
 
 function launchApp(u) {
