@@ -823,11 +823,6 @@ function renderMateriais(uid){
     h+=`<button class="add-btn" style="background:#b26a00;" onclick="openBulkPrecoModal(${u})">🔄 Atualizar Preços</button>`;
     h+=`</div>`;
   }
-  // Botão Salvar — visível travado e destravado. Com o form travado, oculta as
-  // colunas dos meses preenchidos da unidade atual (após confirmação).
-  h+=`<div style="margin-top:6px;">`;
-  h+=`<button class="btn btn-green" onclick="salvarMateriais(${u})">💾 Salvar</button>`;
-  h+=`</div>`;
   document.getElementById('matContent').innerHTML=h;
   applyStickyHeader();
 }
@@ -1118,18 +1113,19 @@ function saveMesItem(mes,u,itemId,val){
   }
 }
 
-// Salva/fecha os meses preenchidos da unidade: com o form travado essas colunas
-// somem e não podem mais ser editadas (só o servidor, destravando o formulário).
-function salvarMateriais(u){
-  if(!confirm('após salvar não será possível editar os valores, para isso deverá entrar em contato com o servidor responsável do faturamento.')) return;
+// Marca como salvos os meses preenchidos de TODAS as unidades (chamado após gerar o PDF).
+// Com o formulário travado, essas colunas somem e não podem mais ser editadas
+// (só o servidor, destravando o formulário).
+function marcarMateriaisSalvos(){
   if(!db.matSalvo) db.matSalvo={};
-  if(!db.matSalvo[u]) db.matSalvo[u]={};
-  MESES.forEach(mes=>{
-    const its=db.lancamentos[mes]?.[u]?.itens;
-    if(its&&Object.keys(its).some(id=>(+its[id]||0)>0)) db.matSalvo[u][mes]=true;
-  });
+  for(let u=1;u<=N;u++){
+    if(!db.matSalvo[u]) db.matSalvo[u]={};
+    MESES.forEach(mes=>{
+      const its=db.lancamentos[mes]?.[u]?.itens;
+      if(its&&Object.keys(its).some(id=>(+its[id]||0)>0)) db.matSalvo[u][mes]=true;
+    });
+  }
   autosave();
-  renderMateriais(u);
 }
 
 // ─── IMR ──────────────────────────────────────────────────────────
@@ -1793,20 +1789,29 @@ function fitAllSheets(){
   pa.style.position=prev.position; pa.style.left=prev.left; pa.style.top=prev.top; pa.style.display=prev.display;
 }
 
+let _pendingMatSalvo=false;
 function salvarPDF(){
   coleta();
   const units=unidadesCadastradas();
   if(!units.length){ alert('Cadastre ao menos uma unidade (com nome) na aba Contrato antes de gerar o PDF.'); return; }
+  // Aviso exibido ao salvar PDF; a ocultação só ocorre DEPOIS de gerar o PDF.
+  if(!confirm('após salvar não será possível editar os valores, para isso deverá entrar em contato com o servidor responsável do faturamento.')) return;
   const pa=document.getElementById('printArea');
   pa.innerHTML=buildPrintDoc();
   document.body.classList.add('printing');
   fitAllSheets();
-  if(globalLocked) alert('Para editar novamente este mês entrar em contato com o servidor do faturamento responsável');
+  _pendingMatSalvo=true;
   window.print();
 }
 function cleanupPrint(){
   document.body.classList.remove('printing');
   const pa=document.getElementById('printArea'); if(pa) pa.innerHTML='';
+  // Só após transformar em PDF: marca os meses preenchidos como salvos (ocultam quando travado)
+  if(_pendingMatSalvo){
+    _pendingMatSalvo=false;
+    marcarMateriaisSalvos();
+    if(activeTab==='materiais') renderMateriais(activeMatUnit);
+  }
 }
 window.addEventListener('afterprint',cleanupPrint);
 function limparTudo(){
