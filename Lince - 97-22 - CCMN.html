@@ -1772,14 +1772,17 @@ function buildPrintDoc(){
     html+=`<section class="print-sheet sheet-port">${printHeaderHTML(u)}${inner}</section>`;
   });
   activeIMRUnit=savedIMR; renderIMRForm();
-  // C. Área — reaproveita renderAreaForm(period,u) por unidade
+  // C. Área — reaproveita renderAreaForm(period,u) por unidade.
+  // No PDF, mostra só as linhas com valor na coluna M² (contratado).
   const per=activeAreaPeriod||MESES[0];
   const savedArea=activeAreaUnit;
+  _areaPrintMode=true;
   units.forEach(u=>{
     renderAreaForm(per,u);
     const inner=document.getElementById('areaContent').innerHTML;
     html+=`<section class="print-sheet sheet-port">${printHeaderHTML(u)}${inner}</section>`;
   });
+  _areaPrintMode=false;
   renderAreaForm(per,savedArea);
   return html;
 }
@@ -2116,6 +2119,7 @@ function renderArea(){
   renderAreaForm(activeAreaPeriod,activeAreaUnit);
 }
 
+let _areaPrintMode=false; // no PDF, filtra as linhas da Área p/ só as com M² preenchido
 function renderAreaForm(period,u){
   activeAreaPeriod=period;
   activeAreaUnit=u;
@@ -2141,7 +2145,11 @@ function renderAreaForm(period,u){
 
   let lastGrupo=-1, lastTipo='__';
 
-  AREA_LINHAS.forEach(function(ln){
+  // No PDF, só as linhas que têm valor na coluna M² (contratado)
+  const _linhas=_areaPrintMode
+    ? AREA_LINHAS.filter(function(ln){ return +((contrato[ln.key]||{}).m2||0)>0; })
+    : AREA_LINHAS;
+  _linhas.forEach(function(ln){
     const c=contrato[ln.key]||{};
     const m2c=+(c.m2||0);
     const vm2Hist=getAreaVm2Hist(u,ln.codeKey);
@@ -2158,7 +2166,7 @@ function renderAreaForm(period,u){
       lastGrupo=ln.grupo; lastTipo='__';
       h+='<tr class="area-grupo-hdr"><td colspan="8">&#128203; Carga semanal: '+escH(AREA_GRUPOS[ln.grupo])+'</td></tr>';
     }
-    if(ln.tipo&&ln.isFirst&&ln.tipo!==lastTipo){
+    if(ln.tipo&&(ln.isFirst||_areaPrintMode)&&ln.tipo!==lastTipo){
       lastTipo=ln.tipo;
       h+='<tr class="area-secao-hdr"><td colspan="8">'+escH(ln.tipo)+'</td></tr>';
     }
