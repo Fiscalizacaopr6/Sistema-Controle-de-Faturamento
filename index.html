@@ -878,7 +878,6 @@ select.doc-inp{cursor:pointer}
         <button class="btn-doc" onclick="showView('retencao')">← Voltar</button>
         <h2 style="font-size:13px;font-weight:600;white-space:nowrap;flex:1;color:var(--muted)" id="cv-titulo"></h2>
         <span id="cv-status" style="font-size:11px;color:var(--muted)"></span>
-        <button class="btn-export xlsx" id="cv-btn-imr-excel" onclick="cvBaixarExcelIMR()" title="Baixar planilha de IMR mensal em branco" style="display:none">📊 EXCEL</button>
         <button class="btn-export xlsx" onclick="cvExportarExcel()">⬇ Excel</button>
         <button onclick="cvExportarPDF()" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer">⬇ PDF</button>
       </div>
@@ -7770,50 +7769,6 @@ function cvRender() {
     + '<thead>'+th1+th2+'</thead><tbody>'+linhas+'</tbody></table></div></div>';
 
   cvRenderTotais();
-  cvAtualizarBotaoIMR();
-}
-
-// Início da vigência do contrato (mês/ano) a partir de DADOS. Usa o termo de
-// menor "INÍCIO DO CONTRATO" entre os cadastros com o mesmo número de contrato.
-// Se o contrato não tiver início cadastrado, recai para o mês/ano mais antigo
-// entre os lançamentos deste formulário. Retorna {mes:'Jan', ano:'2024'} ou null.
-function cvInicioContrato() {
-  if (!CV_ATUAL) return null;
-  var num = (CV_ATUAL.contrato || '').trim();
-  if (num && typeof DADOS !== 'undefined') {
-    var ini = null;
-    DADOS.forEach(function(d) {
-      if ((d['CONTRATO'] || '') !== num) return;
-      var iso = String(d['INÍCIO DO CONTRATO'] || '').slice(0, 10);
-      if (!/^\d{4}-\d{2}/.test(iso)) return;
-      if (!ini || iso < ini) ini = iso;
-    });
-    if (ini) {
-      var p = ini.split('-');
-      var mi = parseInt(p[1], 10) - 1;
-      if (mi >= 0 && mi <= 11) return { mes: CV_MESES[mi], ano: p[0] };
-    }
-  }
-  // Fallback: mês/ano mais antigo entre os lançamentos do formulário.
-  var melhor = null;
-  (CV_ATUAL.linhas || []).forEach(function(l) {
-    var mi = CV_MESES.indexOf(l.mes), ano = parseInt(l.ano, 10);
-    if (mi < 0 || isNaN(ano)) return;
-    var chave = ano * 100 + mi;
-    if (melhor === null || chave < melhor.chave) melhor = { chave: chave, mes: l.mes, ano: String(l.ano) };
-  });
-  return melhor ? { mes: melhor.mes, ano: melhor.ano } : null;
-}
-
-// O botão "EXCEL" (planilha de IMR mensal em branco) só aparece quando os
-// filtros de Mês e Ano estão no primeiro mês de vigência do contrato.
-function cvAtualizarBotaoIMR() {
-  var btn = document.getElementById('cv-btn-imr-excel');
-  if (!btn) return;
-  var ini = cvInicioContrato();
-  var fM = (document.getElementById('cv-f-mes') || {}).value || '';
-  var fA = (document.getElementById('cv-f-ano') || {}).value || '';
-  btn.style.display = (ini && fM === ini.mes && fA === ini.ano) ? '' : 'none';
 }
 
 function cvRenderTotais() {
@@ -8051,119 +8006,6 @@ function cvExportarExcel() {
     }));
   });
   genericExportExcel('Conta Vinculada', cab, linhas, 'conta_vinculada_' + (CV_ATUAL.contrato || '').replace(/\//g,'-'));
-}
-
-// ── Planilha de IMR mensal em branco (botão "EXCEL", 1º mês do contrato) ──
-// Estrutura da planilha modelo de IMR: três grupos de avaliação com critérios,
-// pesos e nota (0–3), notas final/conceito e a tabela de conceitos. As notas
-// ficam em branco para o fiscal preencher; os subtotais e totais já vêm com
-// fórmulas do Excel (Peso × Nota, somas por grupo e nota final).
-var CV_IMR_GRUPOS = [
-  {label:'GRUPO 1 – DESEMPENHO PROFISSIONAL', itens:[
-    {label:'Cumprimento das Atividades', peso:0.40},
-    {label:'Qualificação / Atendimento ao Público / Postura', peso:0.35},
-    {label:'Uniformes e Identificação', peso:0.25}
-  ]},
-  {label:'GRUPO 2 – DESEMPENHO DAS ATIVIDADES', itens:[
-    {label:'Especificação Técnica dos Serviços', peso:0.40},
-    {label:'Equipamentos e Acessórios', peso:0.20},
-    {label:'Atendimento às Ocorrências', peso:0.40}
-  ]},
-  {label:'GRUPO 3 – GERENCIAMENTO', itens:[
-    {label:'Periodicidade da Supervisão', peso:0.20},
-    {label:'Gerenciamento das Atividades Operacionais', peso:0.30},
-    {label:'Atendimento às Solicitações', peso:0.25},
-    {label:'Salários, Benefícios e Obrigações Trabalhistas', peso:0.25}
-  ]}
-];
-var CV_IMR_GRADE = [
-  {grade:'A', pct:1.00, faixa:'Entre 9,00 e 8,10'},
-  {grade:'B', pct:0.95, faixa:'Entre 8,09 e 7,65'},
-  {grade:'C', pct:0.90, faixa:'Entre 7,64 e 6,75'},
-  {grade:'D', pct:0.85, faixa:'Entre 6,74 e 5,85'},
-  {grade:'E', pct:0.80, faixa:'Entre 5,84 e 5,40'},
-  {grade:'F', pct:0.75, faixa:'Abaixo de 5,40'}
-];
-
-function cvBaixarExcelIMR() {
-  if (typeof XLSX === 'undefined') { alert('Biblioteca de Excel não carregada. Recarregue a página e tente de novo.'); return; }
-  var ini = cvInicioContrato();
-  var contrato = (CV_ATUAL && CV_ATUAL.contrato) || (CV_REG && CV_REG.contrato) || '';
-  var empresa  = (CV_REG && CV_REG.empresa) || '';
-  var periodo  = ini ? (ini.mes + '/' + ini.ano) : '';
-
-  var aoa = [];
-  var A1 = function(r, c){ return XLSX.utils.encode_cell({r:r, c:c}); };
-  var merges = [];
-  var pushRow = function(arr){ aoa.push(arr); return aoa.length - 1; };
-
-  var rTitulo = pushRow(['INSTRUMENTO DE MEDIÇÃO DE RESULTADO (IMR) — MENSAL']);
-  merges.push({s:{r:rTitulo,c:0}, e:{r:rTitulo,c:3}});
-  pushRow([]);
-  pushRow(['Unidade:', '']);
-  pushRow(['Contrato Nº:', contrato, 'Contratada:', empresa]);
-  pushRow(['Fiscal Operacional:', '', 'Período:', periodo]);
-  pushRow([]);
-  pushRow(['⚠ Notas 0 e 1 exigem justificativa obrigatória no campo de Ocorrências.']);
-  pushRow([]);
-
-  var rCab = pushRow(['Critério de Avaliação', 'Peso', 'Nota (0–3)', 'Subtotal']);
-
-  var pctCells = [];      // células de Peso → formato percentual
-  var subCells = [];      // células de Subtotal → formato 0,00
-  var formulas = [];      // {addr, f} aplicadas após montar a planilha
-  var totalGrupoRows = [];
-
-  CV_IMR_GRUPOS.forEach(function(g){
-    var rg = pushRow([g.label]);
-    merges.push({s:{r:rg,c:0}, e:{r:rg,c:3}});
-    var subRefs = [];
-    g.itens.forEach(function(it){
-      var r = pushRow([it.label, it.peso, '', '']);
-      pctCells.push(A1(r, 1));
-      // Subtotal = Peso × Nota
-      formulas.push({addr: A1(r,3), f: A1(r,1) + '*' + A1(r,2)});
-      subCells.push(A1(r, 3));
-      subRefs.push(A1(r, 3));
-    });
-    var rt = pushRow(['Total do Grupo:', '', '', '']);
-    merges.push({s:{r:rt,c:0}, e:{r:rt,c:2}});
-    formulas.push({addr: A1(rt,3), f: 'SUM(' + subRefs[0] + ':' + subRefs[subRefs.length-1] + ')'});
-    subCells.push(A1(rt, 3));
-    totalGrupoRows.push(rt);
-  });
-
-  pushRow([]);
-  var rFinal = pushRow(['NOTA FINAL (soma dos 3 grupos):', '', '', '']);
-  merges.push({s:{r:rFinal,c:0}, e:{r:rFinal,c:2}});
-  formulas.push({addr: A1(rFinal,3), f: totalGrupoRows.map(function(rr){ return A1(rr,3); }).join('+')});
-  subCells.push(A1(rFinal, 3));
-  pushRow(['CONCEITO:', '']);
-  pushRow(['% FATURAMENTO LIBERADO:', '']);
-
-  pushRow([]);
-  var rTab = pushRow(['TABELA DE CONCEITOS']);
-  merges.push({s:{r:rTab,c:0}, e:{r:rTab,c:2}});
-  pushRow(['Conceito', '% Faturamento Liberado', 'Faixa de Nota']);
-  CV_IMR_GRADE.forEach(function(gr){
-    var r = pushRow([gr.grade, gr.pct, gr.faixa]);
-    pctCells.push(A1(r, 1));
-  });
-
-  var ws = XLSX.utils.aoa_to_sheet(aoa, {cellDates:false});
-  ws['!cols'] = [{wch:52}, {wch:22}, {wch:12}, {wch:12}];
-  ws['!merges'] = merges;
-  // Fórmulas (Subtotal = Peso × Nota, somas por grupo, nota final)
-  formulas.forEach(function(fc){ ws[fc.addr] = {t:'n', f: fc.f, z:'0.00'}; });
-  // Formatos numéricos: pesos e % em percentual; subtotais/totais com 2 casas
-  pctCells.forEach(function(a){ if (ws[a] && typeof ws[a].v === 'number') ws[a].z = '0%'; });
-  subCells.forEach(function(a){ if (ws[a]) ws[a].z = '0.00'; });
-
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'IMR mensal');
-  var slug = (contrato || 'contrato').replace(/[\/\\]/g,'-').replace(/\s+/g,'');
-  var perSlug = periodo ? '_' + periodo.replace(/\//g,'-') : '';
-  XLSX.writeFile(wb, 'IMR_mensal_' + slug + perSlug + '.xlsx');
 }
 
 // ── Boot ──

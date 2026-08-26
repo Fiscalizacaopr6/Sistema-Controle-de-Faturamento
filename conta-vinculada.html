@@ -41,6 +41,7 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 .btn-salvar{background:#1e7e34;color:#fff}
 .btn-print{background:#6c757d;color:#fff}
 .btn-copiar{background:#0d9488;color:#fff}
+.btn-excel{background:#217346;color:#fff}
 .btn:hover{opacity:.88}
 /* Coluna Nome: acompanha o tamanho do texto digitado */
 td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
@@ -85,6 +86,7 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
     <div class="barra">
       <button class="btn btn-add" onclick="addLinha()">+ Adicionar funcionário</button>
       <button class="btn btn-copiar" id="btn-copiar-ant" onclick="copiarMesAnterior()" style="display:none">📋 Copiar do mês anterior</button>
+      <button class="btn btn-excel" id="btn-excel" onclick="baixarExcelIMR()" title="Baixar planilha de IMR mensal em branco" style="display:none">📊 EXCEL</button>
       <button class="btn btn-salvar" onclick="salvar(true)">Salvar</button>
       <button class="btn btn-print" onclick="window.print()">Imprimir / PDF (mês atual)</button>
       <span class="status" id="status"></span>
@@ -219,6 +221,9 @@ function renderTabela() {
   // "Copiar do mês anterior" só faz sentido a partir do 2º mês e com o formulário aberto
   var btnCopiar = document.getElementById('btn-copiar-ant');
   if (btnCopiar) btnCopiar.style.display = (m && MES_ATUAL > 0 && !_bloqueado) ? '' : 'none';
+  // "EXCEL" (planilha de IMR mensal em branco) só aparece no primeiro mês
+  var btnExcel = document.getElementById('btn-excel');
+  if (btnExcel) btnExcel.style.display = (m && MES_ATUAL === 0) ? '' : 'none';
   if (!m) { alvo.innerHTML = '<div class="vazio">Nenhum mês disponível.</div>'; return; }
   var linhas = linhasDoMes(MES_ATUAL);
   var ths = COLS.map(function(c) {
@@ -490,6 +495,146 @@ function montar() {
   }
   renderTabs();
   renderTabela();
+}
+
+// ── Planilha de IMR mensal em branco (botão "EXCEL", só no primeiro mês) ──
+// Gera um arquivo Excel (SpreadsheetML 2003, sem bibliotecas externas) com a
+// estrutura da planilha modelo de IMR: três grupos de avaliação com critérios,
+// pesos e nota (0–3). As notas ficam em branco para o fiscal preencher; os
+// subtotais, totais por grupo e a nota final já vêm com fórmulas do Excel.
+var IMR_GRUPOS = [
+  {label:'GRUPO 1 – DESEMPENHO PROFISSIONAL', itens:[
+    {label:'Cumprimento das Atividades', peso:0.40},
+    {label:'Qualificação / Atendimento ao Público / Postura', peso:0.35},
+    {label:'Uniformes e Identificação', peso:0.25}
+  ]},
+  {label:'GRUPO 2 – DESEMPENHO DAS ATIVIDADES', itens:[
+    {label:'Especificação Técnica dos Serviços', peso:0.40},
+    {label:'Equipamentos e Acessórios', peso:0.20},
+    {label:'Atendimento às Ocorrências', peso:0.40}
+  ]},
+  {label:'GRUPO 3 – GERENCIAMENTO', itens:[
+    {label:'Periodicidade da Supervisão', peso:0.20},
+    {label:'Gerenciamento das Atividades Operacionais', peso:0.30},
+    {label:'Atendimento às Solicitações', peso:0.25},
+    {label:'Salários, Benefícios e Obrigações Trabalhistas', peso:0.25}
+  ]}
+];
+var IMR_GRADE = [
+  {grade:'A', pct:1.00, faixa:'Entre 9,00 e 8,10'},
+  {grade:'B', pct:0.95, faixa:'Entre 8,09 e 7,65'},
+  {grade:'C', pct:0.90, faixa:'Entre 7,64 e 6,75'},
+  {grade:'D', pct:0.85, faixa:'Entre 6,74 e 5,85'},
+  {grade:'E', pct:0.80, faixa:'Entre 5,84 e 5,40'},
+  {grade:'F', pct:0.75, faixa:'Abaixo de 5,40'}
+];
+
+function baixarExcelIMR() {
+  if (!DADOS) return;
+  var m0 = (DADOS.meses && DADOS.meses[0]) || null;
+  var contrato = DADOS.contrato || '';
+  var empresa  = DADOS.empresa || '';
+  var unidade  = DADOS.unidade || '';
+  var periodo  = m0 ? mesRotulo(m0) : '';
+
+  var rows = [];                 // linhas XML já montadas
+  var nrow = 0;                  // contador de linhas (1-based) para as fórmulas
+  function row(cellsXml) { rows.push('<Row>' + cellsXml + '</Row>'); return ++nrow; }
+  function cellTxt(txt, style, mergeAcross) {
+    return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '')
+      + (mergeAcross ? ' ss:MergeAcross="' + mergeAcross + '"' : '')
+      + '><Data ss:Type="String">' + esc(txt) + '</Data></Cell>';
+  }
+  function cellNum(v, style) {
+    return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '')
+      + '><Data ss:Type="Number">' + v + '</Data></Cell>';
+  }
+  function cellFormula(formula, style) {
+    return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '')
+      + ' ss:Formula="' + esc(formula) + '"><Data ss:Type="Number">0</Data></Cell>';
+  }
+  function cellEmpty(style) {
+    return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '') + '/>';
+  }
+
+  row(cellTxt('INSTRUMENTO DE MEDIÇÃO DE RESULTADO (IMR) — MENSAL', 'title', 3));
+  row('');
+  row(cellTxt('Unidade:', 'lbl') + cellTxt(unidade, 'val', 2));
+  row(cellTxt('Contrato Nº:', 'lbl') + cellTxt(contrato, 'val') + cellTxt('Contratada:', 'lbl') + cellTxt(empresa, 'val'));
+  row(cellTxt('Fiscal Operacional:', 'lbl') + cellEmpty('val') + cellTxt('Período:', 'lbl') + cellTxt(periodo, 'val'));
+  row('');
+  row(cellTxt('⚠ Notas 0 e 1 exigem justificativa obrigatória no campo de Ocorrências.', 'aviso', 3));
+  row('');
+  row(cellTxt('Critério de Avaliação', 'hdr') + cellTxt('Peso', 'hdr') + cellTxt('Nota (0–3)', 'hdr') + cellTxt('Subtotal', 'hdr'));
+
+  var totalGrupoRows = [];
+  IMR_GRUPOS.forEach(function(g) {
+    row(cellTxt(g.label, 'grp', 3));
+    var primeira = nrow + 1;
+    g.itens.forEach(function(it) {
+      // Subtotal = Peso (2 col. à esquerda) × Nota (1 col. à esquerda)
+      row(cellTxt(it.label, 'crit') + cellNum(it.peso, 'pct') + cellEmpty('nota') + cellFormula('=RC[-2]*RC[-1]', 'num2'));
+    });
+    var ultima = nrow;
+    var rt = row(cellTxt('Total do Grupo:', 'lblR', 2) + cellFormula('=SUM(R' + primeira + 'C4:R' + ultima + 'C4)', 'num2b'));
+    totalGrupoRows.push(rt);
+  });
+
+  row('');
+  var somaFinal = totalGrupoRows.map(function(r) { return 'R' + r + 'C4'; }).join('+');
+  row(cellTxt('NOTA FINAL (soma dos 3 grupos):', 'lblR', 2) + cellFormula('=' + somaFinal, 'final') + cellTxt('/ 9,00', 'lbl'));
+  row(cellTxt('CONCEITO:', 'lbl') + cellEmpty('val'));
+  row(cellTxt('% FATURAMENTO LIBERADO:', 'lbl') + cellEmpty('val'));
+
+  row('');
+  row(cellTxt('TABELA DE CONCEITOS', 'grp', 2));
+  row(cellTxt('Conceito', 'hdr') + cellTxt('% Faturamento Liberado', 'hdr') + cellTxt('Faixa de Nota', 'hdr'));
+  IMR_GRADE.forEach(function(gr) {
+    row(cellTxt(gr.grade, 'crit') + cellNum(gr.pct, 'pct') + cellTxt(gr.faixa, 'crit'));
+  });
+
+  var xml =
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<?mso-application progid="Excel.Sheet"?>\n'
+    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"'
+    + ' xmlns:o="urn:schemas-microsoft-com:office:office"'
+    + ' xmlns:x="urn:schemas-microsoft-com:office:excel"'
+    + ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
+    + '<Styles>'
+    + '<Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10"/></Style>'
+    + '<Style ss:ID="title"><Font ss:Bold="1" ss:Size="13" ss:Color="#047857"/><Alignment ss:Horizontal="Center"/></Style>'
+    + '<Style ss:ID="hdr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#047857" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>'
+    + '<Style ss:ID="grp"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#10b981" ss:Pattern="Solid"/></Style>'
+    + '<Style ss:ID="crit"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
+    + '<Style ss:ID="lbl"><Font ss:Bold="1"/></Style>'
+    + '<Style ss:ID="lblR"><Font ss:Bold="1"/><Alignment ss:Horizontal="Right"/></Style>'
+    + '<Style ss:ID="val"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
+    + '<Style ss:ID="aviso"><Font ss:Italic="1" ss:Color="#c0392b"/></Style>'
+    + '<Style ss:ID="pct"><NumberFormat ss:Format="0%"/><Alignment ss:Horizontal="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
+    + '<Style ss:ID="nota"><Alignment ss:Horizontal="Center"/><Interior ss:Color="#fffbe6" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
+    + '<Style ss:ID="num2"><NumberFormat ss:Format="0.00"/><Alignment ss:Horizontal="Center"/><Interior ss:Color="#ecfdf5" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
+    + '<Style ss:ID="num2b"><NumberFormat ss:Format="0.00"/><Font ss:Bold="1"/><Alignment ss:Horizontal="Center"/><Interior ss:Color="#d1fae5" ss:Pattern="Solid"/></Style>'
+    + '<Style ss:ID="final"><NumberFormat ss:Format="0.00"/><Font ss:Bold="1" ss:Size="12" ss:Color="#047857"/><Alignment ss:Horizontal="Center"/></Style>'
+    + '</Styles>'
+    + '<Worksheet ss:Name="IMR mensal"><Table>'
+    + '<Column ss:Width="330"/><Column ss:Width="150"/><Column ss:Width="70"/><Column ss:Width="80"/>'
+    + rows.join('')
+    + '</Table>'
+    + '<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><PageSetup><Layout x:Orientation="Portrait"/></PageSetup><FitToPage/></WorksheetOptions>'
+    + '</Worksheet></Workbook>';
+
+  var slug = (contrato || 'contrato').replace(/[\/\\]/g, '-').replace(/\s+/g, '');
+  var perSlug = periodo ? '_' + periodo.replace(/\//g, '-') : '';
+  var blob = new Blob(['﻿' + xml], {type: 'application/vnd.ms-excel'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'IMR_mensal_' + slug + perSlug + '.xls';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
+  status('✔ Planilha de IMR mensal baixada.', 'ok');
 }
 
 document.addEventListener('DOMContentLoaded', iniciar);
