@@ -34,6 +34,7 @@ html.light tr:hover td{background:rgba(59,130,246,.06)}
 html.light th{background:var(--surface2);color:var(--muted)}
 html.light .badge.bg{background:rgba(5,150,105,.12);color:#059669;border-color:rgba(5,150,105,.3)}
 html.light .badge.br{background:rgba(220,38,38,.1);color:#dc2626;border-color:rgba(220,38,38,.25)}
+html.light .badge.bo{background:rgba(37,99,235,.1);color:#2563eb;border-color:rgba(37,99,235,.25)}
 html.light .tag{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
 html.light .role-admin{background:rgba(124,58,237,.1);color:#7c3aed;border-color:rgba(124,58,237,.25)}
 html.light .role-editor{background:rgba(37,99,235,.1);color:#2563eb;border-color:rgba(37,99,235,.25)}
@@ -202,6 +203,7 @@ tr:last-child td{border-bottom:none}
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .bg{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
 .br{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.bo{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
 .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 .pw{display:flex;align-items:center;gap:8px;min-width:110px}
 .pb{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
@@ -624,7 +626,7 @@ select.doc-inp{cursor:pointer}
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Status</span>
           <select class="sel" id="f-st" onchange="applyFilters()">
-            <option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="ENCERRADO">Encerrado</option>
+            <option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="A INICIAR">A Iniciar</option><option value="ENCERRADO">Encerrado</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Tipo</span>
@@ -695,7 +697,7 @@ select.doc-inp{cursor:pointer}
           <select class="sel" id="doc-f-resp" onchange="buildDocumentosTable()"><option value="">Todos</option></select>
         </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Status</span>
-          <select class="sel" id="doc-f-status" onchange="buildDocumentosTable()"><option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="ENCERRADO">Encerrado</option></select>
+          <select class="sel" id="doc-f-status" onchange="buildDocumentosTable()"><option value="">Todos</option><option value="VIGENTE">Vigente</option><option value="A INICIAR">A Iniciar</option><option value="ENCERRADO">Encerrado</option></select>
         </div>
         <button class="btn clear" onclick="clearDocFilters()">Limpar</button>
         <button class="btn-export pdf" onclick="exportDocumentosPDF()" title="Baixar os resultados filtrados em PDF">⬇ PDF</button>
@@ -1010,8 +1012,29 @@ function hideLoadingOverlay() {
   if (el) el.style.display = 'none';
 }
 
+// De uma lista de termos VIGENTES, mantém apenas 1 termo por contrato — o de
+// MAIOR TÉRMINO DA VIGÊNCIA (desempate pelo maior INÍCIO), mesmo critério do
+// "termo atual". Assim um contrato com mais de um termo vigente é contado uma
+// única vez. Termos sem nº de CONTRATO são preservados individualmente.
+// Classe de badge conforme o status do termo/contrato.
+function stBadgeCls(st) { return st === 'VIGENTE' ? 'bg' : st === 'A INICIAR' ? 'bo' : 'br'; }
+
+function unVigentePorContrato(termos) {
+  var porContrato = {}, semChave = [];
+  termos.forEach(function(d){
+    var k = (d['CONTRATO'] || '').trim();
+    if (!k) { semChave.push(d); return; }
+    var cur = porContrato[k];
+    if (!cur) { porContrato[k] = d; return; }
+    var _at = String(d['TÉRMINO DA VIGÊNCIA'] || ''), _dt = String(cur['TÉRMINO DA VIGÊNCIA'] || '');
+    if (_at > _dt || (_at === _dt && String(d['INÍCIO DO CONTRATO'] || '') > String(cur['INÍCIO DO CONTRATO'] || ''))) porContrato[k] = d;
+  });
+  return Object.keys(porContrato).map(function(k){ return porContrato[k]; }).concat(semChave);
+}
+
 function updateLoginStats() {
   var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
+  var vigContratos = unVigentePorContrato(vig);
   var mensal = vig.reduce(function(s,d){ return s + (d['TOTAL MENSAL']||0); }, 0);
   var global = DADOS.reduce(function(s,d){ return s + (d['TOTAL GLOBAL']||0); }, 0);
   var funcs = vig.reduce(function(s,d){ return s + (d['FUNCIONÁRIOS VIGENTES']||d['N° FUNCIONÁRIO']||0); }, 0);
@@ -1023,7 +1046,7 @@ function updateLoginStats() {
     return 'R$ ' + v.toFixed(0);
   }
   var els = {
-    'ls-vigentes': vig.length.toLocaleString('pt-BR'),
+    'ls-vigentes': vigContratos.length.toLocaleString('pt-BR'),
     'ls-mensal': fmtM(mensal),
     'ls-global': fmtM(global),
     'ls-funcs': funcs.toLocaleString('pt-BR'),
@@ -1136,7 +1159,9 @@ function calcLive() {
     var term = d['TÉRMINO DA VIGÊNCIA'] ? new Date(d['TÉRMINO DA VIGÊNCIA']) : null;
     if (term && !isNaN(term)) {
       d._dias = Math.round((term - t) / 86400000);
-      d._st = d._dias >= 0 ? 'VIGENTE' : 'ENCERRADO';
+      var ini = d['INÍCIO DO CONTRATO'] ? new Date(d['INÍCIO DO CONTRATO']) : null;
+      if (ini && !isNaN(ini) && ini > t) d._st = 'A INICIAR';
+      else d._st = d._dias >= 0 ? 'VIGENTE' : 'ENCERRADO';
     } else {
       d._dias = null;
       d._st = d['STATUS DO CONTRATO'] || '';
@@ -1453,7 +1478,7 @@ function showView(v) {
 function updateSidebar() {
   var vig = DADOS.filter(function(d){ return d._st === 'VIGENTE'; });
   var mensal = vig.reduce(function(s,d){ return s + (d['TOTAL MENSAL'] || 0); }, 0);
-  document.getElementById('sb-vigentes').textContent = vig.length;
+  document.getElementById('sb-vigentes').textContent = unVigentePorContrato(vig).length;
   document.getElementById('sb-valor').textContent = fmtM(mensal);
 }
 
@@ -1611,10 +1636,13 @@ function buildDashboard() {
   updateClearBtn();
 
   var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
+  // Contratos vigentes distintos: 1 termo por contrato (evita contar 2x quando
+  // há mais de um termo vigente no mesmo contrato).
+  var vigContratos = unVigentePorContrato(vig);
   // Agrupa termos por contrato; encerrado = nenhum termo vigente no grupo
   var _grp = {};
   base.forEach(function(d){ var k=(d['CONTRATO']||'').trim(); if(k){if(!_grp[k])_grp[k]=[];_grp[k].push(d);} });
-  var encCount = Object.keys(_grp).filter(function(k){ return _grp[k].every(function(d){ return d._st!=='VIGENTE'; }); }).length;
+  var encCount = Object.keys(_grp).filter(function(k){ return _grp[k].every(function(d){ return d._st==='ENCERRADO'; }); }).length;
   var mensal = vig.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0);
   function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
   var func = vig.reduce(function(s,d){ return s+funcDoTermo(d); }, 0);
@@ -1623,7 +1651,7 @@ function buildDashboard() {
   var empresas = new Set(base.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
-    {l:'Contratos Vigentes', v:vig.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
+    {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
     {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true},
     {l:'Contratos Encerrados', v:encCount, s:'histórico'+labelAno, c:'red', btnEnc:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
@@ -1815,7 +1843,7 @@ function renderTable() {
       +'<td><span class="tag">'+(d['RESPONSÁVEL NO FATURAMENTO']||'—')+'</span></td>'
       +'<td><span class="tag">'+(d['TIPO']||'—')+'</span></td>'
       +'<td><span class="tag">'+(d['SUBTIPO']||'—')+'</span></td>'
-      +'<td><span class="badge '+(st==='VIGENTE'?'bg':'br')+'">'+st+'</span></td>'
+      +'<td><span class="badge '+stBadgeCls(st)+'">'+st+'</span></td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px">'+fmtDate(d['INÍCIO DO CONTRATO'])+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px">'+fmtDate(d['TÉRMINO DA VIGÊNCIA'])+'</td>'
       +'<td style="display:none"></td>'
@@ -2041,7 +2069,7 @@ function openModal(idx) {
   }
   var govLink = d['ID CONTRATOS_GOV'] ? '<a href="https://contratos.comprasnet.gov.br/contrato/detalhe/'+d['ID CONTRATOS_GOV']+'" target="_blank" class="lnk">'+d['ID CONTRATOS_GOV']+' ↗</a>' : '—';
   document.getElementById('mo-b').innerHTML = '<div class="mg">'
-    +row('Status','<span class="badge '+(st==='VIGENTE'?'bg':'br')+'">'+st+'</span>')
+    +row('Status','<span class="badge '+stBadgeCls(st)+'">'+st+'</span>')
     +row('Responsável', d['RESPONSÁVEL NO FATURAMENTO'])
     +row('Início da Vigência', fmtDate(d['INÍCIO DO CONTRATO']))
     +row('Término da Vigência', fmtDate(d['TÉRMINO DA VIGÊNCIA']))
@@ -2152,7 +2180,7 @@ function openContratoModal(num) {
   var objeto = (d['OBJETO'] || '').trim();
   var contratoHtml = ''
     + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px">'
-    + '<span class="badge ' + (st === 'VIGENTE' ? 'bg' : 'br') + '">' + esc2(st) + '</span>'
+    + '<span class="badge ' + stBadgeCls(st) + '">' + esc2(st) + '</span>'
     + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:16px;color:var(--accent)">' + esc2(numContrato) + '</span>'
     + '<span style="font-size:14px;font-weight:600">' + esc2(empresaNome) + '</span>'
     + '</div>'
@@ -2302,7 +2330,7 @@ function exportContratoPDF(numContrato) {
     doc.setFontSize(11); doc.setFont('helvetica', 'normal');
     doc.text(empresaNome, margin, 48);
     var stLabel = d._st || '—';
-    var stColor = d._st === 'VIGENTE' ? [16,185,129] : [239,68,68];
+    var stColor = d._st === 'VIGENTE' ? [16,185,129] : d._st === 'A INICIAR' ? [59,130,246] : [239,68,68];
     doc.setFillColor(stColor[0], stColor[1], stColor[2]);
     doc.roundedRect(W - margin - 60, 14, 58, 18, 4, 4, 'F');
     doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
@@ -2534,7 +2562,7 @@ function showKpiLista(tipo) {
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
       +'<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:14px;color:'+accentColor+'">'+( d['CONTRATO']||'—')+'</span>'
       +'<span style="font-size:13px;font-weight:600;color:var(--text);flex:1">'+((d['EMPRESA']||'').trim()||'—')+'</span>'
-      +'<span class="badge '+(d._st==='VIGENTE'?'bg':'br')+'">'+d._st+'</span>'
+      +'<span class="badge '+stBadgeCls(d._st)+'">'+d._st+'</span>'
       +'</div>'
       // grid de campos
       +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px 14px">'
@@ -2562,7 +2590,7 @@ function showKpiLista(tipo) {
   }
 
   if (tipo === 'vigentes') {
-    var lista = base.filter(function(d){ return d._st === 'VIGENTE'; });
+    var lista = unVigentePorContrato(base.filter(function(d){ return d._st === 'VIGENTE'; }));
     lista.sort(function(a,b){ return (a['CONTRATO']||'').localeCompare(b['CONTRATO']||'','pt-BR'); });
     titulo = currentYearFilter ? 'Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')' : 'Contratos Vigentes (' + lista.length + ')';
     subtitulo = 'Clique em um contrato para ver os detalhes';
@@ -2578,7 +2606,7 @@ function showKpiLista(tipo) {
       grpEnc[k].push(d);
     });
     var keysEnc = Object.keys(grpEnc).filter(function(k){
-      return grpEnc[k].every(function(d){ return d._st !== 'VIGENTE'; });
+      return grpEnc[k].every(function(d){ return d._st === 'ENCERRADO'; });
     }).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
     // Para cada contrato totalmente encerrado, exibe o primeiro termo (tipo CONTRATO)
     var lista = keysEnc.map(function(k){
@@ -2692,7 +2720,7 @@ function fiscalInlineSalvar(id, campo, valor) {
     var d = DADOS.find(function(x){ return x['CONTRATO'] === valor; });
     var nome = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
     if (nome) set('empresa', nome);
-    set('statusContrato', d ? (d._st === 'VIGENTE' ? 'Contrato Vigente' : 'Contrato Encerrado') : '');
+    set('statusContrato', d ? (d._st === 'VIGENTE' ? 'Contrato Vigente' : d._st === 'A INICIAR' ? 'Contrato A Iniciar' : 'Contrato Encerrado') : '');
   }
   saveFiscaisToStorage();
   // O contrato muda a empresa e o selo de Status da linha: redesenha a tabela
@@ -2786,12 +2814,14 @@ function renderFiscaisTable() {
   var rows = slice.map(function(f) {
     var dado = DADOS.find(function(d){ return (d['CONTRATO']||'').trim() === (f.contrato||'').trim(); });
     var st = dado ? (dado._st || '') : '';
-    var rowStyle = st === 'VIGENTE' ? 'border-left:3px solid var(--green)' : st === 'ENCERRADO' ? 'border-left:3px solid var(--red)' : '';
+    var rowStyle = st === 'VIGENTE' ? 'border-left:3px solid var(--green)' : st === 'ENCERRADO' ? 'border-left:3px solid var(--red)' : st === 'A INICIAR' ? 'border-left:3px solid var(--blue)' : '';
     var stBadge = st === 'VIGENTE'
       ? '<span class="badge bg" style="font-size:10px">Vigente</span>'
       : st === 'ENCERRADO'
         ? '<span class="badge br" style="font-size:10px">Encerrado</span>'
-        : '<span style="color:var(--muted);font-size:11px">—</span>';
+        : st === 'A INICIAR'
+          ? '<span class="badge bo" style="font-size:10px">A Iniciar</span>'
+          : '<span style="color:var(--muted);font-size:11px">—</span>';
     var actions = canEdit
       ? '<button class="btn-usr-del" onclick="confirmDeleteFiscal(\''+f.id+'\')">Excluir</button>'
       : '';
@@ -2948,7 +2978,7 @@ function readFiscalForm() {
   var contrato = v('ff-contrato');
   var dadoContrato = DADOS.find(function(d){ return d['CONTRATO'] === contrato; });
   var statusContrato = dadoContrato
-    ? (dadoContrato._st === 'VIGENTE' ? 'Contrato Vigente' : 'Contrato Encerrado')
+    ? (dadoContrato._st === 'VIGENTE' ? 'Contrato Vigente' : dadoContrato._st === 'A INICIAR' ? 'Contrato A Iniciar' : 'Contrato Encerrado')
     : '';
   return {
     nome:          v('ff-nome').toUpperCase(),
@@ -3241,7 +3271,9 @@ function calcOne(d) {
   var term = d['TÉRMINO DA VIGÊNCIA'] ? new Date(d['TÉRMINO DA VIGÊNCIA']) : null;
   if (term && !isNaN(term)) {
     d._dias = Math.round((term - t) / 86400000);
-    d._st = d._dias >= 0 ? 'VIGENTE' : 'ENCERRADO';
+    var ini = d['INÍCIO DO CONTRATO'] ? new Date(d['INÍCIO DO CONTRATO']) : null;
+    if (ini && !isNaN(ini) && ini > t) d._st = 'A INICIAR';
+    else d._st = d._dias >= 0 ? 'VIGENTE' : 'ENCERRADO';
   } else { d._dias = null; d._st = ''; }
   d._anual = calcAnual(d);
 }
@@ -6687,10 +6719,11 @@ function docContratoMapa() {
     var n = String(d['CONTRATO'] || '').trim().toUpperCase();
     if (!n) return;
     var pos = docPosicaoTermo(d);
-    if (!melhor[n]) melhor[n] = {pos: pos, d: d, vigente: false, encerrado: false};
+    if (!melhor[n]) melhor[n] = {pos: pos, d: d, vigente: false, encerrado: false, ainiciar: false};
     else if (docTermoMaisNovo(pos, melhor[n].pos)) { melhor[n].pos = pos; melhor[n].d = d; }
     // o status olha TODOS os termos, não só o mais recente
     if (d._st === 'VIGENTE') melhor[n].vigente = true;
+    else if (d._st === 'A INICIAR') melhor[n].ainiciar = true;
     else if (d._st === 'ENCERRADO') melhor[n].encerrado = true;
   });
   _docContratoMapa = {};
@@ -6699,8 +6732,9 @@ function docContratoMapa() {
     _docContratoMapa[n] = {
       empresa: String(d['EMPRESA'] || '').trim(),
       responsavel: docRespComoNaBase(d['RESPONSÁVEL NO FATURAMENTO'], curtos),
-      // basta um termo vigente para o contrato estar vigente
-      situacaoContrato: m.vigente ? 'VIGENTE' : (m.encerrado ? 'ENCERRADO' : ''),
+      // basta um termo vigente para o contrato estar vigente; se não houver
+      // vigente mas houver um termo que ainda vai começar, é "A INICIAR"
+      situacaoContrato: m.vigente ? 'VIGENTE' : (m.ainiciar ? 'A INICIAR' : (m.encerrado ? 'ENCERRADO' : '')),
       termo: String(d['TERMO ATUAL'] || '').trim()
     };
   });
