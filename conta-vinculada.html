@@ -42,6 +42,7 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 .btn-print{background:#6c757d;color:#fff}
 .btn-copiar{background:#0d9488;color:#fff}
 .btn-excel{background:#217346;color:#fff}
+.btn-import{background:#2563eb;color:#fff}
 .btn:hover{opacity:.88}
 /* Coluna Nome: acompanha o tamanho do texto digitado */
 td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
@@ -87,6 +88,8 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
       <button class="btn btn-add" onclick="addLinha()">+ Adicionar funcionário</button>
       <button class="btn btn-copiar" id="btn-copiar-ant" onclick="copiarMesAnterior()" style="display:none">📋 Copiar do mês anterior</button>
       <button class="btn btn-excel" id="btn-excel" onclick="baixarExcelContaVinculada()" title="Baixar planilha de conta vinculada mensal em branco" style="display:none">📊 EXCEL</button>
+      <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarPlanilha(this)">
+      <button class="btn btn-import" id="btn-import" onclick="document.getElementById('imp-file').click()" title="Importar funcionários de uma planilha Excel para o mês atual" style="display:none">📥 IMPORTAR</button>
       <button class="btn btn-salvar" onclick="salvar(true)">Salvar</button>
       <button class="btn btn-print" onclick="window.print()">Imprimir / PDF (mês atual)</button>
       <span class="status" id="status"></span>
@@ -100,6 +103,7 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -221,9 +225,12 @@ function renderTabela() {
   // "Copiar do mês anterior" só faz sentido a partir do 2º mês e com o formulário aberto
   var btnCopiar = document.getElementById('btn-copiar-ant');
   if (btnCopiar) btnCopiar.style.display = (m && MES_ATUAL > 0 && !_bloqueado) ? '' : 'none';
-  // "EXCEL" (planilha de IMR mensal em branco) só aparece no primeiro mês
+  // "EXCEL" (planilha de conta vinculada mensal em branco) só aparece no primeiro mês
   var btnExcel = document.getElementById('btn-excel');
   if (btnExcel) btnExcel.style.display = (m && MES_ATUAL === 0) ? '' : 'none';
+  // "IMPORTAR" fica disponível em qualquer mês, desde que o formulário esteja aberto
+  var btnImport = document.getElementById('btn-import');
+  if (btnImport) btnImport.style.display = (m && !_bloqueado) ? '' : 'none';
   if (!m) { alvo.innerHTML = '<div class="vazio">Nenhum mês disponível.</div>'; return; }
   var linhas = linhasDoMes(MES_ATUAL);
   var ths = COLS.map(function(c) {
@@ -579,6 +586,145 @@ function baixarExcelContaVinculada() {
   a.remove();
   setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
   status('✔ Planilha de conta vinculada mensal baixada.', 'ok');
+}
+
+// ── Importar planilha Excel para o formulário (botão "IMPORTAR") ──
+// Lê um arquivo .xlsx/.xls/.csv (inclusive a planilha em branco gerada pelo
+// botão EXCEL, já preenchida) e insere os funcionários no mês selecionado.
+// As colunas são reconhecidas pelo título do cabeçalho, em qualquer ordem.
+var IMP_MATCH = {
+  cpf:             ['cpf'],
+  nome:            ['nome'],
+  unidade:         ['unidade'],
+  funcao:          ['funca', 'funço', 'funç'],
+  contratado:      ['contratado'],
+  disponibilizacao:['disponibiliza'],
+  desligamento:    ['desligamento', 'desligado'],
+  situacao:        ['situa'],
+  dias:            ['proporcional', 'dias'],
+  remuneracao:     ['remunera']
+};
+
+function impNorm(s) {
+  return String(s == null ? '' : s).trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function impPad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
+function impIsoLocal(dt) { return dt.getFullYear() + '-' + impPad2(dt.getMonth() + 1) + '-' + impPad2(dt.getDate()); }
+
+// Converte o valor de uma célula para o formato que o formulário guarda.
+function impValor(col, v) {
+  if (v === undefined || v === null || v === '') return '';
+  if (col.tipo === 'data') {
+    if (v instanceof Date && !isNaN(v.getTime())) return impIsoLocal(v);
+    var s = String(v).trim();
+    var m1 = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m1) { var y = m1[3].length === 2 ? '20' + m1[3] : m1[3]; return y + '-' + impPad2(m1[2]) + '-' + impPad2(m1[1]); }
+    var m2 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m2) return m2[1] + '-' + impPad2(m2[2]) + '-' + impPad2(m2[3]);
+    return s;
+  }
+  if (col.tipo === 'dias') {
+    var n = parseInt(v, 10);
+    return isNaN(n) ? '' : String(Math.max(0, Math.min(30, n)));
+  }
+  if (col.tipo === 'dinheiro') {
+    if (typeof v === 'number') return String(v);
+    return String(v).trim();
+  }
+  if (col.k === 'cpf') {
+    var raw = (typeof v === 'number') ? String(Math.round(v)) : String(v).trim();
+    var d = raw.replace(/\D/g, '');
+    if (d && d.length < 11 && /^\d+$/.test(raw.replace(/\s/g, ''))) d = ('00000000000' + d).slice(-11);
+    return d ? cpfMask(d) : raw;
+  }
+  if (col.k === 'situacao') {
+    var sv = String(v).trim();
+    if (!sv) return '';
+    var hit = SITUACOES.filter(function(o) { return impNorm(o) === impNorm(sv); })[0];
+    return hit || sv;
+  }
+  return String(v).trim();
+}
+
+// Localiza a linha de cabeçalho e mapeia cada coluna do formulário para o
+// índice da coluna na planilha; devolve os lançamentos prontos para o mês m.
+function impMapearLinhas(aoa, m) {
+  var hdrIdx = -1, colMap = null, best = 0;
+  for (var r = 0; r < aoa.length; r++) {
+    var linha = aoa[r] || [];
+    var map = {}, usados = {}, cnt = 0;
+    for (var c = 0; c < linha.length; c++) {
+      var h = impNorm(linha[c]);
+      if (!h) continue;
+      for (var k in IMP_MATCH) {
+        if (map[k] !== undefined || usados[c]) continue;
+        if (IMP_MATCH[k].some(function(kw) { return h.indexOf(kw) !== -1; })) {
+          map[k] = c; usados[c] = 1; cnt++; break;
+        }
+      }
+    }
+    if (cnt > best) { best = cnt; hdrIdx = r; colMap = map; }
+  }
+  if (hdrIdx < 0 || best < 2) return [];
+
+  var linhas = [];
+  for (var r2 = hdrIdx + 1; r2 < aoa.length; r2++) {
+    var row = aoa[r2] || [];
+    var l = { id: novoId(), tipo: 'Retenção', mes: m.mes, ano: String(m.ano) };
+    var algum = false;
+    COLS.forEach(function(col) {
+      var idx = colMap[col.k];
+      var val = impValor(col, idx === undefined ? '' : row[idx]);
+      l[col.k] = val;
+      if (val !== '' && col.k !== 'dias') algum = true;
+    });
+    if (l.dias === '') l.dias = '30';
+    if (algum) linhas.push(l);
+  }
+  return linhas;
+}
+
+function importarPlanilha(input) {
+  var file = input && input.files && input.files[0];
+  if (input) input.value = '';   // permite reimportar o mesmo arquivo
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { alert('A biblioteca de leitura de Excel ainda não carregou. Verifique a conexão e tente de novo.'); return; }
+  if (_bloqueado) { alert('Este formulário está fechado para edição.'); return; }
+  var m = DADOS.meses[MES_ATUAL];
+  if (!m) { alert('Selecione um mês para importar.'); return; }
+
+  status('lendo planilha…');
+  var reader = new FileReader();
+  reader.onerror = function() { status('❌ não foi possível ler o arquivo', 'erro'); };
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array', cellDates: true});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) { alert('A planilha está vazia.'); status(''); return; }
+      var aoa = XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: ''});
+      var novas = impMapearLinhas(aoa, m);
+      if (!novas.length) {
+        alert('Nenhum funcionário encontrado na planilha.\n\nConfira se a primeira linha de dados tem os títulos das colunas (CPF, Nome do funcionário, Unidade, …).');
+        status('');
+        return;
+      }
+      var msg = 'Importar ' + novas.length + ' funcionário(s) para ' + mesRotulo(m) + '?';
+      var jaTem = linhasDoMes(MES_ATUAL).length;
+      if (jaTem) msg += '\n\nAs ' + jaTem + ' linha(s) já lançadas neste mês serão mantidas; os importados entram além delas.';
+      if (!confirm(msg)) { status(''); return; }
+      novas.forEach(function(l) { DADOS.linhas.push(l); });
+      renderTabs();
+      renderTabela();
+      salvar(true);
+      status('✔ ' + novas.length + ' funcionário(s) importado(s) para ' + mesRotulo(m) + '.', 'ok');
+    } catch (err) {
+      console.error(err);
+      alert('Não foi possível importar a planilha: ' + err.message);
+      status('❌ falha na importação', 'erro');
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 document.addEventListener('DOMContentLoaded', iniciar);
