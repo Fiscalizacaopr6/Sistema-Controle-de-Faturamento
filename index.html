@@ -7775,23 +7775,34 @@ function cvRender() {
 
 // Início da vigência do contrato (mês/ano) a partir de DADOS. Usa o termo de
 // menor "INÍCIO DO CONTRATO" entre os cadastros com o mesmo número de contrato.
-// Retorna {mes:'Jan', ano:'2024'} ou null se não encontrar.
+// Se o contrato não tiver início cadastrado, recai para o mês/ano mais antigo
+// entre os lançamentos deste formulário. Retorna {mes:'Jan', ano:'2024'} ou null.
 function cvInicioContrato() {
-  if (!CV_ATUAL || typeof DADOS === 'undefined') return null;
+  if (!CV_ATUAL) return null;
   var num = (CV_ATUAL.contrato || '').trim();
-  if (!num) return null;
-  var ini = null;
-  DADOS.forEach(function(d) {
-    if ((d['CONTRATO'] || '') !== num) return;
-    var iso = String(d['INÍCIO DO CONTRATO'] || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}/.test(iso)) return;
-    if (!ini || iso < ini) ini = iso;
+  if (num && typeof DADOS !== 'undefined') {
+    var ini = null;
+    DADOS.forEach(function(d) {
+      if ((d['CONTRATO'] || '') !== num) return;
+      var iso = String(d['INÍCIO DO CONTRATO'] || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}/.test(iso)) return;
+      if (!ini || iso < ini) ini = iso;
+    });
+    if (ini) {
+      var p = ini.split('-');
+      var mi = parseInt(p[1], 10) - 1;
+      if (mi >= 0 && mi <= 11) return { mes: CV_MESES[mi], ano: p[0] };
+    }
+  }
+  // Fallback: mês/ano mais antigo entre os lançamentos do formulário.
+  var melhor = null;
+  (CV_ATUAL.linhas || []).forEach(function(l) {
+    var mi = CV_MESES.indexOf(l.mes), ano = parseInt(l.ano, 10);
+    if (mi < 0 || isNaN(ano)) return;
+    var chave = ano * 100 + mi;
+    if (melhor === null || chave < melhor.chave) melhor = { chave: chave, mes: l.mes, ano: String(l.ano) };
   });
-  if (!ini) return null;
-  var p = ini.split('-');
-  var mi = parseInt(p[1], 10) - 1;
-  if (mi < 0 || mi > 11) return null;
-  return { mes: CV_MESES[mi], ano: p[0] };
+  return melhor ? { mes: melhor.mes, ano: melhor.ano } : null;
 }
 
 // O botão "EXCEL" (planilha de IMR mensal em branco) só aparece quando os
