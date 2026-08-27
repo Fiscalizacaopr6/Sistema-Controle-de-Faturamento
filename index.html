@@ -2776,7 +2776,7 @@ function renderFiscaisTable() {
   var slice = fcFiltered.slice(start, start + fcPer);
   var sitColor = {'Titular':'var(--blue)','Substituto':'var(--amber)','Presidente':'var(--purple)','Presidente substituto':'var(--purple)','Membro de comissão':'var(--green)'};
   // Edição inline (mesmo estilo transparente das telas Empresas/Conta Vinculada).
-  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-align:center';
   var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
   var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
   function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
