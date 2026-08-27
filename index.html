@@ -3585,7 +3585,7 @@ function renderUnidadesTable() {
   var start = (unPage - 1) * unPer;
   var slice = unFiltered.slice(start, start + unPer);
   // Edição inline (mesmo estilo transparente das telas Empresas/Conta Vinculada).
-  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-align:center';
   var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
   var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
   function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
@@ -4324,7 +4324,7 @@ function renderEmpresasTable() {
   var start = (empPage - 1) * empPer;
   var slice = empFiltered.slice(start, start + empPer);
   // Edição inline (mesmo estilo transparente dos reajustes/conta vinculada).
-  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none';
+  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-align:center';
   var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
   var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
   function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
