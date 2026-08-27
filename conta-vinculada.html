@@ -78,6 +78,8 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
   /* Na impressão, ocultar as parcelas calculadas (13º, Férias, Rescisão, Submódulo 4.1)
      e a coluna de remover; mantém "Total depositado". */
   .cvc-n,.cvc-o,.cvc-p,.cvc-q,.cvc-x{display:none!important}
+  /* No PDF não sai a coluna "Contratado pela empresa" */
+  .cvcol-contratado{display:none!important}
 }
 </style>
 </head>
@@ -96,6 +98,10 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
 
     <div class="tituloform">CONTA VINCULADA MENSAL</div>
 
+    <div class="resumo">
+      <div class="total-dest"><span>Total do mês para depósito</span><b id="t-r">R$ 0,00</b></div>
+    </div>
+
     <div class="aviso" id="aviso" style="display:none"></div>
 
     <div class="tabbar" id="tabbar"></div>
@@ -112,10 +118,6 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
     </div>
 
     <div id="tabela"></div>
-
-    <div class="resumo">
-      <div class="total-dest"><span>Total do mês para depósito</span><b id="t-r">R$ 0,00</b></div>
-    </div>
   </div>
 </div>
 
@@ -250,7 +252,7 @@ function renderTabela() {
   if (!m) { alvo.innerHTML = '<div class="vazio">Nenhum mês disponível.</div>'; return; }
   var linhas = linhasDoMes(MES_ATUAL);
   var ths = COLS.map(function(c) {
-    return '<th style="width:' + c.w + '">' + esc(c.label) + '</th>';
+    return '<th class="cvcol-' + c.k + '" style="width:' + c.w + '">' + esc(c.label) + '</th>';
   }).join('') + CALC.map(function(c) {
     return '<th class="g1 cvc-' + c.k + '">' + esc(c.label) + '</th>';
   }).join('') + '<th class="cvc-x" style="width:34px"></th>';
@@ -268,7 +270,7 @@ function renderTabela() {
     var idx = DADOS.linhas.indexOf(l);
     var c = calc(l);
     tot.n += c.n; tot.o += c.o; tot.p += c.p; tot.q += c.q; tot.r += c.r;
-    var tds = COLS.map(function(col) { return '<td>' + campoHtml(col, l, idx) + '</td>'; }).join('');
+    var tds = COLS.map(function(col) { return '<td class="cvcol-' + col.k + '">' + campoHtml(col, l, idx) + '</td>'; }).join('');
     var tdc = CALC.map(function(col) { return '<td class="calc cvc-' + col.k + '">' + esc(moeda(c[col.k])) + '</td>'; }).join('');
     return '<tr>' + tds + tdc
       + '<td class="cvc-x"><button class="rm" title="Remover" onclick="removerLinha(' + idx + ')">&times;</button></td></tr>';
