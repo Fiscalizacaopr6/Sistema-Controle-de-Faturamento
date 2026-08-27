@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMR Wegh - 27-26</title>
+<meta property="og:title" content="IMR Wegh - 27-26 - Apoio Logístico e Despacho Aduaneiro">
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
+
+/* ── PAGE ── */
+.page{background:#fff;width:1280px;max-width:98vw;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+/* ── TAB BAR ── */
+.tab-nav{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.tab-info{font-size:12px;font-weight:bold;color:#1f3864;}
+.tab-hint{font-size:10px;color:#777;font-style:italic;margin-left:auto;}
+.tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#1f3864;border-radius:4px;margin-bottom:10px;}
+.tab-btn{flex:0 0 auto;min-width:92px;padding:5px 8px;font-size:10px;border:1px solid #2e74b5;background:#2e74b5;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.25;}
+.tab-btn.active{background:#fff;color:#1f3864;font-weight:bold;border-color:#fff;}
+.tab-btn.special{background:#556b2f;border-color:#6b8e23;}
+.tab-btn.special.active{background:#fff;color:#33450f;border-color:#fff;}
+.tab-btn:hover{opacity:.92;}
+
+/* ── HEADER ── */
+.header-wrap{border:2px solid #1f3864;}
+.header-top{display:flex;align-items:stretch;}
+.header-logo{width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;padding:6px;background:#f5f5f5;}
+.header-logo span{font-size:9px;color:#777;text-align:center;line-height:1.3;font-weight:bold;}
+.header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+.header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
+.header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
+.header-title .sub{font-size:10px;color:#555;margin-top:2px;font-style:italic;}
+.header-badge{width:80px;border-left:1.5px solid #1f3864;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:16px;letter-spacing:2px;}
+.header-badge small{font-size:9px;letter-spacing:0;font-weight:normal;margin-top:2px;}
+
+/* ── INFO GRID ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #1f3864;border-top:none;}
+.info-cell{display:flex;align-items:center;padding:4px 8px;gap:6px;border-bottom:1px solid #bbb;border-right:1px solid #bbb;}
+.info-cell:nth-child(2n){border-right:none;}
+.info-cell.full{grid-column:1/-1;border-right:none;}
+.info-cell label{font-weight:bold;white-space:nowrap;color:#1f3864;min-width:90px;}
+.info-cell input{flex:1;border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:#f0f7ff;padding:2px 4px;border-radius:2px;}
+.info-cell input:disabled{background:#f0f0f0;color:#555;cursor:not-allowed;}
+.info-cell .fixed{flex:1;padding:2px 4px;font-weight:bold;color:#222;}
+
+/* ── SECTION TITLE BAR ── */
+.sec-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:12px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.sec-title span{flex:1;}
+
+.instrucao{background:#fffde7;border:1px solid #f0e2a0;border-radius:3px;font-size:10px;color:#665c00;padding:6px 10px;margin:8px 0;line-height:1.4;}
+
+/* ── IMR (OS) TABLE ── */
+.imr-scroll{overflow-x:auto;}
+.imr-tbl{width:100%;border-collapse:collapse;font-size:10px;min-width:1150px;}
+.imr-tbl th{background:#1f3864;color:#fff;border:1px solid #555;padding:4px 3px;text-align:center;vertical-align:middle;font-size:10px;line-height:1.15;}
+.imr-tbl th.meas{background:#2e74b5;}
+.imr-tbl th.pct{background:#3f6f3f;}
+.imr-tbl th small{display:block;font-weight:normal;font-size:9px;opacity:.9;}
+.imr-tbl td{border:1px solid #bbb;padding:2px 3px;vertical-align:middle;text-align:center;}
+.imr-tbl td.os{background:#e3e8f0;}
+.imr-tbl td.calc{background:#eef5ee;font-weight:bold;color:#245c24;}
+.imr-tbl td.calc.warn{background:#fdeaea;color:#b71c1c;}
+.imr-tbl td.pay{background:#e8f5e9;font-weight:bold;color:#1b5e20;text-align:right;padding-right:6px;}
+.imr-tbl td.rm{background:#fff;border:none;}
+.imr-tbl input.ci{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;outline:none;background:transparent;font-family:Arial;padding:1px 2px;text-align:center;}
+.imr-tbl input.ci.os{text-align:left;font-weight:bold;color:#1f3864;background:transparent;}
+.imr-tbl input.ci.val{text-align:right;}
+.imr-tbl input.ci.meas{background:#fffde7;}
+.imr-tbl input.ci:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.imr-tbl tr.totrow td{background:#dce6f1;font-weight:bold;font-size:11px;color:#1f3864;}
+.imr-tbl tr.totrow td.pay{background:#cbe6cd;color:#12481a;text-align:right;}
+.rm-btn{background:#b71c1c;color:#fff;border:none;border-radius:3px;width:20px;height:20px;font-size:11px;line-height:1;cursor:pointer;}
+.rm-btn:hover{opacity:.8;}
+.rm-btn:disabled{background:#ccc;cursor:not-allowed;}
+.add-btn{margin:6px 0;font-size:10px;padding:4px 12px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
+.add-btn:hover{background:#2e74b5;}
+
+.month-summary{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+.sum-card{border:1.5px solid #1f3864;border-radius:5px;padding:6px 14px;min-width:170px;background:#f4f8ff;}
+.sum-card .lbl{font-size:9px;color:#1f3864;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;}
+.sum-card .num{font-size:15px;font-weight:bold;color:#12481a;margin-top:2px;}
+.sum-card.blue .num{color:#1f3864;}
+
+/* ── LOCK BUTTONS ── */
+.lock-btn{font-size:10px;padding:3px 10px;border:1.5px solid;border-radius:3px;cursor:pointer;font-family:Arial;font-weight:bold;white-space:nowrap;}
+.lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
+.lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
+.lock-btn:hover{opacity:.8;}
+
+/* ── REFERÊNCIA (INDICADORES) ── */
+.ref-wrap{border:2px solid #556b2f;border-radius:5px;overflow:hidden;margin-top:4px;}
+.ref-head{background:#556b2f;color:#fff;font-weight:bold;font-size:12px;padding:6px 12px;}
+.ind-block{border-bottom:1px solid #d3ddb8;}
+.ind-title{background:#eaf1d6;color:#33450f;font-weight:bold;font-size:11px;padding:5px 12px;}
+.ind-body{display:grid;grid-template-columns:150px 1fr;font-size:10px;}
+.ind-body .k{background:#f6f9ee;color:#556b2f;font-weight:bold;padding:4px 10px;border-top:1px solid #eef2e2;border-right:1px solid #eef2e2;}
+.ind-body .v{padding:4px 10px;border-top:1px solid #eef2e2;white-space:pre-line;line-height:1.35;}
+.faixa{background:#fbfdf6;}
+
+.print-btn{font-size:10px;padding:4px 12px;background:#455a64;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
+.print-btn:hover{opacity:.85;}
+@media print{
+  body{background:#fff;}
+  .page{width:auto;box-shadow:none;margin:0;padding:0;}
+  .tabbar,.tab-nav,.no-print{display:none!important;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- barra de navegação -->
+  <div class="tab-nav">
+    <span class="tab-info" id="tabInfo">Agosto/2026</span>
+    <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
+    <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
+    <button class="lock-btn unlocked" id="lockBtn" onclick="toggleLock()">🔓 Destravado</button>
+    <span class="tab-hint">Preencha as células em amarelo. Percentuais e valor a pagar são calculados.</span>
+  </div>
+  <div class="tabbar" id="tabbar"></div>
+
+  <!-- cabeçalho -->
+  <div class="header-wrap">
+    <div class="header-top">
+      <div class="header-logo"><span>UFRJ<br>PR-6</span></div>
+      <div class="header-title">
+        <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
+        <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
+        <div class="sub">Anexo II — Avaliação da qualidade dos serviços de apoio logístico e despacho aduaneiro</div>
+      </div>
+      <div class="header-badge">IMR<small>Nº 01</small></div>
+    </div>
+    <div class="info-grid">
+      <div class="info-cell"><label>EMPRESA</label><span class="fixed">Wegh Assessoria e Logística Internacional Ltda.</span></div>
+      <div class="info-cell"><label>CONTRATO</label><span class="fixed">27/26</span></div>
+      <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Inicial de Contrato</span></div>
+      <div class="info-cell"><label>VIGÊNCIA</label><span class="fixed">13/08/2026 a 13/08/2027</span></div>
+      <div class="info-cell full"><label>FISCAL</label><input id="fiscal" placeholder="Nome do fiscal responsável" oninput="onFiscal(this.value)"></div>
+    </div>
+  </div>
+
+  <!-- conteúdo -->
+  <div id="content"></div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+/* ═══════════════════ MODELO DE DADOS ═══════════════════ */
+const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+// 13 meses: Agosto/2026 → Agosto/2027
+const MONTHS=[];
+for(let k=0;k<13;k++){ const t=7+k; const y=2026+Math.floor(t/12); const m=((t%12)+12)%12; MONTHS.push(MESES_CAP[m]+'/'+y); }
+const NUM_MONTHS=MONTHS.length;
+
+// 7 indicadores: rótulos curtos das colunas medidas
+const INDS=[
+  {n:'01', unit:'dias'},
+  {n:'02', unit:'dias'},
+  {n:'03', unit:'∑ atraso'},
+  {n:'04', unit:'∑ itens'},
+  {n:'05', unit:'nº probl.'},
+  {n:'06', unit:'dias'},
+  {n:'07', unit:'dias'},
+];
+// Faixas de ajuste (réplica exata das fórmulas da planilha)
+function pctInd(i, v){
+  if(v===''||v===null||v===undefined||isNaN(v)) return null;
+  v=Number(v);
+  switch(i){
+    case 0: return v<=2?1:(v<=5?.9:(v<=10?.8:.7));   // Ind.01
+    case 1: return v<=1?1:(v<=2?.9:(v<=3?.8:.7));    // Ind.02
+    case 2: return v<=1?1:(v<=2?.9:(v<=3?.8:.7));    // Ind.03
+    case 3: return v<1 ?1:(v<=2?.9:(v<=4?.8:.7));    // Ind.04
+    case 4: return v<1 ?1:(v<=2?.9:(v<=3?.8:.7));    // Ind.05
+    case 5: return v<=3?1:(v<=4?.9:(v<=5?.8:.7));    // Ind.06
+    case 6: return v<=5?1:(v<=6?.9:(v<=7?.8:.7));    // Ind.07
+  }
+  return null;
+}
+
+const STORAGE_KEY='IMR_WEGH_2726';
+let state=null;          // {fiscal, locked, pwd, months:[{rows:[{os,valor,m:[7]}]}], cur}
+let currentTab=0;        // 0..12 = mês ; 'ref' = indicadores
+
+function blankRow(){ return {os:'',valor:'',m:['','','','','','','']}; }
+function defaultState(){
+  const months=[];
+  for(let i=0;i<NUM_MONTHS;i++) months.push({rows:[blankRow()]});
+  return {fiscal:'',locked:false,pwd:'',months};
+}
+
+/* ═══════════════════ PARSE / FORMATO ═══════════════════ */
+function parseNum(s){ // valores medidos (contagens/dias)
+  if(s===''||s===null||s===undefined) return '';
+  const n=Number(String(s).replace(',','.'));
+  return isNaN(n)?'':n;
+}
+function parseMoney(s){
+  if(s===''||s===null||s===undefined) return '';
+  let t=String(s).replace(/[R$\s]/g,'');
+  if(t.indexOf(',')>-1){ t=t.replace(/\./g,'').replace(',','.'); }
+  const n=Number(t);
+  return isNaN(n)?'':n;
+}
+function fmtMoney(n){
+  if(n===''||n===null||n===undefined||isNaN(n)) return '—';
+  return 'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtPct(p){
+  if(p===null||p===undefined) return '—';
+  return Math.round(p*100)+'%';
+}
+
+/* ═══════════════════ CÁLCULO ═══════════════════ */
+function rowPercents(r){ return r.m.map((v,i)=>pctInd(i, parseNum(v))); }
+function rowMedio(r){
+  const ps=rowPercents(r).filter(p=>p!==null);
+  if(!ps.length) return null;
+  return ps.reduce((a,b)=>a+b,0)/ps.length;
+}
+function rowPay(r){
+  const val=parseMoney(r.valor); const med=rowMedio(r);
+  if(val===''||med===null) return null;
+  return val*med;
+}
+function monthTotals(mi){
+  const mo=state.months[mi]; let sv=0, sp=0, anyV=false, anyP=false;
+  mo.rows.forEach(r=>{ const v=parseMoney(r.valor); if(v!==''){sv+=v;anyV=true;} const p=rowPay(r); if(p!==null){sp+=p;anyP=true;} });
+  return {valor:anyV?sv:'', pagar:anyP?sp:''};
+}
+
+/* ═══════════════════ RENDER ═══════════════════ */
+function renderTabs(){
+  const bar=document.getElementById('tabbar'); bar.innerHTML='';
+  MONTHS.forEach((lbl,i)=>{
+    const b=document.createElement('button');
+    b.className='tab-btn'+(currentTab===i?' active':'');
+    b.innerHTML='<b>'+lbl.split('/')[0].slice(0,3)+'</b><span>/'+lbl.split('/')[1].slice(2)+'</span>';
+    b.onclick=()=>{ currentTab=i; render(); };
+    bar.appendChild(b);
+  });
+  const r=document.createElement('button');
+  r.className='tab-btn special'+(currentTab==='ref'?' active':'');
+  r.textContent='📑 Indicadores';
+  r.onclick=()=>{ currentTab='ref'; render(); };
+  bar.appendChild(r);
+}
+
+function render(){
+  renderTabs();
+  const info=document.getElementById('tabInfo');
+  const content=document.getElementById('content');
+  if(currentTab==='ref'){ info.textContent='Indicadores (Referência)'; content.innerHTML=refHTML(); return; }
+  info.textContent=MONTHS[currentTab];
+  content.innerHTML=monthHTML(currentTab);
+  recalcMonth(currentTab);
+}
+
+function monthHTML(mi){
+  let h='';
+  h+='<div class="instrucao"><b>Preencha as células em amarelo:</b> o nº da OS, o valor da OS e o valor MEDIDO de cada indicador '+
+     '(dias úteis para os indicadores 01, 02, 06 e 07; somatório de dias de atraso para o 03; somatório de itens não respondidos/reiterações para o 04; nº de problemas de NCM para o 05). '+
+     'As colunas de percentual e de valor a pagar são calculadas automaticamente.</div>';
+  h+='<div class="sec-title"><span>MEDIÇÃO — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="imr-scroll"><table class="imr-tbl"><thead>';
+  h+='<tr><th rowspan="2" style="min-width:120px">Nº OS</th><th rowspan="2" style="min-width:110px">Valor da OS<small>(R$)</small></th>';
+  INDS.forEach(d=>{ h+='<th class="meas">Ind. '+d.n+'<small>('+d.unit+')</small></th>'; });
+  INDS.forEach(d=>{ h+='<th class="pct">% '+d.n+'</th>'; });
+  h+='<th class="pct" rowspan="2" style="min-width:64px">% Médio</th><th rowspan="2" style="min-width:110px">Valor a Pagar<small>(R$)</small></th><th rowspan="2"></th></tr>';
+  h+='<tr>'; INDS.forEach(()=>h+='<th class="meas" style="font-weight:normal">medido</th>'); INDS.forEach(()=>h+='<th class="pct" style="font-weight:normal">ajuste</th>'); h+='</tr>';
+  h+='</thead><tbody id="tbody">';
+  state.months[mi].rows.forEach((r,ri)=>{ h+=rowHTML(mi,ri,r); });
+  h+='</tbody><tfoot>';
+  h+='<tr class="totrow"><td style="text-align:right">TOTAIS</td><td id="totVal" style="text-align:right"></td>';
+  h+='<td colspan="'+(INDS.length*2)+'"></td><td></td><td class="pay" id="totPay"></td><td></td></tr>';
+  h+='</tfoot></table></div>';
+  const lk=state.locked?'disabled':'';
+  h+='<button class="add-btn" '+lk+' onclick="addRow('+mi+')">+ Adicionar OS</button>';
+  h+='<div class="month-summary">'+
+       '<div class="sum-card blue"><div class="lbl">Valor total das OS</div><div class="num" id="cardVal">—</div></div>'+
+       '<div class="sum-card"><div class="lbl">Valor total a pagar</div><div class="num" id="cardPay">—</div></div>'+
+       '<div class="sum-card"><div class="lbl">Glosa (desconto)</div><div class="num" id="cardGlosa">—</div></div>'+
+     '</div>';
+  return h;
+}
+
+function rowHTML(mi,ri,r){
+  const lk=state.locked?'disabled':'';
+  let h='<tr data-r="'+ri+'">';
+  h+='<td class="os"><input class="ci os" '+lk+' value="'+esc(r.os)+'" oninput="setOS('+mi+','+ri+',this.value)"></td>';
+  h+='<td><input class="ci val" '+lk+' value="'+esc(r.valor)+'" oninput="setVal('+mi+','+ri+',this.value)" onblur="fmtValBlur('+mi+','+ri+')"></td>';
+  for(let i=0;i<7;i++){ h+='<td><input class="ci meas" '+lk+' value="'+esc(r.m[i])+'" oninput="setMeas('+mi+','+ri+','+i+',this.value)"></td>'; }
+  for(let i=0;i<7;i++){ h+='<td class="calc" data-pct="'+i+'">—</td>'; }
+  h+='<td class="calc" data-med>—</td>';
+  h+='<td class="pay" data-pay>—</td>';
+  h+='<td class="rm"><button class="rm-btn" '+lk+' onclick="delRow('+mi+','+ri+')" title="Remover OS">×</button></td>';
+  h+='</tr>';
+  return h;
+}
+
+function recalcMonth(mi){
+  const tb=document.getElementById('tbody'); if(!tb) return;
+  const mo=state.months[mi];
+  [...tb.rows].forEach((tr)=>{
+    const ri=+tr.dataset.r; const r=mo.rows[ri]; if(!r) return;
+    const pcts=rowPercents(r);
+    tr.querySelectorAll('[data-pct]').forEach(td=>{ const i=+td.dataset.pct; td.textContent=fmtPct(pcts[i]); td.classList.toggle('warn', pcts[i]!==null && pcts[i]<1); });
+    const med=rowMedio(r); const tdm=tr.querySelector('[data-med]'); tdm.textContent=fmtPct(med); tdm.classList.toggle('warn', med!==null&&med<1);
+    const pay=rowPay(r); tr.querySelector('[data-pay]').textContent = pay===null?'—':fmtMoney(pay);
+  });
+  const t=monthTotals(mi);
+  const tv=document.getElementById('totVal'); if(tv) tv.textContent = t.valor===''?'':fmtMoney(t.valor);
+  const tp=document.getElementById('totPay'); if(tp) tp.textContent = t.pagar===''?'':fmtMoney(t.pagar);
+  const cv=document.getElementById('cardVal'); if(cv) cv.textContent = t.valor===''?'—':fmtMoney(t.valor);
+  const cp=document.getElementById('cardPay'); if(cp) cp.textContent = t.pagar===''?'—':fmtMoney(t.pagar);
+  const cg=document.getElementById('cardGlosa'); if(cg){ const g=(t.valor!==''&&t.pagar!=='')?(t.valor-t.pagar):''; cg.textContent = g===''?'—':fmtMoney(g); }
+}
+
+/* ═══════════════════ EDIÇÃO ═══════════════════ */
+function setOS(mi,ri,v){ state.months[mi].rows[ri].os=v; persist(); }
+function setVal(mi,ri,v){ state.months[mi].rows[ri].valor=v; persist(); recalcMonth(mi); }
+function fmtValBlur(mi,ri){ const r=state.months[mi].rows[ri]; const n=parseMoney(r.valor); if(n!==''){ r.valor=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); persist(); const inp=document.querySelector('#tbody tr[data-r="'+ri+'"] input.val'); if(inp) inp.value=r.valor; recalcMonth(mi); } }
+function setMeas(mi,ri,i,v){ state.months[mi].rows[ri].m[i]=v; persist(); recalcMonth(mi); }
+function addRow(mi){ if(state.locked) return; state.months[mi].rows.push(blankRow()); persist(); render(); }
+function delRow(mi,ri){ if(state.locked) return; const mo=state.months[mi]; if(mo.rows.length<=1){ mo.rows[0]=blankRow(); } else { mo.rows.splice(ri,1); } persist(); render(); }
+function onFiscal(v){ state.fiscal=v; persist(); }
+
+/* ═══════════════════ TRAVA ═══════════════════ */
+function applyLockUI(){
+  const b=document.getElementById('lockBtn');
+  if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
+  else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
+  const f=document.getElementById('fiscal'); if(f) f.disabled=state.locked;
+}
+function toggleLock(){
+  if(!state.locked){
+    const pwd=prompt('Defina uma senha para TRAVAR o formulário (deixe em branco para travar sem senha):');
+    if(pwd===null) return;
+    state.locked=true; state.pwd=pwd||'';
+  } else {
+    if(state.pwd){ const t=prompt('Digite a senha para DESTRAVAR:'); if(t===null) return; if(t!==state.pwd){ alert('Senha incorreta.'); return; } }
+    state.locked=false;
+  }
+  persist(); applyLockUI(); render();
+}
+
+/* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
+function collectData(){ return {v:1, fiscal:state.fiscal, locked:state.locked, pwd:state.pwd, months:state.months}; }
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
+function applyData(p){
+  if(!p) return;
+  state.fiscal=p.fiscal||'';
+  state.locked=!!p.locked; state.pwd=p.pwd||'';
+  if(Array.isArray(p.months)){
+    for(let i=0;i<NUM_MONTHS;i++){
+      const src=p.months[i];
+      if(src&&Array.isArray(src.rows)&&src.rows.length){
+        state.months[i]={rows:src.rows.map(r=>({os:r.os||'',valor:r.valor||'',m:(r.m&&r.m.slice(0,7))||['','','','','','','']}))};
+        while(state.months[i].rows.length===0) state.months[i].rows.push(blankRow());
+      }
+    }
+  }
+  const f=document.getElementById('fiscal'); if(f) f.value=state.fiscal;
+}
+function loadState(){
+  state=defaultState();
+  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+  const f=document.getElementById('fiscal'); if(f) f.value=state.fiscal;
+}
+
+/* ═══════════════════ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═══════════════════ */
+const FORM_ID='wegh-27-26';
+const firebaseConfig={
+  apiKey:            "AIzaSyBwL87K4sGeVB1bAvqY1a8yv5otKLez8cw",
+  authDomain:        "imr-fiscalizacao.firebaseapp.com",
+  projectId:         "imr-fiscalizacao",
+  storageBucket:     "imr-fiscalizacao.firebasestorage.app",
+  messagingSenderId: "552588739135",
+  appId:             "1:552588739135:web:a43155ae2e7932da57ae8a"
+};
+let cloudDb=null, cloudDocRef=null, cloudReady=false;
+let applyingRemote=false, remotePending=null, cloudSaveTimer=null;
+function cloudEnabled(){ return (typeof firebase!=='undefined') && firebaseConfig.projectId && !/COLE_AQUI/.test(firebaseConfig.projectId); }
+function setCloudStatus(t){ const el=document.getElementById('cloudStatus'); if(el) el.textContent=t; }
+function initCloud(){
+  if(!cloudEnabled()){ setCloudStatus(''); return; }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    cloudDb=firebase.firestore();
+    cloudDocRef=cloudDb.collection('imr_forms').doc(FORM_ID);
+    cloudReady=true;
+    setCloudStatus('☁ Conectando…');
+    cloudDocRef.onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;
+      if(!snap.exists){ pushCloud(); return; }
+      const data=snap.data(); if(!data||!data.payload) return;
+      let payload; try{ payload=JSON.parse(data.payload); }catch(e){ return; }
+      applyRemote(payload);
+    }, function(err){ setCloudStatus('⚠ Nuvem indisponível (usando cópia local)'); });
+  }catch(e){ cloudReady=false; setCloudStatus('⚠ Falha ao conectar à nuvem'); }
+}
+function applyRemote(payload){
+  const a=document.activeElement;
+  const editing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
+  if(editing){ remotePending=payload; return; }
+  applyingRemote=true;
+  applyData(payload);
+  applyLockUI();
+  render();
+  saveState();
+  applyingRemote=false;
+  setCloudStatus('☁ Atualizado de outro computador');
+}
+function pushCloud(){
+  if(!cloudReady||!cloudDocRef) return;
+  try{
+    cloudDocRef.set({ payload: JSON.stringify(collectData()), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setCloudStatus('☁ Salvo na nuvem');
+  }catch(e){ setCloudStatus('⚠ Erro ao salvar na nuvem'); }
+}
+function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
+function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
+// aplica payload pendente quando o usuário sai do campo
+document.addEventListener('focusout', function(){ if(remotePending){ const p=remotePending; remotePending=null; setTimeout(()=>applyRemote(p),50); } });
+
+/* ═══════════════════ REFERÊNCIA DOS INDICADORES ═══════════════════ */
+const IND_REF=[
+ {t:'Indicador nº 01 — Agilidade no desembaraço aduaneiro',
+  fin:'Garantir a célere liberação da carga para coleta e a redução de custos de armazenagem.',
+  meta:'Liberação completa da carga para coleta em até 2 (dois) dias úteis a partir do "visado" na URF de despacho, desde que não haja indisponibilização da carga.',
+  fx:'0 ≤ LIBERAÇÃO ≤ 2 dias úteis — 100% do valor da OS\n2 < LIBERAÇÃO ≤ 5 dias úteis — 90%\n5 < LIBERAÇÃO ≤ 10 dias úteis — 80%\n10 dias úteis < LIBERAÇÃO — 70%'},
+ {t:'Indicador nº 02 — Agilidade no registro de Licenças de Importação',
+  fin:'Garantir a célere liberação para importação dos materiais solicitados pelos requerentes.',
+  meta:'Registro da(s) Licença(s) de Importação até o dia útil seguinte ao envio do e-mail de solicitação.',
+  fx:'0 ≤ LICENÇA ≤ 1 dia útil — 100%\n1 < LICENÇA ≤ 2 dias úteis — 90%\n2 < LICENÇA ≤ 3 dias úteis — 80%\n3 dias úteis < LICENÇA — 70%'},
+ {t:'Indicador nº 03 — Agilidade na comunicação entre Contratante e Contratada',
+  fin:'Garantir a célere troca de informações necessária à condução dos processos.',
+  meta:'Resposta aos e-mails enviados pela Contratante em até 01 (um) dia útil.',
+  fx:'∑ de atraso até 1 dia útil — 100%\n∑ de atraso até 2 dias úteis — 90%\n∑ de atraso até 3 dias úteis — 80%\n∑ de atraso acima de 4 dias úteis — 70%'},
+ {t:'Indicador nº 04 — Qualidade da comunicação entre Contratante e Contratada',
+  fin:'Garantir a qualidade na troca de informações necessária à condução dos processos.',
+  meta:'Resposta completa, coerente e condizente com todos os itens solicitados via e-mail.',
+  fx:'∑ (item não respondido / reiteração) < 1 — 100%\n1 ≤ ∑ ≤ 2 — 90%\n2 < ∑ ≤ 4 — 80%\n4 < ∑ — 70%'},
+ {t:'Indicador nº 05 — Qualidade da pesquisa de NCMs',
+  fin:'Garantir a qualidade na classificação das mercadorias, evitando atrasos, advertências, multas e penalidades.',
+  meta:'Adequada pesquisa e determinação dos NCMs.',
+  fx:'∑ problemas relativos ao NCM < 1 — 100%\n1 ≤ problemas ≤ 2 — 90%\n2 < problemas ≤ 3 — 80%\n3 < ∑ problemas — 70%'},
+ {t:'Indicador nº 06 — Agilidade na coleta da carga',
+  fin:'Garantir a celeridade da coleta da carga junto ao Exportador.',
+  meta:'Coleta da carga no prazo máximo de 03 (três) dias úteis após a autorização por escrito da Contratante.',
+  fx:'Coleta em até 3 dias úteis — 100%\nColeta em até 4 dias úteis — 90%\nColeta em até 5 dias úteis — 80%\nColeta depois de 5 dias úteis — 70%'},
+ {t:'Indicador nº 07 — Agilidade no embarque da carga (exceto courier)',
+  fin:'Garantir a celeridade no embarque da carga no veículo de transporte.',
+  meta:'Embarque no prazo máximo de 05 (cinco) dias úteis, a contar do recebimento da autorização de embarque.',
+  fx:'0 ≤ EMBARQUE ≤ 5 dias úteis — 100%\n5 < EMBARQUE ≤ 6 dias úteis — 90%\n6 < EMBARQUE ≤ 7 dias úteis — 80%\n7 dias úteis < EMBARQUE — 70%'},
+];
+function refHTML(){
+  let h='<div class="ref-wrap"><div class="ref-head">ANEXO II — Avaliação da qualidade dos serviços (referência dos indicadores)</div>';
+  IND_REF.forEach(d=>{
+    h+='<div class="ind-block"><div class="ind-title">'+esc(d.t)+'</div><div class="ind-body">';
+    h+='<div class="k">Finalidade</div><div class="v">'+esc(d.fin)+'</div>';
+    h+='<div class="k">Meta a cumprir</div><div class="v">'+esc(d.meta)+'</div>';
+    h+='<div class="k faixa">Faixas de ajuste<br>no pagamento</div><div class="v faixa">'+esc(d.fx)+'</div>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+/* ═══════════════════ UTIL ═══════════════════ */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ═══════════════════ INIT ═══════════════════ */
+loadState();
+applyLockUI();
+render();
+initCloud();
+</script>
+</body>
+</html>
