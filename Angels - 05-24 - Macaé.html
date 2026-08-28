@@ -567,7 +567,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <!-- ══ BOTÕES ══ -->
 <div class="btn-bar">
   <button class="btn btn-reset" id="btnLimpar" onclick="resetForm()">🗑 Limpar Tudo</button>
-  <button class="btn btn-print" onclick="window.print()">📄 Salvar PDF (aba atual)</button>
+  <button class="btn btn-print" onclick="salvarPDFAba(this)">📤 Enviar</button>
 </div>
 <p style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;">
   (¹) Campos do Grupo 3 – Salários/Benefícios e Nota Final preenchidos pelo Fiscal Administrativo. |
@@ -578,6 +578,10 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <!-- SDK do Firebase (sincronização entre computadores) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<!-- Geração de PDF no navegador (aba atual, sem diálogo de impressão) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 'use strict';
@@ -1282,6 +1286,52 @@ function fitToPage(){var pg=document.querySelector('.page');if(!pg)return;pg.sty
 function resetFit(){var pg=document.querySelector('.page');if(pg)pg.style.zoom='';}
 window.addEventListener('beforeprint',fitToPage);
 window.addEventListener('afterprint',resetFit);
+
+/* Gera o PDF da ABA ATUAL direto no navegador (1 folha A4), sem abrir o diálogo de impressão. */
+async function salvarPDFAba(btn){
+  const pg=document.querySelector('.page');
+  if(!pg){ return; }
+  if(typeof html2canvas==='undefined' || !(window.jspdf&&window.jspdf.jsPDF)){
+    alert('Não foi possível carregar o gerador de PDF. Verifique sua conexão com a internet e tente novamente.');
+    return;
+  }
+  const labelOrig = btn ? btn.textContent : '';
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Gerando…'; }
+  // Replica as regras de @media print (que não valem fora da impressão) durante a captura
+  const tmp=document.createElement('style');
+  tmp.textContent='.tab-nav,.tabbar,.btn-bar,.add-btn,.lock-btn,.field-lock-btn,.rm-btn{display:none!important;}'
+    +'.postos-scroll{overflow:visible!important;}'
+    +'.justif-box textarea{height:auto!important;max-height:none!important;overflow:visible!important;}'
+    +'select.nota-sel{-webkit-appearance:none;appearance:none;border:none;background:transparent;}'
+    +'input{border-bottom:1px solid #aaa!important;background:transparent!important;}'
+    +'input:disabled{background:#f0f0f0!important;}'
+    +'.creche-warn{display:block!important;}';
+  document.head.appendChild(tmp);
+  // Garante que textareas mostrem todo o conteúdo na captura
+  const taFix=[];
+  document.querySelectorAll('.justif-box textarea').forEach(function(t){taFix.push([t,t.style.height]);t.style.height=t.scrollHeight+'px';});
+  pg.style.zoom='';
+  try{
+    const canvas=await html2canvas(pg,{scale:2,backgroundColor:'#ffffff',useCORS:true,windowWidth:pg.scrollWidth});
+    const jsPDF=window.jspdf.jsPDF;
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+    const m=8, availW=pw-2*m, availH=ph-2*m;
+    const scale=Math.min(availW/canvas.width, availH/canvas.height);
+    const w=canvas.width*scale, h=canvas.height*scale;
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',(pw-w)/2, m, w, h);
+    const per=(val('periodo')||('Aba '+(currentPeriod+1)));
+    const uni=(val('unidade')||'Macaé');
+    const nome=('IMR '+uni+' - '+per).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+    pdf.save(nome+'.pdf');
+  }catch(e){
+    alert('Falha ao gerar o PDF: '+(e&&e.message?e.message:e));
+  }finally{
+    document.head.removeChild(tmp);
+    taFix.forEach(function(p){p[0].style.height=p[1];});
+    if(btn){ btn.disabled=false; btn.textContent=labelOrig; }
+  }
+}
 initCloud();
 </script>
 </body>
