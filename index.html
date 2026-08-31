@@ -113,10 +113,6 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .lf-hint b{color:#4b5e7a}
 .lf-foot{margin-top:28px;font-size:10px;color:#1e293b;text-align:center;letter-spacing:.5px}
 @keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-/* LOGIN ZOOM (retângulo UFRJ cresce até tela cheia) */
-#login-zoom-back{position:fixed;inset:0;z-index:99998;background:#fff;opacity:0;transition:opacity .55s ease}
-#login-zoom-img{position:fixed;z-index:99999;object-fit:contain;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.35);will-change:left,top,width,height,border-radius;transition:left 1.9s cubic-bezier(.66,0,.24,1),top 1.9s cubic-bezier(.66,0,.24,1),width 1.9s cubic-bezier(.66,0,.24,1),height 1.9s cubic-bezier(.66,0,.24,1),border-radius 1.9s cubic-bezier(.66,0,.24,1),box-shadow 1.9s ease}
-#login-zoom-back.fade-out,#login-zoom-img.fade-out{opacity:0;transition:opacity .5s ease}
 
 /* APP */
 #app{display:none}
@@ -1275,50 +1271,40 @@ function playLoginZoom(done) {
   var r = img.getBoundingClientRect();
   var vw = window.innerWidth, vh = window.innerHeight;
 
-  // Fundo branco que vai preencher a tela
-  var back = document.createElement('div');
-  back.id = 'login-zoom-back';
-  document.body.appendChild(back);
+  // Foco da câmera = centro do retângulo/logo UFRJ
+  var cx = r.left + r.width / 2;
+  var cy = r.top + r.height / 2;
 
-  // Clone do retângulo/logo UFRJ posicionado exatamente sobre o original
-  var clone = img.cloneNode(true);
-  clone.id = 'login-zoom-img';
-  clone.style.left = r.left + 'px';
-  clone.style.top = r.top + 'px';
-  clone.style.width = r.width + 'px';
-  clone.style.height = r.height + 'px';
-  clone.style.borderRadius = '10px';
-  clone.style.margin = '0';
-  document.body.appendChild(clone);
+  // Escala para o retângulo UFRJ ocupar ~72% da largura da tela
+  var scale = (vw * 0.72) / r.width;
+  // Move o foco (centro do retângulo) para o centro da tela enquanto amplia
+  var dx = vw / 2 - cx;
+  var dy = vh / 2 - cy;
 
-  // Some com a tela de login por baixo (deixa só o retângulo crescendo)
-  ls.style.transition = 'opacity .4s ease';
-  ls.style.opacity = '0';
-
-  // Cresce gradativamente até ~80% da tela, centralizado
-  var tw = vw * 0.8, th = vh * 0.8;
+  // Zoom de câmera: a cena inteira do login dá um push-in em direção ao logo
+  // (o formulário desliza para fora e o retângulo cresce ao centro)
+  ls.style.transformOrigin = cx + 'px ' + cy + 'px';
+  ls.style.willChange = 'transform, opacity';
+  ls.style.transition = 'transform 2.6s cubic-bezier(.45,0,.15,1)';
   requestAnimationFrame(function(){ requestAnimationFrame(function(){
-    back.style.opacity = '1';
-    clone.style.left = ((vw - tw) / 2) + 'px';
-    clone.style.top = ((vh - th) / 2) + 'px';
-    clone.style.width = tw + 'px';
-    clone.style.height = th + 'px';
-    clone.style.borderRadius = '16px';
+    ls.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scale + ')';
   }); });
 
-  // Ao terminar de crescer, entra no sistema e faz um fade suave revelando o app
+  // Ao terminar o zoom, entra no sistema e faz um fade suave revelando o app
   setTimeout(function(){
-    ls.style.display = 'none';
     done();
-    requestAnimationFrame(function(){
-      back.classList.add('fade-out');
-      clone.classList.add('fade-out');
-    });
+    ls.style.transition = 'opacity .55s ease';
+    ls.style.opacity = '0';
     setTimeout(function(){
-      if (back.parentNode) back.parentNode.removeChild(back);
-      if (clone.parentNode) clone.parentNode.removeChild(clone);
-    }, 560);
-  }, 2000);
+      ls.style.display = 'none';
+      // limpa os estilos para não afetar um eventual novo login (logout)
+      ls.style.transform = '';
+      ls.style.transformOrigin = '';
+      ls.style.transition = '';
+      ls.style.opacity = '';
+      ls.style.willChange = '';
+    }, 580);
+  }, 2600);
 }
 function doLogin() {
   var u = document.getElementById('lf-u').value.trim();
