@@ -113,6 +113,10 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .lf-hint b{color:#4b5e7a}
 .lf-foot{margin-top:28px;font-size:10px;color:#1e293b;text-align:center;letter-spacing:.5px}
 @keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+/* LOGIN ZOOM (retângulo UFRJ cresce até tela cheia) */
+#login-zoom-back{position:fixed;inset:0;z-index:99998;background:#fff;opacity:0;transition:opacity .55s ease}
+#login-zoom-img{position:fixed;z-index:99999;object-fit:contain;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.35);will-change:left,top,width,height,border-radius;transition:left 1.1s cubic-bezier(.66,0,.24,1),top 1.1s cubic-bezier(.66,0,.24,1),width 1.1s cubic-bezier(.66,0,.24,1),height 1.1s cubic-bezier(.66,0,.24,1),border-radius 1.1s cubic-bezier(.66,0,.24,1),box-shadow 1.1s ease}
+#login-zoom-back.fade-out,#login-zoom-img.fade-out{opacity:0;transition:opacity .5s ease}
 
 /* APP */
 #app{display:none}
@@ -1259,6 +1263,63 @@ document.addEventListener('input', function(e) {
   }
 });
 
+function playLoginZoom(done) {
+  var ls = document.getElementById('login-screen');
+  var img = document.querySelector('#login-screen .lg-brand img');
+  // Se por algum motivo a imagem não existir, mantém o comportamento antigo
+  if (!img) {
+    ls.classList.add('hidden');
+    setTimeout(function(){ ls.style.display='none'; done(); }, 400);
+    return;
+  }
+  var r = img.getBoundingClientRect();
+  var vw = window.innerWidth, vh = window.innerHeight;
+
+  // Fundo branco que vai preencher a tela
+  var back = document.createElement('div');
+  back.id = 'login-zoom-back';
+  document.body.appendChild(back);
+
+  // Clone do retângulo/logo UFRJ posicionado exatamente sobre o original
+  var clone = img.cloneNode(true);
+  clone.id = 'login-zoom-img';
+  clone.style.left = r.left + 'px';
+  clone.style.top = r.top + 'px';
+  clone.style.width = r.width + 'px';
+  clone.style.height = r.height + 'px';
+  clone.style.borderRadius = '10px';
+  clone.style.margin = '0';
+  document.body.appendChild(clone);
+
+  // Some com a tela de login por baixo (deixa só o retângulo crescendo)
+  ls.style.transition = 'opacity .4s ease';
+  ls.style.opacity = '0';
+
+  // Cresce gradativamente até o tamanho total da tela
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    back.style.opacity = '1';
+    clone.style.left = '0px';
+    clone.style.top = '0px';
+    clone.style.width = vw + 'px';
+    clone.style.height = vh + 'px';
+    clone.style.borderRadius = '0';
+    clone.style.boxShadow = 'none';
+  }); });
+
+  // Ao terminar de crescer, entra no sistema e faz um fade suave revelando o app
+  setTimeout(function(){
+    ls.style.display = 'none';
+    done();
+    requestAnimationFrame(function(){
+      back.classList.add('fade-out');
+      clone.classList.add('fade-out');
+    });
+    setTimeout(function(){
+      if (back.parentNode) back.parentNode.removeChild(back);
+      if (clone.parentNode) clone.parentNode.removeChild(clone);
+    }, 560);
+  }, 1200);
+}
 function doLogin() {
   var u = document.getElementById('lf-u').value.trim();
   var p = document.getElementById('lf-p').value;
@@ -1277,9 +1338,8 @@ function doLogin() {
   setTimeout(function() {
     if (USERS_DB[u] && USERS_DB[u].password === p) {
       sessionStorage.setItem('ufrj_user', u);
-      var ls = document.getElementById('login-screen');
-      ls.classList.add('hidden');
-      setTimeout(function(){ ls.style.display = 'none'; launchApp(u); }, 400);
+      btn.textContent = 'Entrar no Sistema'; btn.style.opacity = '1';
+      playLoginZoom(function(){ launchApp(u); });
     } else {
       err.textContent = '⚠️ Usuário ou senha incorretos.'; err.style.display = 'block';
       document.getElementById('lf-u').classList.add('err');
