@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMR – Limpeza – Atlântica 34/25 MACAÉ</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
+.page{background:#fff;width:1240px;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+.header-wrap{border:2px solid #1f3864;margin-bottom:10px;}
+.header-top{display:flex;align-items:stretch;}
+.header-logo{width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;flex-shrink:0;}
+.header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+.header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
+.header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
+.header-badge{width:80px;border-left:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:14px;letter-spacing:2px;flex-shrink:0;}
+.header-update{background:#fffde7;font-size:10px;padding:2px 10px;border-top:1px solid #ddd;text-align:center;}
+
+.nav-tabs{display:flex;border-bottom:2px solid #1f3864;margin-bottom:12px;}
+.nav-tab{padding:7px 20px;cursor:pointer;font-size:11px;font-weight:bold;color:#1f3864;border:1px solid #bbb;border-bottom:none;background:#f5f5f5;margin-right:3px;border-radius:4px 4px 0 0;transition:background .15s;}
+.nav-tab:hover{background:#dce6f1;}
+.nav-tab.active{background:#1f3864;color:#fff;border-color:#1f3864;}
+
+.section{display:none;}
+.section.active{display:block;}
+
+.sec-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:10px;margin-bottom:6px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.sec-title span{flex:1;}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;}
+.info-cell{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid #dce6f1;border-radius:3px;background:#f9fbff;}
+.info-cell label{font-weight:bold;white-space:nowrap;color:#1f3864;min-width:145px;font-size:10px;}
+.info-cell input{flex:1;border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:transparent;padding:2px 4px;}
+.info-cell input:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;}
+.info-cell.full{grid-column:1/-1;}
+
+.unit-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.unit-pill{padding:4px 14px;cursor:pointer;font-size:10px;font-weight:bold;color:#1f3864;border:1.5px solid #2e74b5;background:#f0f7ff;border-radius:14px;transition:.15s;}
+.unit-pill:hover{background:#dce6f1;}
+.unit-pill.active{background:#1f3864;color:#fff;border-color:#1f3864;}
+
+.mat-tbl{border-collapse:collapse;font-size:10px;white-space:nowrap;}
+.mat-tbl th{background:#1f3864;color:#fff;border:1px solid #3a5a9a;padding:4px 4px;text-align:center;font-size:10px;line-height:1.3;}
+.mat-tbl td{border:1px solid #c8d4e8;padding:2px 3px;vertical-align:middle;}
+.mat-tbl td.itm{background:#e3e8f0;text-align:center;font-weight:bold;color:#1f3864;}
+/* Cabeçalho fixo ao rolar verticalmente */
+.mat-tbl thead th{position:sticky;z-index:3;background:#1f3864;}
+/* Colunas fixas ao rolar horizontalmente */
+.mat-tbl th.sticky-item,.mat-tbl td.sticky-item{position:sticky;left:0;z-index:3;background:#1f3864;}
+.mat-tbl td.sticky-item{background:#e3e8f0;}
+.mat-tbl th.sticky-prod,.mat-tbl td.sticky-prod{position:sticky;left:200px;z-index:3;background:#1f3864;box-shadow:2px 0 4px rgba(0,0,0,.15);}
+.mat-tbl td.sticky-prod{background:#fff;box-shadow:2px 0 4px rgba(0,0,0,.1);}
+/* Cantos (sticky horizontal + vertical): z-index maior */
+.mat-tbl thead th.sticky-item,.mat-tbl thead th.sticky-prod{z-index:6;}
+.mat-tbl td.calc{background:#e8f5e9;text-align:center;font-weight:bold;}
+.mat-tbl td.calc.neg,.mat-tbl td.neg{background:#ffebee;color:#c62828;font-weight:bold;text-align:center;}
+/* célula com valor auto-propagado */
+.mat-tbl td.auto-filled{background:#edf4ff;}
+.mat-tbl th.mh-total{background:#1a3564;font-size:9px;padding:3px 2px;color:#b8d0f0;font-weight:normal;text-align:center;}
+.mat-tbl th.mh-name{width:62px;font-size:8.5px;background:#2e4e8a;padding:3px 2px;font-weight:bold;text-align:center;}
+
+.mi{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;outline:none;background:transparent;font-family:Arial;padding:1px 2px;}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
+.mi:disabled{color:#000!important;-webkit-text-fill-color:#000!important;opacity:1!important;cursor:default;}
+.mat-tbl td.itm,.mat-tbl td.prod{white-space:normal!important;word-break:break-word;vertical-align:middle;}
+.mat-tbl td.itm .mi,.mat-tbl td.prod-cell .mi{font-size:8px;}
+.mat-tbl td.itm .mi{font-size:8px;}
+.mat-tbl td.prod-cell{white-space:normal!important;word-break:break-word;vertical-align:middle;}
+.mi.c{text-align:center;}
+.mi.r{text-align:center;}
+.mi:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;}
+.del-btn{background:#ffebee;color:#c62828;border:1px solid #c62828;border-radius:3px;cursor:pointer;font-size:10px;padding:1px 6px;}
+.del-btn:hover{background:#c62828;color:#fff;}
+.add-btn{font-size:10px;padding:3px 12px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;margin:4px 0;}
+.add-btn:hover{background:#2e74b5;}
+
+.mult-legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;font-size:9px;align-items:center;}
+.mult-chip{background:#e3e8f0;border:1px solid #b0bdd4;border-radius:3px;padding:2px 7px;color:#1f3864;font-weight:bold;}
+.mult-chip span{font-weight:normal;color:#555;}
+
+.rel-tbl{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px;}
+.rel-tbl th{background:#1f3864;color:#fff;border:1px solid #444;padding:4px 5px;text-align:center;font-size:10px;white-space:nowrap;}
+.rel-tbl td{border:1px solid #bbb;padding:3px 5px;text-align:right;font-size:10px;}
+.rel-tbl td.per{text-align:center;font-weight:bold;background:#e3e8f0;color:#1f3864;}
+.rel-tbl td.upd{background:#fffde7;}
+.rel-tbl td.tot{background:#dce6f1;font-weight:bold;color:#1f3864;}
+.ri{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;text-align:right;outline:none;background:transparent;font-family:Arial;padding:1px 2px;}
+
+.lock-btn{font-size:10px;padding:2px 8px;border:1.5px solid;border-radius:3px;cursor:pointer;font-family:Arial;font-weight:bold;}
+.lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
+.lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
+
+.btn-bar{display:flex;gap:8px;justify-content:center;padding:14px 0 4px;flex-wrap:wrap;}
+.btn{padding:7px 16px;font-size:11px;border-radius:4px;cursor:pointer;font-family:Arial;border:none;font-weight:bold;}
+.btn:hover{opacity:.85;}
+.btn-blue{background:#1f3864;color:#fff;}
+.btn-red{background:#c62828;color:#fff;}
+.btn-green{background:#2e7d32;color:#fff;}
+
+.info-box{background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:8px 12px;font-size:10px;color:#0d47a1;margin-bottom:8px;}
+
+/* ── IMR ── */
+.imr-period-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.imr-period-bar label{font-weight:bold;color:#1f3864;font-size:11px;white-space:nowrap;}
+.imr-period-sel{padding:4px 8px;border:1.5px solid #2e74b5;border-radius:4px;font-size:11px;font-family:Arial;color:#1f3864;background:#f0f7ff;outline:none;cursor:pointer;}
+.imr-tbl{border-collapse:collapse;font-size:10px;width:100%;margin-bottom:8px;}
+.imr-tbl th{background:#1f3864;color:#fff;border:1px solid #3a5a9a;padding:5px 6px;text-align:center;font-size:10px;}
+.imr-tbl td{border:1px solid #c8d4e8;padding:4px 5px;vertical-align:middle;}
+.imr-tbl .imr-mod-hdr{background:#2e4e8a;color:#fff;font-weight:bold;font-size:10px;padding:4px 8px;letter-spacing:.4px;}
+.imr-opt{text-align:center;}
+.imr-opt input[type=radio]{cursor:pointer;width:14px;height:14px;}
+.imr-tbl tr:hover td:not(.imr-mod-hdr){background:#f0f7ff;}
+.imr-grade-tbl{border-collapse:collapse;font-size:10px;margin:8px 0;width:100%;max-width:520px;}
+.imr-grade-tbl th{background:#1f3864;color:#fff;border:1px solid #3a5a9a;padding:4px 8px;}
+.imr-grade-tbl td{border:1px solid #c8d4e8;padding:3px 8px;}
+.imr-score-box{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap;}
+.imr-badge{padding:8px 18px;border-radius:5px;font-size:12px;font-weight:bold;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.imr-badge span{font-size:22px;line-height:1;}
+.imr-val-tbl{border-collapse:collapse;font-size:10px;width:100%;max-width:600px;margin-bottom:8px;}
+.imr-val-tbl td{border:1px solid #c8d4e8;padding:5px 8px;vertical-align:middle;}
+.imr-val-tbl td:last-child{width:150px;text-align:right;}
+.imr-calc-row td{background:#e8f5e9;font-weight:bold;}
+.imr-lib-row td{background:#dce6f1;font-size:11px;}
+.imr-neg td{background:#ffebee!important;color:#c62828!important;}
+.imr-creche-hdr{background:#e65100;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:10px;margin-bottom:0;display:flex;align-items:center;gap:6px;border-radius:3px 3px 0 0;}
+.imr-emp-grid{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px;}
+.imr-emp-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border:1px solid #dce6f1;border-radius:3px;background:#f9fbff;font-size:10px;gap:8px;max-width:600px;}
+
+/* ── Aba ÁREA ── */
+.area-period-bar{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f0f4fa;border-bottom:1px solid #d0d8e8;flex-wrap:wrap;}
+.area-period-bar label{font-weight:bold;color:#1f3864;font-size:11px;white-space:nowrap;}
+.area-period-sel{padding:4px 8px;border:1.5px solid #2e74b5;border-radius:4px;font-size:11px;font-family:Arial;color:#1f3864;background:#f0f7ff;outline:none;cursor:pointer;}
+.area-tbl{border-collapse:collapse;font-size:10px;width:100%;margin-bottom:8px;}
+.area-tbl th{background:#1f3864;color:#fff;border:1px solid #3a5a9a;padding:5px 6px;text-align:center;font-size:10px;white-space:nowrap;}
+.area-tbl td{border:1px solid #c8d4e8;padding:3px 5px;vertical-align:middle;}
+.area-grupo-hdr td{background:#1a3a6b;color:#fff;font-weight:bold;font-size:10px;padding:5px 8px;letter-spacing:.3px;}
+.area-secao-hdr td{background:#2e4e8a;color:#fff;font-size:10px;padding:3px 10px;font-style:italic;letter-spacing:.2px;}
+.area-row-v td{background:#f5f8ff;}
+.area-cod{font-weight:bold;color:#1f3864;white-space:nowrap;min-width:30px;}
+.area-desc{min-width:160px;}
+.area-turno{white-space:nowrap;}
+.area-ins{font-size:9px;white-space:nowrap;color:#555;}
+.area-calc{background:#e8f5e9!important;font-weight:bold;text-align:right!important;white-space:nowrap;}
+.area-total-row td{background:#dce6f1!important;font-weight:bold;font-size:11px;border-top:2px solid #1f3864;}
+
+/* ── Modais ── */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#fff;border-radius:6px;padding:20px;width:560px;max-width:96vw;box-shadow:0 4px 24px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:13px;font-weight:bold;color:#1f3864;margin-bottom:10px;border-bottom:2px solid #1f3864;padding-bottom:6px;}
+.modal-textarea{width:100%;height:160px;font-size:10px;font-family:monospace;border:1px solid #bbb;border-radius:3px;padding:6px;resize:vertical;outline:none;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;}
+.modal-hint{font-size:9px;color:#666;margin-top:4px;line-height:1.5;}
+.modal-hint b{color:#1f3864;}
+.unit-check-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:10px 0;}
+.unit-check-item{display:flex;align-items:center;gap:6px;font-size:10px;padding:5px 8px;border:1px solid #dce6f1;border-radius:3px;cursor:pointer;background:#f9fbff;}
+.unit-check-item:hover{background:#dce6f1;}
+.unit-check-item input{cursor:pointer;}
+.modal-radio{display:flex;gap:16px;margin:8px 0;font-size:10px;}
+.modal-radio label{display:flex;align-items:center;gap:4px;cursor:pointer;}
+.import-preview{font-size:9px;color:#555;margin-top:6px;background:#f5f5f5;padding:4px 8px;border-radius:3px;border:1px solid #e0e0e0;max-height:80px;overflow-y:auto;}
+/* ── ÁREA DE IMPRESSÃO (PDF) — oculta na tela, visível só na impressão ── */
+#printArea{display:none;}
+.p-head{border:2px solid #1f3864;margin-bottom:8px;}
+.p-head-top{display:flex;align-items:stretch;}
+.p-head-logo{width:74px;background:#1f3864;color:#fff;font-weight:900;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:-1px;}
+.p-head-tit{flex:1;text-align:center;padding:5px 10px;display:flex;flex-direction:column;justify-content:center;}
+.p-head-tit .o{font-size:10px;color:#1f3864;font-weight:bold;}
+.p-head-tit .m{font-size:12px;font-weight:bold;color:#000;margin-top:2px;}
+.p-head-badge{width:64px;background:#1f3864;color:#fff;font-weight:bold;font-size:13px;letter-spacing:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.p-info{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #1f3864;}
+.p-info .c{display:flex;gap:6px;padding:3px 8px;font-size:10px;border-right:1px solid #dce6f1;border-bottom:1px solid #dce6f1;}
+.p-info .c.full{grid-column:1/-1;border-right:none;}
+.p-info .c b{color:#1f3864;white-space:nowrap;}
+.p-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:4px 10px;margin-bottom:6px;}
+.p-tbl{border-collapse:collapse;font-size:9px;width:100%;}
+.p-tbl th{background:#1f3864;color:#fff;border:1px solid #3a5a9a;padding:3px 3px;text-align:center;line-height:1.2;}
+.p-tbl td{border:1px solid #c8d4e8;padding:2px 3px;text-align:center;vertical-align:middle;}
+.p-tbl td.l{text-align:left;}
+.p-tbl td.calc{background:#e8f5e9;font-weight:bold;}
+.p-tbl td.neg{background:#ffebee;color:#c62828;font-weight:bold;}
+@media print{
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .page{box-shadow:none;margin:0;padding:0;width:auto;}
+  /* esconde toda a interface e mostra apenas as folhas de impressão */
+  .page>.header-wrap,.page>.nav-tabs,.page>.section,.page>.btn-bar,.page>p{display:none!important;}
+  #printArea{display:block!important;}
+  /* páginas nomeadas: orientação mista num único PDF */
+  @page port{size:A4 portrait;margin:8mm;}
+  @page land{size:A4 landscape;margin:8mm;}
+  .print-sheet{page-break-after:always;break-after:page;overflow:visible;}
+  .print-sheet:last-child{page-break-after:auto;break-after:auto;}
+  .sheet-port{page:port;}
+  .sheet-land{page:land;}
+  .print-sheet *{overflow:visible!important;max-height:none!important;}
+  input,select,textarea{border:none!important;background:transparent!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .imr-tbl th,.area-tbl th,.p-tbl th,.sec-title,.imr-mod-hdr,.area-grupo-hdr td,.area-secao-hdr td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="header-wrap">
+  <div class="header-top">
+    <div class="header-logo">
+      <span style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;font-family:Arial,sans-serif;">UFRJ</span>
+    </div>
+    <div class="header-title">
+      <input type="text" id="headerOrg" value="PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6"
+        style="width:100%;border:none;background:transparent;font-size:11px;color:#1f3864;font-weight:bold;font-family:Arial;text-align:center;outline:none;padding:0;"
+        oninput="autosave()">
+      <input type="text" id="headerMain" value="INSTRUMENTO DE MEDIÇÃO DE RESULTADO"
+        style="width:100%;border:none;background:transparent;font-size:13px;font-weight:bold;color:#000;font-family:Arial;text-align:center;outline:none;padding:0;margin-top:2px;"
+        oninput="autosave()">
+    </div>
+    <div class="header-badge">IMR</div>
+  </div>
+  <div class="header-update">
+    <input type="text" id="headerUpdate" value="ATUALIZADO CONFORME TERMO INICIAL DE CONTRATO"
+      title="Editar aplica deste período em diante (cascata). O período segue o seletor das abas IMR/Área."
+      style="width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;"
+      oninput="onHeaderUpdateInput()">
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showTab('contrato')">📋 Contrato</div>
+  <div class="nav-tab" onclick="showTab('materiais')">📦 Materiais</div>
+  <div class="nav-tab" onclick="showTab('imr')">📝 IMR</div>
+  <div class="nav-tab" onclick="showTab('area')">📐 Área</div>
+  <div class="nav-tab" onclick="showTab('relatorio')">📊 Relatório</div>
+</div>
+
+<!-- ABA: CONTRATO -->
+<div class="section active" id="sec-contrato">
+  <div class="sec-title">
+    <span>DADOS DO CONTRATO</span>
+    <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()">🔓 Travar Formulário</button>
+    <button class="lock-btn locked"   id="btnUnlock" onclick="unlockAll()" style="display:none;">🔒 Desbloquear</button>
+  </div>
+  <div class="info-grid">
+    <div class="info-cell full"><label>EMPRESA / CONTRATADA:</label><input type="text" id="empresa" placeholder="Nome da empresa contratada" oninput="autosave()"></div>
+    <div class="info-cell"><label>CONTRATO Nº:</label><input type="text" id="contrato" placeholder="Número do contrato" oninput="autosave()"></div>
+    <div class="info-cell"><label>INÍCIO DA VIGÊNCIA:</label><input type="text" id="inicio" placeholder="Ex: Maio/2026" oninput="onInicioChange()"></div>
+    <div class="info-cell full"><label>FISCAL OPERACIONAL:</label><input type="text" id="fiscal" placeholder="Nome do fiscal" oninput="autosave()"></div>
+  </div>
+  <div class="sec-title"><span>IDENTIFICAÇÃO DAS 7 UNIDADES</span></div>
+  <div class="info-box">Informe o nome de cada unidade/área.</div>
+  <div class="info-grid">
+    <div class="info-cell"><label>UNIDADE 1:</label><input type="text" id="un1" placeholder="Nome da unidade 1" oninput="autosave()"></div>
+    <div class="info-cell"><label>UNIDADE 2:</label><input type="text" id="un2" placeholder="Nome da unidade 2" oninput="autosave()"></div>
+    <div class="info-cell"><label>UNIDADE 3:</label><input type="text" id="un3" placeholder="Nome da unidade 3" oninput="autosave()"></div>
+    <div class="info-cell"><label>UNIDADE 4:</label><input type="text" id="un4" placeholder="Nome da unidade 4" oninput="autosave()"></div>
+    <div class="info-cell"><label>UNIDADE 5:</label><input type="text" id="un5" placeholder="Nome da unidade 5" oninput="autosave()"></div>
+    <div class="info-cell"><label>UNIDADE 6:</label><input type="text" id="un6" placeholder="Nome da unidade 6" oninput="autosave()"></div>
+    <div class="info-cell full"><label>UNIDADE 7:</label><input type="text" id="un7" placeholder="Nome da unidade 7" oninput="autosave()"></div>
+  </div>
+</div>
+
+<!-- ABA: MATERIAIS -->
+<div class="section" id="sec-materiais">
+  <div class="unit-pills" id="matPills"></div>
+  <div id="matContent"></div>
+</div>
+
+<!-- ABA: IMR -->
+<div class="section" id="sec-imr">
+  <div class="imr-period-bar">
+    <label>Período do IMR:</label>
+    <select class="imr-period-sel" id="imrPeriodSel" onchange="renderIMR(this.value)"></select>
+  </div>
+  <div class="unit-pills" id="imrPills"></div>
+  <div id="imrContent"></div>
+</div>
+
+<!-- ABA: ÁREA -->
+<div class="section" id="sec-area">
+  <div class="area-period-bar">
+    <label>Período:</label>
+    <select class="area-period-sel" id="areaPeriodSel" onchange="onAreaPeriodChange(this.value)"></select>
+  </div>
+  <div class="unit-pills" id="areaPills"></div>
+  <div id="areaContent"></div>
+</div>
+
+<!-- ABA: RELATÓRIO -->
+<div class="section" id="sec-relatorio">
+  <div id="relContent"></div>
+</div>
+
+<div class="btn-bar">
+  <button class="btn btn-red"   id="btnLimpar"  onclick="limparTudo()">🗑 Limpar Tudo</button>
+  <button class="btn btn-green" id="btnPDF"     onclick="salvarPDF()">📄 Salvar PDF</button>
+</div>
+<p style="font-size:9px;color:#aaa;text-align:center;margin-top:4px;">Dados salvos automaticamente no navegador (localStorage). <span id="cloudStatus" style="margin-left:6px;color:#1f3864;font-weight:bold;"></span></p>
+
+<!-- SDK do Firebase (sincronização entre computadores) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<!-- Área montada dinamicamente só para impressão/PDF -->
+<div id="printArea"></div>
+
+</div>
+<script>
+'use strict';
+
+const INIT_LOCKED=false;/*§LOCK§*/
+const INIT_PWD='';/*§PWD§*/
+const INIT_DATA_EXPORT=null;/*§DATA_EXP§*/
+
+// ═══ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═════════════════
+const FORM_ID='atlantica-34-25-macae';
+const firebaseConfig={
+  apiKey:"AIzaSyBwL87K4sGeVB1bAvqY1a8yv5otKLez8cw",
+  authDomain:"imr-fiscalizacao.firebaseapp.com",
+  projectId:"imr-fiscalizacao",
+  storageBucket:"imr-fiscalizacao.firebasestorage.app",
+  messagingSenderId:"552588739135",
+  appId:"1:552588739135:web:a43155ae2e7932da57ae8a"
+};
+let cloudDb=null,cloudDocRef=null,cloudReady=false;
+let applyingRemote=false,remotePending=null,cloudSaveTimer=null;
+function cloudEnabled(){return (typeof firebase!=='undefined') && firebaseConfig.projectId;}
+function setCloudStatus(t){const el=document.getElementById('cloudStatus');if(el)el.textContent=t;}
+function initCloud(){
+  if(!cloudEnabled()){setCloudStatus('');return;}
+  try{
+    firebase.initializeApp(firebaseConfig);
+    cloudDb=firebase.firestore();
+    cloudDocRef=cloudDb.collection('imr_forms').doc(FORM_ID);
+    cloudReady=true;
+    setCloudStatus('☁ Conectando…');
+    cloudDocRef.onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;
+      if(!snap.exists){pushCloud();return;}
+      const data=snap.data();
+      if(!data||!data.payload) return;
+      let payload; try{payload=JSON.parse(data.payload);}catch(e){return;}
+      applyRemote(payload);
+    },function(err){setCloudStatus('⚠ Nuvem indisponível (usando cópia local)');});
+  }catch(e){cloudReady=false;setCloudStatus('⚠ Falha ao conectar à nuvem');}
+}
+function applyLockUI(){
+  applyLock();
+  const bl=document.getElementById('btnLock'),bu=document.getElementById('btnUnlock'),blm=document.getElementById('btnLimpar');
+  if(bl)bl.style.display=globalLocked?'none':'inline-block';
+  if(bu)bu.style.display=globalLocked?'inline-block':'none';
+  if(blm)blm.style.display=globalLocked?'none':'inline-block';
+}
+function applyRemote(payload){
+  const a=document.activeElement;
+  const editing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
+  if(editing){remotePending=payload;return;}
+  applyingRemote=true;
+  try{
+    if(payload.headerUpdates!==undefined) db.headerUpdates=payload.headerUpdates;
+    if(payload.headerOrg!==undefined) db.headerOrg=payload.headerOrg;
+    if(payload.headerMain!==undefined) db.headerMain=payload.headerMain;
+    if(payload.contrato) Object.assign(db.contrato,payload.contrato);
+    if(payload.unidades) db.unidades=payload.unidades;
+    if(payload.materiais) db.materiais=payload.materiais;
+    if(payload.lancamentos) db.lancamentos=payload.lancamentos;
+    if(payload.matSalvo) db.matSalvo=payload.matSalvo;
+    if(payload.imr) db.imr=payload.imr;
+    if(payload.area) db.area=payload.area;
+    if(payload.locked!==undefined){db.locked=payload.locked;db.pwd=payload.pwd||'';globalLocked=!!payload.locked;globalPwd=db.pwd;}
+    fillForm();
+    buildMeses(db.contrato.inicio);
+    applyLockUI();
+    if(activeTab==='materiais') renderMateriais();
+    else if(activeTab==='imr') renderIMR();
+    else if(activeTab==='area') renderArea();
+    else if(activeTab==='relatorio') renderRelatorio();
+    localStorage.setItem('imr_atlantica-34-25-macae',JSON.stringify(db));
+    setCloudStatus('☁ Atualizado de outro computador');
+  }finally{applyingRemote=false;}
+}
+function pushCloud(){
+  if(!cloudReady||!cloudDocRef) return;
+  try{
+    cloudDocRef.set({payload:JSON.stringify(db),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    setCloudStatus('☁ Salvo na nuvem');
+  }catch(e){setCloudStatus('⚠ Erro ao salvar na nuvem');}
+}
+function scheduleCloud(){
+  if(!cloudReady||applyingRemote) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(pushCloud,700);
+}
+// Aplica payload pendente quando o usuário para de digitar
+document.addEventListener('focusout',function(){
+  if(remotePending){const p=remotePending;remotePending=null;applyRemote(p);}
+});
+
+const N=7;
+const _MES_ABREV=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+function parseMesInicio(str){
+  if(!str||!str.trim()) return null;
+  const s=str.trim().toLowerCase().replace(/\s+de\s+/,'/').replace(/\s+/,'/');
+  const anoMatch=s.match(/(\d{4})/);
+  if(!anoMatch) return null;
+  const ano=parseInt(anoMatch[1]);
+  const NOMES=[['jan',0],['fev',1],['mar',2],['abr',3],['mai',4],['jun',5],
+               ['jul',6],['ago',7],['set',8],['out',9],['nov',10],['dez',11]];
+  for(const [prefix,idx] of NOMES){ if(s.includes(prefix)) return {mes:idx,ano}; }
+  const numMatch=s.match(/^(\d{1,2})[\/\-]/);
+  if(numMatch){const m=parseInt(numMatch[1]);if(m>=1&&m<=12) return {mes:m-1,ano};}
+  return null;
+}
+
+function buildMeses(inicioStr){
+  const parsed=parseMesInicio(inicioStr);
+  if(!parsed) return; // mantém MESES atual se não conseguir parsear
+  let m=parsed.mes, a=parsed.ano;
+  const arr=[];
+  for(let i=0;i<60;i++){
+    arr.push(_MES_ABREV[m]+'-'+(a%100).toString().padStart(2,'0'));
+    m++; if(m>11){m=0;a++;}
+  }
+  MESES=arr;
+}
+
+let MESES=['MAI-26','JUN-26','JUL-26','AGO-26','SET-26','OUT-26','NOV-26','DEZ-26',
+           'JAN-27','FEV-27','MAR-27','ABR-27','MAI-27','JUN-27','JUL-27','AGO-27',
+           'SET-27','OUT-27','NOV-27','DEZ-27','JAN-28','FEV-28','MAR-28','ABR-28',
+           'MAI-28','JUN-28','JUL-28','AGO-28','SET-28','OUT-28','NOV-28','DEZ-28',
+           'JAN-29','FEV-29','MAR-29','ABR-29','MAI-29','JUN-29','JUL-29','AGO-29',
+           'SET-29','OUT-29','NOV-29','DEZ-29','JAN-30','FEV-30','MAR-30','ABR-30',
+           'MAI-30','JUN-30','JUL-30','AGO-30','SET-30','OUT-30','NOV-30','DEZ-30',
+           'JAN-31','FEV-31','MAR-31','ABR-31'];
+
+const ANOS=[
+  {label:'1º ANO DE CONTRATO', start:0,  end:12},
+  {label:'2º ANO DE CONTRATO', start:12, end:24},
+  {label:'3º ANO DE CONTRATO', start:24, end:36},
+  {label:'4º ANO DE CONTRATO', start:36, end:48},
+  {label:'5º ANO DE CONTRATO', start:48, end:60},
+];
+
+// ─── CONSTANTES DE ÁREA FÍSICA ────────────────────────────────────
+const AREA_GRUPOS=[
+  '44h – Seg a Sex (variação no turno para cumprimento das 4h excedentes)',
+  '44h – 8h de Seg a Sex e 4h aos Sábados',
+  '44h – Seg a Sex (outro regime de escala)',
+];
+const _AREA_BASE=[
+  {tipo:'INTERNO',cod:'A.1',desc:'Ordinária',                 ins:'s/insalubrid.'},
+  {tipo:'INTERNO',cod:'A.2',desc:'Salões, Halls e Corredores',ins:'s/insalubrid.'},
+  {tipo:'INTERNO',cod:'A.3',desc:'Oficinas',                  ins:'s/insalubrid.'},
+  {tipo:'INTERNO',cod:'A.4',desc:'Hospitalar Assemelhada',    ins:'s/insalubrid.'},
+  {tipo:'INTERNO',cod:'A.5',desc:'Almoxarifado / Galpão',     ins:'s/insalubrid.'},
+  {tipo:'INTERNO',cod:'A.6',desc:'Banheiros',                 ins:'COM/insalubrid.'},
+  {tipo:'EXTERNO',cod:'B.1',desc:'Externa',                   ins:'s/insalubrid.'},
+  {tipo:'EXTERNO',cod:'B.2',desc:'Externa Pisos e Pavimentos',ins:'s/insalubrid.'},
+  {tipo:'',       cod:'C.1',desc:'Esquadrias Face Interna',   ins:'s/insalubrid.'},
+  {tipo:'',       cod:'C.2',desc:'Esquadrias Face Externa',   ins:'s/insalubrid.'},
+];
+const AREA_LINHAS=(()=>{
+  const arr=[];
+  for(let g=0;g<3;g++){
+    _AREA_BASE.forEach(b=>{
+      const ck='g'+g+'_'+b.cod.replace('.','');
+      arr.push({key:ck+'_d',codeKey:ck,grupo:g,tipo:b.tipo,cod:b.cod,desc:b.desc,ins:b.ins,turno:'Diurno',   isFirst:true});
+      arr.push({key:ck+'_v',codeKey:ck,grupo:g,tipo:b.tipo,cod:b.cod,desc:b.desc,ins:b.ins,turno:'Vespertino',isFirst:false});
+    });
+  }
+  return arr;
+})();
+
+// ─── REGRAS DE FORNECIMENTO ───────────────────────────────────────
+// Retorna quantos meses consecutivos preencher ao digitar uma quantidade
+function getSpread(itemText, startIdx){
+  const t=(itemText||'').toUpperCase();
+  if(t.includes('BIMESTRAL'))  return 2;
+  if(t.includes('TRIMESTRAL')) return 3;
+  if(t.includes('SEMESTRAL'))  return 6;
+  if(t.includes('PERMANENTE')) return MESES.length - startIdx; // até o fim do contrato
+  // MENSAL ou qualquer outro → apenas o mês digitado
+  return 1;
+}
+
+// Multiplicador para Qtd Total Estimada (entregas por ano)
+function getMultiplier(itemText){
+  const t=(itemText||'').toUpperCase();
+  if(t.includes('BIMESTRAL'))  return 6;
+  if(t.includes('TRIMESTRAL')) return 4;
+  if(t.includes('SEMESTRAL'))  return 2;
+  if(t.includes('PERMANENTE')) return 1;
+  if(t.includes('MENSAL'))     return 12;
+  return 60;
+}
+
+// ─── MODELO DE DADOS ─────────────────────────────────────────────
+let db={
+  header:'Sistema de Controle de Materiais e Medição de Resultado – Limpeza',
+  contrato:{empresa:'ATLÂNTICA SERVIÇOS GERAIS LTDA',numero:'34/25',inicio:'',fiscal:''},
+  headerUpdates:{},
+  unidades:Array.from({length:N},(_,i)=>({id:i+1,nome:i===0?'MACAÉ':`Unidade ${i+1}`})),
+  materiais:Object.fromEntries(Array.from({length:N},(_,i)=>[i+1,[]])),
+  lancamentos:{},
+  imr:{},
+  area:{}
+};
+
+// ─── UTILITÁRIOS ─────────────────────────────────────────────────
+const BRL  = n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n||0);
+const BR2  = n=>new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
+const fl2  = n=>Math.floor((n||0)*100)/100;
+const gv   = id=>document.getElementById(id)?.value||'';
+const escH = s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const unNome=uid=>db.unidades[uid-1]?.nome||`Unidade ${uid}`;
+// Unidade "cadastrada": nome real informado no Contrato (≠ padrão "Unidade N")
+function isCadastrada(u){ const n=(db.unidades[u-1]?.nome||'').trim(); return n!=='' && n!==`Unidade ${u}`; }
+function unidadesCadastradas(){ const l=[]; for(let i=1;i<=N;i++) if(isCadastrada(i)) l.push(i); return l; }
+// Para as pílulas: cadastradas, ou todas as N como fallback (antes de nomear)
+function unidadesParaExibir(){ const l=unidadesCadastradas(); return l.length?l:Array.from({length:N},(_,i)=>i+1); }
+
+function getLanc(mes,u){
+  if(!db.lancamentos[mes])   db.lancamentos[mes]={};
+  if(!db.lancamentos[mes][u]) db.lancamentos[mes][u]={valorAtualizado:'',itens:{}};
+  return db.lancamentos[mes][u];
+}
+function consumoTotal(u,itemId){
+  return MESES.reduce((s,m)=>s+(+db.lancamentos[m]?.[u]?.itens?.[itemId]||0),0);
+}
+function qtdTotalEstimada(it){
+  return fl2(it.qtdMensal * getMultiplier(it.item));
+}
+// Qty efetiva de um item em um mês: SOMA todos os lançamentos manuais
+// cujo spread de cobertura inclui este mês.
+// Ex.: BIMESTRAL com entrada em MAI e em JUN → JUN acumula os dois.
+function effectiveQty(it,mes,u){
+  const mesIdx=MESES.indexOf(mes);
+  let total=0;
+  for(let i=0;i<=mesIdx;i++){
+    const qr=+(db.lancamentos[MESES[i]]?.[u]?.itens?.[it.id])||0;
+    if(qr>0){
+      const sp=getSpread(it.item,i);
+      if(mesIdx<i+sp) total+=qr;
+    }
+  }
+  return total;
+}
+// Retorna o preço vigente de um item em determinado mês (histórico de preços)
+function getPreco(it,mes){
+  const hist=it.precoHistorico;
+  if(!hist||hist.length===0) return it.valorUnit||0;
+  const mesIdx=MESES.indexOf(mes);
+  let preco=hist[0].valor;
+  for(const e of hist){
+    if(MESES.indexOf(e.mesInicio)<=mesIdx) preco=e.valor; else break;
+  }
+  return preco;
+}
+// Retorna o preço mais recente (exibição na tabela)
+// Soma o Previsto/mês de TODAS as unidades (qtdMensal × preço atual)
+function totalPrevistoMesTodos(){
+  let total=0;
+  for(let u=1;u<=N;u++)
+    total+=(db.materiais[u]||[]).reduce((s,it)=>s+fl2(it.qtdMensal*getLatestPreco(it)),0);
+  return fl2(total);
+}
+
+function getLatestPreco(it){
+  const hist=it.precoHistorico;
+  if(!hist||hist.length===0) return it.valorUnit||0;
+  return hist[hist.length-1].valor;
+}
+// Para cada entrega que cobre 'mes', usa o preço vigente
+// no MÊS DE ENTRADA (não no mês exibido).
+// Ex.: entrega em JUN-26 (preço antigo) que cobre JUN/JUL/AGO
+// → AGO-26 continua usando o preço de JUN-26.
+function totalMes(mes,u){
+  const mesIdx=MESES.indexOf(mes);
+  return (db.materiais[u]||[]).reduce((s,it)=>{
+    let val=0;
+    for(let i=0;i<=mesIdx;i++){
+      const qr=+(db.lancamentos[MESES[i]]?.[u]?.itens?.[it.id])||0;
+      if(qr>0){
+        const sp=getSpread(it.item,i);
+        if(mesIdx<i+sp) val+=fl2(qr*getPreco(it,MESES[i])); // preço da data de entrada
+      }
+    }
+    return s+val;
+  },0);
+}
+
+// ─── SALVAR / CARREGAR ────────────────────────────────────────────
+function coleta(){
+  db.headerOrg=gv('headerOrg');
+  db.headerMain=gv('headerMain');
+  db.contrato={empresa:gv('empresa'),numero:gv('contrato'),inicio:gv('inicio'),fiscal:gv('fiscal')};
+  for(let i=1;i<=N;i++){const el=document.getElementById(`un${i}`);if(el)db.unidades[i-1].nome=el.value||`Unidade ${i}`;}
+}
+function autosave(){coleta();localStorage.setItem('imr_atlantica-34-25-macae',JSON.stringify(db));scheduleCloud();}
+function onInicioChange(){
+  autosave(); // garante que db.contrato.inicio já está atualizado
+  buildMeses(db.contrato.inicio);
+  for(let u=1;u<=N;u++) renderMateriais(u);
+}
+function loadDB(){
+  const raw=localStorage.getItem('imr_atlantica-34-25-macae');
+  if(!raw) return;
+  try{
+    const p=JSON.parse(raw);
+    if(p.headerUpdates) db.headerUpdates=p.headerUpdates;
+    if(p.contrato)   Object.assign(db.contrato,p.contrato);
+    if(p.unidades)   db.unidades=p.unidades;
+    if(p.materiais)  db.materiais=p.materiais;
+    if(p.lancamentos)db.lancamentos=p.lancamentos;
+    if(p.imr)        db.imr=p.imr;
+    if(p.area)       db.area=p.area;
+    if(p.matSalvo)   db.matSalvo=p.matSalvo;
+    if(p.locked!==undefined) db.locked=p.locked;
+    if(p.pwd!==undefined)    db.pwd=p.pwd;
+  }catch(e){console.warn(e);}
+}
+function fillForm(){
+  const s=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
+  refreshHeaderBar();
+  s('headerOrg', db.headerOrg||'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6');
+  s('headerMain',db.headerMain||'INSTRUMENTO DE MEDIÇÃO DE RESULTADO');
+  s('empresa',db.contrato.empresa); s('contrato',db.contrato.numero);
+  s('inicio',db.contrato.inicio);
+  s('fiscal',db.contrato.fiscal);
+  for(let i=1;i<=N;i++) s(`un${i}`,db.unidades[i-1]?.nome||`Unidade ${i}`);
+}
+
+// ─── CABEÇALHO "ATUALIZADO CONFORME…" (por período, cascata p/ frente) ──
+const DEFAULT_HDR='ATUALIZADO CONFORME TERMO INICIAL DE CONTRATO';
+let hdrPeriodIdx=0; // período que a barra do cabeçalho reflete (0-based)
+// Valor efetivo do cabeçalho no período idx: último ponto de edição ≤ idx, senão padrão
+function effHeaderUpdate(idx){
+  const hu=db.headerUpdates||{};
+  let best=null;
+  for(const k in hu){ const ki=+k; if(ki<=idx && (best===null||ki>best)) best=ki; }
+  return best===null?DEFAULT_HDR:hu[best];
+}
+function refreshHeaderBar(){
+  const el=document.getElementById('headerUpdate');
+  if(el) el.value=effHeaderUpdate(hdrPeriodIdx);
+}
+// Sincroniza qual período a barra reflete conforme a aba/seletor ativos
+function syncHdrPeriod(){
+  let idx=0;
+  if(activeTab==='imr')  idx=MESES.indexOf(activeIMRPeriod);
+  else if(activeTab==='area') idx=MESES.indexOf(activeAreaPeriod);
+  hdrPeriodIdx=(idx>=0?idx:0);
+  refreshHeaderBar();
+}
+// Edição na barra: grava um ponto de edição no período atual (cascateia p/ frente)
+function onHeaderUpdateInput(){
+  if(!db.headerUpdates) db.headerUpdates={};
+  db.headerUpdates[hdrPeriodIdx]=document.getElementById('headerUpdate').value;
+  autosave();
+}
+
+// ─── NAVEGAÇÃO ────────────────────────────────────────────────────
+let activeTab='contrato';
+function showTab(tab){
+  coleta();
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-tab')[{contrato:0,materiais:1,imr:2,area:3,relatorio:4}[tab]||0].classList.add('active');
+  activeTab=tab;
+  if(tab==='materiais') renderMateriais();
+  if(tab==='imr')       renderIMR();
+  if(tab==='area')      renderArea();
+  if(tab==='relatorio') renderRelatorio();
+  syncHdrPeriod();
+  // Botão Salvar PDF só nas abas que entram no PDF (não em Contrato/Relatório)
+  const pdfBtn=document.getElementById('btnPDF');
+  if(pdfBtn) pdfBtn.style.display=(tab==='materiais'||tab==='imr'||tab==='area')?'inline-block':'none';
+}
+
+// ─── PÍLULAS ─────────────────────────────────────────────────────
+let activeMatUnit=1;
+function renderPills(cid,active,fn){
+  const c=document.getElementById(cid); if(!c) return; c.innerHTML='';
+  unidadesParaExibir().forEach(i=>{
+    const b=document.createElement('div');
+    b.className='unit-pill'+(i===active?' active':'');
+    b.textContent=unNome(i); b.onclick=()=>fn(i); c.appendChild(b);
+  });
+}
+
+// ─── MATERIAIS – MATRIZ HORIZONTAL ───────────────────────────────
+function renderMateriais(uid){
+  if(uid!==undefined) activeMatUnit=uid;
+  {const _d=unidadesParaExibir(); if(!_d.includes(activeMatUnit)) activeMatUnit=_d[0];}
+  renderPills('matPills',activeMatUnit,renderMateriais);
+  const u=activeMatUnit;
+  if(!db.materiais[u]) db.materiais[u]=[];
+  const itens=db.materiais[u];
+
+  // Destravado: TODAS as colunas de meses ficam visíveis (editáveis).
+  // Travado: só somem as colunas dos meses que já foram SALVOS (botão Salvar);
+  // meses não salvos continuam visíveis. Assim o ocultar só ocorre após Salvar.
+  const mesPreenchido=mes=>{
+    const its=db.lancamentos[mes]?.[u]?.itens;
+    return !!its&&Object.keys(its).some(id=>(+its[id]||0)>0);
+  };
+  const mesSalvo=mes=>!!(db.matSalvo&&db.matSalvo[u]&&db.matSalvo[u][mes]);
+  const mesVisivel=idx=>!(globalLocked&&mesSalvo(MESES[idx]));
+
+  const _previsto=(db.materiais[u]||[]).reduce((s,it)=>s+fl2(it.qtdMensal*getLatestPreco(it)),0);
+  let h=`<div class="sec-title"><span>MATERIAIS – ${escH(unNome(u))}</span>
+    <span style="font-size:10px;font-weight:normal;background:rgba(255,255,255,.15);padding:2px 10px;border-radius:3px;white-space:nowrap;">
+      Previsto/mês: <b>${BRL(_previsto)}</b>
+    </span>
+  </div>`;
+  h+=`<div id="matScroll" style="overflow:auto;max-height:calc(100vh - 240px);margin-bottom:6px;"><table class="mat-tbl">`;
+
+  // ── CABEÇALHO 3 LINHAS ──
+  h+=`<thead><tr>`;
+  h+=`<th rowspan="3" class="sticky-item" style="min-width:200px;white-space:normal;vertical-align:middle;z-index:4;">Item</th>`;
+  h+=`<th rowspan="3" class="sticky-prod" style="min-width:260px;text-align:left;padding-left:6px;white-space:normal;vertical-align:middle;z-index:4;">Produto / Descrição</th>`;
+  h+=`<th rowspan="3" style="width:38px;">Und</th>`;
+  h+=`<th rowspan="3" style="width:72px;">Valor<br>Unit. (R$)</th>`;
+  h+=`<th rowspan="3" style="width:65px;">Qtd Prev.<br>/Mês</th>`;
+  ANOS.forEach(a=>{
+    let csp=0; for(let i=a.start;i<a.end&&i<MESES.length;i++) if(mesVisivel(i)) csp++;
+    if(csp>0) h+=`<th colspan="${csp}" style="background:#162d56;font-size:9.5px;letter-spacing:.5px;">${a.label}</th>`;
+  });
+  h+=`<th rowspan="3" style="width:92px;">Qtd Total<br>Estimada</th>`;
+  h+=`<th rowspan="3" style="width:70px;">Saldo</th>`;
+  if(!globalLocked) h+=`<th rowspan="3" style="width:30px;"></th>`;
+  h+=`</tr><tr>`;
+
+  // Linha 2: R$ total gasto por mês
+  MESES.forEach((mes,i)=>{
+    if(!mesVisivel(i)) return;
+    const tot=totalMes(mes,u);
+    h+=`<th class="mh-total" id="mh_${mes.replace('-','_')}">${tot>0?BRL(tot):'R$&nbsp;–'}</th>`;
+  });
+  h+=`</tr><tr>`;
+
+  // Linha 3: nomes dos meses
+  MESES.forEach((m,i)=>{ if(!mesVisivel(i)) return; h+=`<th class="mh-name">${m}</th>`; });
+  h+=`</tr></thead><tbody>`;
+
+  // ── LINHAS DE ITENS ──
+  if(!itens.length){
+    h+=`<tr><td colspan="${5+60+3}" style="text-align:center;color:#999;padding:10px;">
+          Nenhum item cadastrado. Clique em <b>+ Adicionar Item</b> abaixo.</td></tr>`;
+  }
+
+  // quando travado, oculta linhas com Qtd Prev./Mês = 0 (destravado mostra todas p/ edição)
+  const _rows=globalLocked?itens.filter(it=>(+it.qtdMensal||0)>0):itens;
+  _rows.forEach(it=>{
+    const qtdEst=qtdTotalEstimada(it);
+    const cons  =consumoTotal(u,it.id);
+    const saldo =fl2(qtdEst-cons);
+    const spread=getSpread(it.item,0); // para tooltip
+
+    // tooltip com o comportamento
+    const t=(it.item||'').toUpperCase();
+    const tip=t.includes('BIMESTRAL')?'Preenche 2 meses':
+               t.includes('TRIMESTRAL')?'Preenche 3 meses':
+               t.includes('SEMESTRAL')?'Preenche 6 meses':
+               t.includes('PERMANENTE')?'Preenche até ABR-31':
+               t.includes('MENSAL')?'Preenche 1 mês':'Preenche 1 mês';
+
+    h+=`<tr>`;
+    // Item
+    h+=`<td class="itm sticky-item" title="${escH(tip)}" style="white-space:normal;min-width:200px;">
+          <input class="mi c" value="${escH(it.item||'')}" placeholder=""
+            style="width:100%;font-size:8px;font-weight:bold;color:#1f3864;white-space:normal;word-break:break-word;"
+            ${globalLocked?'disabled':''}
+            oninput="updItem(${u},${it.id},'item',this.value)"></td>`;
+    // Produto
+    h+=`<td class="prod-cell sticky-prod" style="background:#fff;white-space:normal;min-width:260px;">
+          <input class="mi" value="${escH(it.produto)}" placeholder="Nome do produto"
+            style="width:100%;font-size:8px;white-space:normal;word-break:break-word;"
+            ${globalLocked?'disabled':''}
+            oninput="updItem(${u},${it.id},'produto',this.value)"></td>`;
+    // Und
+    h+=`<td><input class="mi c" value="${escH(it.und)}" placeholder="un" style="width:35px;"
+          ${globalLocked?'disabled':''}
+          oninput="updItem(${u},${it.id},'und',this.value)"></td>`;
+    // Valor Unit. – input editável (preço base). Histórico gerenciado via "Atualizar Preços"
+    const _latest=getLatestPreco(it);
+    const _multi=(it.precoHistorico||[]).length>1;
+    h+=`<td style="text-align:center;">
+      <input class="mi r" type="number" value="${_latest||''}" placeholder="0,00" step="0.01" min="0"
+        style="width:62px;" ${(_multi||globalLocked)?'disabled title="Use \'Atualizar Preços\' para alterar"':''}
+        oninput="updItemPreco0(${u},${it.id},+this.value||0)">
+    </td>`;
+    // Qtd Prev/Mês
+    h+=`<td><input class="mi r" type="number" value="${it.qtdMensal||''}" placeholder="0" step="0.01" min="0"
+          ${globalLocked?'disabled':''}
+          oninput="updItem(${u},${it.id},'qtdMensal',+this.value||0)"></td>`;
+
+    // ── Células mensais ──
+    // Células auto-propagadas ficam com fundo levemente azulado
+    // A célula de "origem" de cada bloco é detectada pelo padrão de propagação
+    MESES.forEach((mes,idx)=>{
+      if(!mesVisivel(idx)) return;
+      const qr=+db.lancamentos[mes]?.[u]?.itens?.[it.id]||0;
+      // Detecta se a célula é auto-propagada (não é origem do bloco)
+      // Para exibição visual, verificamos se a célula anterior tem o mesmo valor
+      // (simplificação: basta mostrar o valor)
+      const inputId=`ci_${mes.replace('-','_')}_${u}_${it.id}`;
+      h+=`<td style="padding:1px;background:#f5f8ff;">
+            <input class="mi r" type="number" step="0.01" min="0"
+              id="${inputId}" value="${qr||''}" placeholder=""
+              style="width:58px;font-size:9px;text-align:center;"
+              oninput="saveMesItem('${mes}',${u},${it.id},+this.value||0)">
+          </td>`;
+    });
+
+    // Qtd Total (somente leitura)
+    h+=`<td class="calc" id="qt_${u}_${it.id}" title="${escH(tip)}">${BR2(qtdEst)}</td>`;
+    // Saldo
+    h+=`<td class="calc${saldo<0?' neg':''}" id="ms_${u}_${it.id}">${BR2(saldo)}</td>`;
+    // Excluir (oculto quando travado)
+    if(!globalLocked) h+=`<td><button class="del-btn" onclick="delItem(${u},${it.id})">✕</button></td>`;
+    h+=`</tr>`;
+  });
+
+  h+=`</tbody></table></div>`;
+  if(!globalLocked){
+    h+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">`;
+    h+=`<button class="add-btn" onclick="addItem(${u})">+ Adicionar Item</button>`;
+    h+=`<button class="add-btn" style="background:#2e7d32;" onclick="openImportModal(${u})">📋 Importar do Excel</button>`;
+    h+=`<button class="add-btn" style="background:#5c3d91;" onclick="openCopyModal(${u})">⧉ Copiar para outras unidades</button>`;
+    h+=`<button class="add-btn" style="background:#b26a00;" onclick="openBulkPrecoModal(${u})">🔄 Atualizar Preços</button>`;
+    h+=`</div>`;
+  }
+  document.getElementById('matContent').innerHTML=h;
+  applyStickyHeader();
+}
+
+// ─── STICKY HEADER ───────────────────────────────────────────────
+// Mede a altura real de cada linha do thead e aplica top:Xpx em cada <th>,
+// necessário porque o container usa overflow:auto (quebra sticky sem isso).
+function applyStickyHeader(){
+  requestAnimationFrame(()=>{
+    const thead=document.querySelector('#matContent .mat-tbl thead');
+    if(!thead) return;
+    const rows=[...thead.querySelectorAll('tr')];
+    let top=0;
+    rows.forEach(tr=>{
+      [...tr.children].forEach(th=>{
+        th.style.top=top+'px';
+        // cantos (sticky horizontal + vertical) ficam acima de tudo
+        if(th.classList.contains('sticky-item')||th.classList.contains('sticky-prod'))
+          th.style.zIndex='6';
+      });
+      top+=tr.offsetHeight;
+    });
+  });
+}
+
+// ─── CRUD ITENS ───────────────────────────────────────────────────
+function addItem(u){
+  if(!db.materiais[u]) db.materiais[u]=[];
+  db.materiais[u].push({id:Date.now(),item:'',produto:'',und:'',valorUnit:0,qtdMensal:0,precoHistorico:[]});
+  autosave(); renderMateriais(u);
+}
+function delItem(u,id){
+  if(!confirm('Remover este item?')) return;
+  db.materiais[u]=db.materiais[u].filter(i=>i.id!==id);
+  autosave(); renderMateriais(u);
+}
+function updItem(u,id,field,val){
+  const it=db.materiais[u]?.find(i=>i.id===id);
+  if(!it) return;
+  it[field]=val;
+  autosave();
+  if(field==='item'||field==='qtdMensal'){
+    const qtdEst=qtdTotalEstimada(it);
+    const saldo=fl2(qtdEst-consumoTotal(u,id));
+    const qt=document.getElementById(`qt_${u}_${id}`);
+    if(qt) qt.textContent=BR2(qtdEst);
+    const sd=document.getElementById(`ms_${u}_${id}`);
+    if(sd){sd.textContent=BR2(saldo);sd.className=`calc${saldo<0?' neg':''}`;}
+  }
+}
+
+// ─── HISTÓRICO DE PREÇOS ─────────────────────────────────────────
+// Atualiza o 1º preço (preço inicial) via input direto na tabela
+function updItemPreco0(u,id,val){
+  const it=db.materiais[u]?.find(i=>i.id===id);
+  if(!it) return;
+  it.valorUnit=val;
+  if(!it.precoHistorico||it.precoHistorico.length===0){
+    it.precoHistorico=[{mesInicio:MESES[0],valor:val}];
+  } else {
+    it.precoHistorico[0].valor=val;
+  }
+  autosave();
+  // Atualiza cabeçalhos R$ afetados
+  MESES.forEach(m=>{
+    const hdr=document.getElementById(`mh_${m.replace('-','_')}`);
+    if(hdr){const tot=totalMes(m,u);hdr.innerHTML=tot>0?BRL(tot):'R$&nbsp;–';}
+  });
+}
+
+let _precoU=1,_precoId=null;
+function openPrecoModal(u,id){
+  _precoU=u; _precoId=id;
+  const it=db.materiais[u]?.find(i=>i.id===id);
+  if(!it) return;
+  // Garante que precoHistorico existe com pelo menos a entrada inicial
+  if(!it.precoHistorico||it.precoHistorico.length===0){
+    it.precoHistorico=[{mesInicio:MESES[0],valor:it.valorUnit||0}];
+    autosave();
+  }
+  document.getElementById('precoModalProd').textContent=it.produto||it.item||'Item';
+  renderPrecoModal();
+  document.getElementById('modalPreco').classList.add('open');
+}
+function closePrecoModal(){
+  document.getElementById('modalPreco').classList.remove('open');
+  renderMateriais(activeMatUnit);
+}
+function renderPrecoModal(){
+  const it=db.materiais[_precoU]?.find(i=>i.id===_precoId);
+  if(!it||!it.precoHistorico) return;
+  const lk=globalLocked;
+  let h=`<p style="font-size:9px;color:#666;margin-bottom:10px;">
+    Cada entrada é válida <b>a partir do mês indicado</b> até ser substituída pela entrada seguinte.<br>
+    O 1º preço é o preço inicial do contrato e não pode ser removido.
+  </p>`;
+  h+=`<table style="border-collapse:collapse;font-size:10px;width:100%;">
+    <thead><tr>
+      <th style="background:#1f3864;color:#fff;padding:4px 10px;text-align:left;">Vigência (a partir de)</th>
+      <th style="background:#1f3864;color:#fff;padding:4px 10px;text-align:right;">Valor (R$)</th>
+      <th style="background:#1f3864;color:#fff;padding:4px 10px;text-align:center;width:80px;">Ação</th>
+    </tr></thead><tbody>`;
+  it.precoHistorico.forEach((e,idx)=>{
+    const isFirst=idx===0;
+    const isLast=idx===it.precoHistorico.length-1;
+    h+=`<tr style="background:${isLast?'#e8f5e9':''}">
+      <td style="border:1px solid #dce6f1;padding:4px 10px;">${e.mesInicio}</td>
+      <td style="border:1px solid #dce6f1;padding:4px 10px;text-align:right;font-weight:bold;">${BRL(e.valor)}</td>
+      <td style="border:1px solid #dce6f1;padding:4px 10px;text-align:center;">
+        ${isFirst?'<span style="font-size:9px;color:#888">Inicial</span>':
+          (!lk?`<button class="del-btn" onclick="delPrecoEntry(${idx})">✕</button>`:'—')}
+        ${isLast?'<span style="font-size:8px;color:#2e7d32;display:block">atual</span>':''}
+      </td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+
+  if(!lk){
+    h+=`<div style="margin-top:14px;padding:10px;background:#f5f8ff;border:1px solid #dce6f1;border-radius:4px;">
+      <p style="font-size:10px;font-weight:bold;color:#1f3864;margin-bottom:8px;">+ Adicionar mudança de preço</p>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:3px;font-size:10px;">
+          <label style="font-weight:bold;">A partir de:</label>
+          <select id="precoNewMes" style="padding:4px 6px;border:1.5px solid #2e74b5;border-radius:3px;font-size:10px;font-family:Arial;color:#1f3864;">
+            ${MESES.map(m=>`<option value="${m}">${m}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;font-size:10px;">
+          <label style="font-weight:bold;">Novo valor (R$):</label>
+          <input type="number" id="precoNewVal" step="0.01" min="0" placeholder="0,00"
+            style="width:110px;padding:4px 6px;border:1.5px solid #2e74b5;border-radius:3px;font-size:10px;font-family:Arial;">
+        </div>
+        <button class="btn btn-blue" style="padding:4px 14px;font-size:10px;" onclick="addPrecoEntry()">Adicionar</button>
+      </div>
+    </div>`;
+  }
+  document.getElementById('precoModalContent').innerHTML=h;
+}
+function addPrecoEntry(){
+  const it=db.materiais[_precoU]?.find(i=>i.id===_precoId);
+  if(!it) return;
+  const mes=document.getElementById('precoNewMes').value;
+  const val=+document.getElementById('precoNewVal').value||0;
+  if(!mes||val<=0){alert('Informe o mês e um valor maior que zero.');return;}
+  const exi=it.precoHistorico.findIndex(e=>e.mesInicio===mes);
+  if(exi>=0) it.precoHistorico[exi].valor=val;
+  else it.precoHistorico.push({mesInicio:mes,valor:val});
+  it.precoHistorico.sort((a,b)=>MESES.indexOf(a.mesInicio)-MESES.indexOf(b.mesInicio));
+  it.valorUnit=it.precoHistorico[it.precoHistorico.length-1].valor;
+  autosave(); renderPrecoModal();
+}
+function delPrecoEntry(idx){
+  if(idx===0) return;
+  const it=db.materiais[_precoU]?.find(i=>i.id===_precoId);
+  if(!it) return;
+  it.precoHistorico.splice(idx,1);
+  it.valorUnit=it.precoHistorico[it.precoHistorico.length-1].valor;
+  autosave(); renderPrecoModal();
+}
+
+// ─── ATUALIZAÇÃO DE PREÇOS EM MASSA ──────────────────────────────
+let _bulkU=1;
+function openBulkPrecoModal(u){
+  _bulkU=u;
+  // Define mês padrão = mês seguinte ao último com lançamento (ou MESES[0])
+  let defaultMes=MESES[0];
+  for(let i=MESES.length-1;i>=0;i--){
+    if(db.lancamentos[MESES[i]]?.[u]){defaultMes=MESES[Math.min(i+1,MESES.length-1)];break;}
+  }
+  const sel=document.getElementById('bulkPrecoMes');
+  if(sel){
+    sel.innerHTML=MESES.map(m=>`<option value="${m}"${m===defaultMes?' selected':''}>${m}</option>`).join('');
+  }
+  renderBulkPrecoModal();
+  document.getElementById('modalBulkPreco').classList.add('open');
+}
+function closeBulkPrecoModal(){
+  document.getElementById('modalBulkPreco').classList.remove('open');
+}
+function renderBulkPrecoModal(){
+  const u=_bulkU;
+  const itens=db.materiais[u]||[];
+  if(!itens.length){
+    document.getElementById('bulkPrecoBody').innerHTML=
+      '<tr><td colspan="4" style="text-align:center;color:#999;padding:12px;">Nenhum item cadastrado nesta unidade.</td></tr>';
+    return;
+  }
+  let h='';
+  itens.forEach(it=>{
+    const latest=getLatestPreco(it);
+    const hist=it.precoHistorico||[];
+    const hCount=hist.length;
+    h+=`<tr>
+      <td style="font-size:8px;font-weight:bold;color:#1f3864;padding:4px 6px;border:1px solid #dce6f1;max-width:160px;word-break:break-word;">
+        ${escH(it.item||'—')}
+      </td>
+      <td style="font-size:9px;padding:4px 6px;border:1px solid #dce6f1;max-width:200px;word-break:break-word;">
+        ${escH(it.produto||'—')}
+      </td>
+      <td style="text-align:right;padding:4px 8px;border:1px solid #dce6f1;font-weight:bold;white-space:nowrap;">
+        ${BR2(latest)}
+        ${hCount>1?`<span style="font-size:8px;color:#2e74b5;margin-left:3px">(${hCount} preços)</span>`:''}
+      </td>
+      <td style="padding:3px 6px;border:1px solid #dce6f1;">
+        <input type="number" step="0.01" min="0" placeholder="sem alteração"
+          id="bulk_${it.id}"
+          style="width:110px;padding:3px 5px;border:1.5px solid #bbb;border-radius:3px;font-size:10px;font-family:Arial;text-align:right;">
+      </td>
+    </tr>`;
+  });
+  document.getElementById('bulkPrecoBody').innerHTML=h;
+}
+function applyBulkPaste(){
+  const raw=document.getElementById('bulkPasteArea').value;
+  if(!raw.trim()){alert('Cole os valores na área de texto primeiro.');return;}
+  // Divide por linha, aceita vírgula ou ponto como decimal
+  const vals=raw.split(/\r?\n/).map(l=>l.trim().replace(',','.'));
+  const itens=db.materiais[_bulkU]||[];
+  let filled=0;
+  itens.forEach((it,idx)=>{
+    const inp=document.getElementById(`bulk_${it.id}`);
+    if(!inp) return;
+    const v=vals[idx];
+    if(v===undefined||v==='') return; // célula vazia = sem alteração
+    const n=parseFloat(v);
+    if(!isNaN(n)&&n>0){inp.value=n;filled++;}
+  });
+  document.getElementById('bulkPasteArea').value='';
+  if(!filled) alert('Nenhum valor válido encontrado. Verifique se os dados estão na ordem correta.');
+}
+function confirmBulkPreco(){
+  const u=_bulkU;
+  const mes=document.getElementById('bulkPrecoMes').value;
+  const itens=db.materiais[u]||[];
+  let updated=0;
+  itens.forEach(it=>{
+    const inp=document.getElementById(`bulk_${it.id}`);
+    const val=inp?+inp.value:NaN;
+    if(!inp||inp.value===''||isNaN(val)||val<=0) return; // sem alteração
+    if(!it.precoHistorico||it.precoHistorico.length===0)
+      it.precoHistorico=[{mesInicio:MESES[0],valor:it.valorUnit||0}];
+    // Atualiza ou insere entrada para o mês selecionado
+    const exi=it.precoHistorico.findIndex(e=>e.mesInicio===mes);
+    if(exi>=0) it.precoHistorico[exi].valor=val;
+    else it.precoHistorico.push({mesInicio:mes,valor:val});
+    it.precoHistorico.sort((a,b)=>MESES.indexOf(a.mesInicio)-MESES.indexOf(b.mesInicio));
+    it.valorUnit=it.precoHistorico[it.precoHistorico.length-1].valor;
+    updated++;
+  });
+  if(!updated){alert('Nenhum valor foi preenchido. Insira o novo preço em ao menos um item.');return;}
+  autosave();
+  closeBulkPrecoModal();
+  renderMateriais(u);
+  alert(`✅ ${updated} item(s) atualizado(s) a partir de ${mes}!`);
+}
+
+// ─── SALVAR LANÇAMENTO ────────────────────────────────────────────
+// Salva APENAS no mês digitado — sem auto-preencher células seguintes.
+// Os R$ dos cabeçalhos são calculados via effectiveQty, que considera
+// a cobertura do tipo de fornecimento ao exibir os totais planejados.
+function saveMesItem(mes,u,itemId,val){
+  const it=db.materiais[u]?.find(i=>i.id===itemId);
+
+  // Salva somente o mês digitado
+  getLanc(mes,u).itens[itemId]=val;
+  autosave();
+
+  // Atualiza TODOS os cabeçalhos R$ (a cobertura de um lançamento pode
+  // afetar vários meses — ex.: BIMESTRAL em MAI também conta em JUN)
+  MESES.forEach(m=>{
+    const hdr=document.getElementById(`mh_${m.replace('-','_')}`);
+    if(hdr){
+      const tot=totalMes(m,u);
+      hdr.innerHTML=tot>0?BRL(tot):'R$&nbsp;–';
+    }
+  });
+
+  // Atualiza saldo (soma das entregas manuais reais)
+  if(it){
+    const sd=document.getElementById(`ms_${u}_${itemId}`);
+    if(sd){
+      const qtdEst=qtdTotalEstimada(it);
+      const totalQtd=consumoTotal(u,itemId);
+      const saldo=fl2(qtdEst-totalQtd);
+      sd.textContent=BR2(saldo);
+      sd.className=`calc${saldo<0?' neg':''}`;
+    }
+  }
+}
+
+// Marca como salvos os meses preenchidos de TODAS as unidades (chamado após gerar o PDF).
+// Com o formulário travado, essas colunas somem e não podem mais ser editadas
+// (só o servidor, destravando o formulário).
+function marcarMateriaisSalvos(){
+  if(!db.matSalvo) db.matSalvo={};
+  for(let u=1;u<=N;u++){
+    if(!db.matSalvo[u]) db.matSalvo[u]={};
+    MESES.forEach(mes=>{
+      const its=db.lancamentos[mes]?.[u]?.itens;
+      if(its&&Object.keys(its).some(id=>(+its[id]||0)>0)) db.matSalvo[u][mes]=true;
+    });
+  }
+  autosave();
+}
+
+// ─── IMR ──────────────────────────────────────────────────────────
+const IMR_ITEMS=[
+  {id:'A1',mod:'A',modLabel:'Módulo A – EQUIPAMENTO / PRODUTO DE LIMPEZA',label:'Equipamentos e Produtos de Limpeza'},
+  {id:'B1',mod:'B',modLabel:'Módulo B – PESSOAL / APRESENTAÇÃO / EPI',label:'Quantidade da Equipe'},
+  {id:'B2',mod:'B',label:'Apresentação - Uniformização'},
+  {id:'B3',mod:'B',label:'Equipamento de Proteção Individual'},
+  {id:'B4',mod:'B',label:'Qualidade da Equipe'},
+  {id:'C1',mod:'C',modLabel:'Módulo C – FREQUÊNCIA DOS SERVIÇOS',label:'Cumprimento de cronograma e atividades'},
+  {id:'D1',mod:'D',modLabel:'Módulo D – INSPEÇÃO DOS SERVIÇOS NAS ÁREAS',label:'ACESSÓRIOS SANITÁRIOS (espelhos, toalheiro, saboneteira e afins)'},
+  {id:'D2',mod:'D',label:'LOUÇAS SANITÁRIAS (vaso, mictório)'},
+  {id:'D3',mod:'D',label:'MÓVEIS'},
+  {id:'D4',mod:'D',label:'PAREDES e AZULEJOS'},
+  {id:'D5',mod:'D',label:'PIA e CUBA'},
+  {id:'D6',mod:'D',label:'PISO'},
+  {id:'D7',mod:'D',label:'RECIPIENTE PARA RESÍDUOS (lixeira)'},
+  {id:'D8',mod:'D',label:'SAÍDA DE AR CONDICIONADO e EXAUSTOR'},
+  {id:'D9',mod:'D',label:'TETO'},
+  {id:'D10',mod:'D',label:'VIDROS, ESQUADRIAS ou FACHADA ENVIDRAÇADA'},
+  {id:'D11',mod:'D',label:'RECOLHIMENTO DE RESÍDUOS (recolhimento do lixo até o destino interno)'},
+  {id:'D12',mod:'D',label:'ESCADA, ELEVADOR OU RAMPA'},
+];
+const IMR_GRADES=[
+  {g:'A',desc:'NOTA MAIOR OU IGUAL A 93 PONTOS',pct:1.00},
+  {g:'B',desc:'NOTA ENTRE 90 E 92 PONTOS',pct:0.95},
+  {g:'C',desc:'NOTA ENTRE 88 E 89 PONTOS',pct:0.92},
+  {g:'D',desc:'NOTA ENTRE 86 E 87 PONTOS',pct:0.89},
+  {g:'E',desc:'NOTA ENTRE 84 E 85 PONTOS',pct:0.86},
+  {g:'F',desc:'NOTA ENTRE 82 E 83 PONTOS',pct:0.83},
+  {g:'G',desc:'NOTA MENOR OU IGUAL A 81 PONTOS',pct:0.80},
+];
+
+function calcIMR(itens){
+  let bom=0,reg=0,ruim=0;
+  IMR_ITEMS.forEach(it=>{
+    const v=itens?.[it.id];
+    if(v==='B')bom++;else if(v==='R')reg++;else if(v==='M')ruim++;
+  });
+  const ev=bom+reg+ruim;
+  if(ev===0) return{score:0,grade:'-',pct:0,bom,reg,ruim,ev};
+  const pontos=bom*100+reg*80+ruim*30;
+  const score=Math.round(pontos/ev);
+  const grade=score>=93?'A':score>=90?'B':score>=88?'C':score>=86?'D':score>=84?'E':score>=82?'F':'G';
+  const pctMap={A:1,B:.95,C:.92,D:.89,E:.86,F:.83,G:.80};
+  return{score,grade,pct:pctMap[grade],bom,reg,ruim,ev,pontos};
+}
+
+function getIMRData(period,u){
+  if(!db.imr)db.imr={};
+  if(!db.imr[period])db.imr[period]={};
+  if(!db.imr[period][u])db.imr[period][u]={itens:{},numPrevisto:0,numPresente:0,valorMO:0,diasTrabalhados:0,creche:{retido:null,aprovEnc:0,aprovServ:0,valEnc:null,valServ:null}};
+  if(!db.imr[period][u].creche)db.imr[period][u].creche={retido:null,aprovEnc:0,aprovServ:0,valEnc:null,valServ:null};
+  return db.imr[period][u];
+}
+
+// ─── REEMBOLSO CRECHE: propagação mês a mês (igual à planilha) ─────
+// Campos que se propagam do mês anterior (Retido, Valor Enc., Valor Serv.):
+// mantêm-se iguais ao mês anterior até serem sobrescritos; a alteração de um
+// mês vale daquele mês em diante. Retorna o valor efetivo para period/unidade.
+function crecheCarry(period,u,key){
+  const idx=MESES.indexOf(period);
+  if(idx<0) return 0;
+  for(let i=idx;i>=0;i--){
+    const v=fl2(db.imr?.[MESES[i]]?.[u]?.creche?.[key]||0);
+    if(v) return v; // ignora 0/null/vazio (mês sem valor herda o anterior)
+  }
+  return 0;
+}
+// Total dos reembolsos de um mês = Aprov.Enc×ValorEnc + Aprov.Serv×ValorServ
+// (aprovados são do próprio mês; valores unitários são herdados/propagados).
+function crecheTotalMes(period,u){
+  const cr=db.imr?.[period]?.[u]?.creche;
+  const aprovEnc=+(cr?.aprovEnc||0);
+  const aprovServ=+(cr?.aprovServ||0);
+  return fl2(aprovEnc*crecheCarry(period,u,'valEnc')+aprovServ*crecheCarry(period,u,'valServ'));
+}
+// Saldo acumulado (planilha N50): Σ (Retido − Total) de MESES[0] até o período.
+function crecheSaldoAcum(period,u){
+  const idx=MESES.indexOf(period);
+  if(idx<0) return 0;
+  let saldo=0;
+  for(let i=0;i<=idx;i++) saldo+=crecheCarry(MESES[i],u,'retido')-crecheTotalMes(MESES[i],u);
+  return fl2(saldo);
+}
+
+let activeIMRPeriod=MESES[0];
+let activeIMRUnit=1;
+
+function renderIMR(period,unit){
+  if(period!==undefined) activeIMRPeriod=period;
+  if(unit!==undefined)   activeIMRUnit=unit;
+  if(activeTab==='imr'){ const i=MESES.indexOf(activeIMRPeriod); hdrPeriodIdx=(i>=0?i:0); refreshHeaderBar(); }
+
+  // Preenche o select de período
+  const sel=document.getElementById('imrPeriodSel');
+  if(sel){
+    if(!sel.options.length){
+      MESES.forEach((m,i)=>{
+        const opt=document.createElement('option');
+        opt.value=m; opt.textContent=`${i+1}º IMR – ${m}`;
+        sel.appendChild(opt);
+      });
+    }
+    sel.value=activeIMRPeriod;
+  }
+
+  // Pills de unidade (só as cadastradas)
+  const _disp=unidadesParaExibir();
+  if(!_disp.includes(activeIMRUnit)) activeIMRUnit=_disp[0];
+  const pills=document.getElementById('imrPills');
+  if(pills){
+    let ph='';
+    _disp.forEach(i=>{
+      ph+=`<div class="unit-pill${i===activeIMRUnit?' active':''}" onclick="renderIMR(undefined,${i})">${escH(unNome(i))}</div>`;
+    });
+    pills.innerHTML=ph;
+  }
+
+  renderIMRForm();
+}
+
+function setIMRItem(period,unit,itemId,val){
+  const d=getIMRData(period,unit);
+  d.itens[itemId]=val;
+  autosave();
+  updateIMRResults(period,unit);
+}
+
+function setIMRField(period,unit,field,val){
+  const d=getIMRData(period,unit);
+  const parts=field.split('.');
+  if(parts.length===2){if(!d[parts[0]])d[parts[0]]={};d[parts[0]][parts[1]]=val;}
+  else d[field]=val;
+  autosave();
+  updateIMRResults(period,unit);
+}
+
+// Atualiza apenas os campos calculados sem re-renderizar todo o formulário
+function updateIMRResults(period,unit){
+  const d=getIMRData(period,unit);
+  const calc=calcIMR(d.itens);
+
+  // Score / conceito
+  const sEl=document.getElementById(`imr_score_${unit}`);
+  if(sEl) sEl.textContent=calc.ev>0?calc.score:'–';
+  const gEl=document.getElementById(`imr_grade_${unit}`);
+  if(gEl){gEl.textContent=calc.grade;gEl.style.background=calc.grade==='-'?'#888':calc.grade==='A'?'#2e7d32':calc.grade==='G'?'#c62828':'#1f3864';}
+  const pEl=document.getElementById(`imr_pct_badge_${unit}`);
+  if(pEl) pEl.textContent=calc.grade!=='-'?(calc.pct*100).toFixed(0)+'%':'–';
+  const evEl=document.getElementById(`imr_ev_${unit}`);
+  if(evEl) evEl.textContent=`${calc.ev} de ${IMR_ITEMS.length} itens avaliados`;
+
+  // Totais BOM/REG/RUIM
+  const tBom=document.getElementById(`imr_tbom_${unit}`);if(tBom)tBom.textContent=calc.bom;
+  const tReg=document.getElementById(`imr_treg_${unit}`);if(tReg)tReg.textContent=calc.reg;
+  const tRuim=document.getElementById(`imr_truim_${unit}`);if(tRuim)tRuim.textContent=calc.ruim;
+  const tNA=document.getElementById(`imr_tna_${unit}`);if(tNA)tNA.textContent=IMR_ITEMS.length-calc.ev;
+
+  // Destaque linha da grade ativa
+  IMR_GRADES.forEach(gr=>{
+    const row=document.getElementById(`imr_grow_${gr.g}_${unit}`);
+    if(row) row.style.background=gr.g===calc.grade?'#fff9c4':'';
+  });
+
+  // Financeiro
+  let matVal=0;
+  for(let u=1;u<=N;u++) matVal+=totalMes(period,u);
+  matVal=fl2(matVal);
+  const moVal=fl2(totalAreaPeriod(period)); // automático: total da aba Área no período
+  const dias=Math.min(30,Math.max(0,+(d.diasTrabalhados)||0));
+  const moEfetivo=dias>0?fl2(moVal*dias/30):moVal;
+  const totalReemb=crecheTotalMes(period,unit);      // Enc×ValEnc + Serv×ValServ
+  const saldoCreche=crecheSaldoAcum(period,unit);    // acumulado (planilha N50)
+  const totalMensalVal=fl2(moEfetivo+matVal+totalReemb);
+  const descontoQ=calc.grade!=='-'?fl2(moEfetivo*(1-calc.pct)):0;
+  const liberado=fl2(totalMensalVal-descontoQ);
+
+  const upd=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=typeof v==='number'?BRL(v):v;};
+  upd(`imr_contratado_${unit}`,fl2(moVal+totalPrevistoMesTodos()));
+  upd(`imr_mo_${unit}`,moVal);
+  upd(`imr_mat_${unit}`,matVal);
+  upd(`imr_mo_prop_${unit}`,moEfetivo);
+  const dEl=document.getElementById(`imr_desconto_${unit}`);
+  if(dEl){dEl.textContent=BRL(descontoQ);dEl.style.color=descontoQ>0?'#c62828':'#555';}
+  const moPropRow=document.getElementById(`imr_mo_prop_row_${unit}`);
+  if(moPropRow) moPropRow.style.display=(dias>0&&dias<30)?'':'none';
+  upd(`imr_total_${unit}`,totalMensalVal);
+  const pctFin=document.getElementById(`imr_pct_fin_${unit}`);
+  if(pctFin) pctFin.textContent=calc.grade!=='-'?(calc.pct*100).toFixed(0)+'%':'–';
+  upd(`imr_lib_${unit}`,liberado);
+  upd(`imr_creche_total_${unit}`,totalReemb);
+  const sEl2=document.getElementById(`imr_creche_saldo_${unit}`);
+  if(sEl2){sEl2.textContent=BRL(saldoCreche);sEl2.closest('tr').className=`imr-calc-row${saldoCreche<0?' imr-neg':''}`;}
+  const wEl=document.getElementById(`imr_creche_warn_${unit}`);
+  if(wEl) wEl.style.display=saldoCreche<0?'':'none';
+}
+
+function renderIMRForm(){
+  const period=activeIMRPeriod;
+  const u=activeIMRUnit;
+  const d=getIMRData(period,u);
+  const calc=calcIMR(d.itens);
+
+  let matVal=0;
+  for(let uu=1;uu<=N;uu++) matVal+=totalMes(period,uu);
+  matVal=fl2(matVal);
+  const moVal=fl2(totalAreaPeriod(period)); // automático: total da aba Área no período
+  const dias=Math.min(30,Math.max(0,+(d.diasTrabalhados)||0));
+  const moEfetivo=dias>0?fl2(moVal*dias/30):moVal;
+  const retido=crecheCarry(period,u,'retido');       // herdado do mês anterior
+  const aprovEnc=+(d.creche?.aprovEnc||0);            // aprovados do próprio mês
+  const aprovServ=+(d.creche?.aprovServ||0);
+  const valEnc=crecheCarry(period,u,'valEnc');        // herdado do mês anterior
+  const valServ=crecheCarry(period,u,'valServ');      // herdado do mês anterior
+  const totalReemb=crecheTotalMes(period,u);          // Enc×ValEnc + Serv×ValServ
+  const saldoCreche=crecheSaldoAcum(period,u);        // acumulado (planilha N50)
+  const totalMensalVal=fl2(moEfetivo+matVal+totalReemb);
+  const descontoQ=calc.grade!=='-'?fl2(moEfetivo*(1-calc.pct)):0;
+  const liberado=fl2(totalMensalVal-descontoQ);
+  const lk=globalLocked?'disabled':'';
+  const gradeColor=calc.grade==='-'?'#888':calc.grade==='A'?'#2e7d32':calc.grade==='G'?'#c62828':'#1f3864';
+
+  let h=`<div class="sec-title"><span>IMR – ${escH(unNome(u))} – ${period}</span></div>`;
+
+  // ── Tabela de avaliação ──
+  h+=`<table class="imr-tbl"><thead><tr>
+    <th style="width:48px">Item</th>
+    <th style="text-align:left;padding-left:8px">Descrição</th>
+    <th style="width:65px">BOM</th>
+    <th style="width:75px">REGULAR</th>
+    <th style="width:65px">RUIM</th>
+    <th style="width:90px">Não se<br>Aplica</th>
+  </tr></thead><tbody>`;
+
+  let lastMod='';
+  IMR_ITEMS.forEach(item=>{
+    if(item.mod!==lastMod){
+      lastMod=item.mod;
+      if(item.modLabel) h+=`<tr><td colspan="6" class="imr-mod-hdr">${escH(item.modLabel)}</td></tr>`;
+    }
+    const v=d.itens?.[item.id]||'';
+    const n=`imr_${u}_${item.id}`;
+    const mk=(val,label)=>`<td class="imr-opt"><label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8px;color:#555;">
+      <input type="radio" name="${n}" value="${val}" ${v===val?'checked':''}
+        onchange="setIMRItem('${period}',${u},'${item.id}','${val}')">${label}</label></td>`;
+    h+=`<tr><td class="itm" style="text-align:center">${item.id}</td>
+      <td style="padding-left:8px">${escH(item.label)}</td>
+      ${mk('B','BOM')}${mk('R','REG')}${mk('M','RUIM')}${mk('N','N/A')}
+    </tr>`;
+  });
+
+  // Linha de totais
+  h+=`<tr style="background:#e3e8f0;font-weight:bold;">
+    <td colspan="2" style="text-align:right;padding-right:8px;font-size:10px;">TOTAIS →</td>
+    <td class="imr-opt" style="color:#2e7d32" id="imr_tbom_${u}">${calc.bom}</td>
+    <td class="imr-opt" style="color:#e65100" id="imr_treg_${u}">${calc.reg}</td>
+    <td class="imr-opt" style="color:#c62828" id="imr_truim_${u}">${calc.ruim}</td>
+    <td class="imr-opt" style="color:#888" id="imr_tna_${u}">${IMR_ITEMS.length-calc.ev}</td>
+  </tr>`;
+  h+=`</tbody></table>`;
+
+  // ── Badges de resultado ──
+  h+=`<div class="imr-score-box">
+    <div class="imr-badge" style="background:#1f3864">
+      <span id="imr_score_${u}">${calc.ev>0?calc.score:'–'}</span>NOTA
+    </div>
+    <div class="imr-badge" style="background:${gradeColor}">
+      <span id="imr_grade_${u}">${calc.grade}</span>CONCEITO
+    </div>
+    <div class="imr-badge" style="background:#2e7d32">
+      <span id="imr_pct_badge_${u}">${calc.grade!=='-'?(calc.pct*100).toFixed(0)+'%':'–'}</span>% LIBERAÇÃO
+    </div>
+    <div style="font-size:9px;color:#777;align-self:center" id="imr_ev_${u}">${calc.ev} de ${IMR_ITEMS.length} itens avaliados</div>
+  </div>`;
+
+  // ── Tabela de conceitos + Serventes (lado a lado) ──
+  h+=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">`;
+
+  // Coluna esquerda: tabela de conceitos
+  h+=`<div style="flex:1 1 340px;min-width:300px;">`;
+  h+=`<table class="imr-grade-tbl"><thead><tr><th>Conceito</th><th style="text-align:left">Resultado</th><th>% Liberação</th></tr></thead><tbody>`;
+  IMR_GRADES.forEach(gr=>{
+    const active=gr.g===calc.grade;
+    h+=`<tr id="imr_grow_${gr.g}_${u}" style="background:${active?'#fff9c4':''}">
+      <td style="text-align:center;font-weight:bold;${active?'color:#c62828;':''}">${gr.g}</td>
+      <td>${gr.desc}</td>
+      <td style="text-align:center;font-weight:bold;">${(gr.pct*100).toFixed(0)}%</td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+  h+=`</div>`;
+
+  // Coluna direita: Serventes
+  h+=`<div style="flex:1 1 300px;min-width:280px;">`;
+  h+=`<div class="sec-title" style="background:#2e7d32;margin-top:8px;"><span>SERVENTES</span></div>`;
+  h+=`<div class="imr-emp-grid">
+    <div class="imr-emp-row"><span>Número de serventes <b>previstos</b> para esta unidade:</span>
+      <input class="mi" type="number" value="${d.numPrevisto||''}" placeholder="0" ${lk} style="width:70px;text-align:center;"
+        onchange="setIMRField('${period}',${u},'numPrevisto',+this.value||0)">
+    </div>
+    <div class="imr-emp-row"><span>Número de serventes <b>presentes</b> no mês avaliado:</span>
+      <input class="mi" type="number" value="${d.numPresente||''}" placeholder="0" style="width:70px;text-align:center;"
+        onchange="setIMRField('${period}',${u},'numPresente',+this.value||0)">
+    </div>
+  </div>`;
+  h+=`</div>`;
+
+  h+=`</div>`;// fecha flex conceitos+serventes
+
+  // ── Reembolso Creche ──
+  h+=`<div class="imr-creche-hdr">🏠 REEMBOLSO CRECHE</div>`;
+  h+=`<table class="imr-val-tbl" style="border-top:none;">
+    <tr><td>Valor Reembolso Creche Retido (R$)</td>
+      <td><input class="mi r" type="number" step="0.01" value="${retido||''}" placeholder="0" ${lk}
+        style="width:130px;text-align:right;"
+        onchange="setIMRField('${period}',${u},'creche.retido',+this.value||0)"></td>
+    </tr>
+    <tr><td>Reembolsos Aprovados Encarregado</td>
+      <td><input class="mi r" type="number" value="${aprovEnc||''}" placeholder="0"
+        style="width:130px;text-align:center;"
+        onchange="setIMRField('${period}',${u},'creche.aprovEnc',+this.value||0)"></td>
+    </tr>
+    <tr><td>Reembolsos Aprovados Servente</td>
+      <td><input class="mi r" type="number" value="${aprovServ||''}" placeholder="0"
+        style="width:130px;text-align:center;"
+        onchange="setIMRField('${period}',${u},'creche.aprovServ',+this.value||0)"></td>
+    </tr>
+    <tr><td>Valor Reembolso Encarregado (R$)</td>
+      <td><input class="mi r" type="number" step="0.01" value="${valEnc||''}" placeholder="0" ${lk}
+        style="width:130px;text-align:right;"
+        onchange="setIMRField('${period}',${u},'creche.valEnc',+this.value||0)"></td>
+    </tr>
+    <tr><td>Valor Reembolso Servente (R$)</td>
+      <td><input class="mi r" type="number" step="0.01" value="${valServ||''}" placeholder="0" ${lk}
+        style="width:130px;text-align:right;"
+        onchange="setIMRField('${period}',${u},'creche.valServ',+this.value||0)"></td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Valor total dos Reembolsos (R$) <small style="font-weight:normal">(Enc.×Valor Enc. + Serv.×Valor Serv.)</small></td>
+      <td id="imr_creche_total_${u}">${BRL(totalReemb)}</td>
+    </tr>
+    <tr class="imr-calc-row${saldoCreche<0?' imr-neg':''}">
+      <td>Saldo de Reembolso (R$) <small style="font-weight:normal">(acumulado: saldo anterior + Retido – Total)</small></td>
+      <td id="imr_creche_saldo_${u}">${BRL(saldoCreche)}</td>
+    </tr>
+    <tr id="imr_creche_warn_${u}" style="display:${saldoCreche<0?'':'none'}">
+      <td colspan="2" style="background:#ffebee;color:#c62828;font-size:9px;font-style:italic;padding:4px 8px;">
+        ⚠ Atenção: será necessário aditivar o contrato para suportar a despesa.
+      </td>
+    </tr>
+  </table>`;
+
+  // ── Valores do período ──
+  h+=`<div class="sec-title" style="background:#1f3864;margin-top:4px;"><span>VALORES DO PERÍODO</span></div>`;
+  h+=`<table class="imr-val-tbl">
+    <tr><td>Nº de dias trabalhados <small style="color:#555;font-weight:normal">(máx. 30)</small></td>
+      <td><input class="mi r" type="number" min="0" max="30" value="${dias||''}" placeholder="30"
+        style="width:130px;text-align:center;"
+        onchange="this.value=Math.min(30,Math.max(0,+this.value||0));setIMRField('${period}',${u},'diasTrabalhados',+this.value)"></td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Valor mensal contratado (R$) <small style="color:#555;font-weight:normal">— MO + Previsto/mês de todas as unidades</small></td>
+      <td id="imr_contratado_${u}">${BRL(fl2(moVal+totalPrevistoMesTodos()))}</td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Valor mensal c/ mão de Obra (R$) <small style="color:#555;font-weight:normal">— total da Área em ${period}</small></td>
+      <td id="imr_mo_${u}">${BRL(moVal)}</td>
+    </tr>
+    <tr class="imr-calc-row" id="imr_mo_prop_row_${u}" style="display:${dias>0&&dias<30?'':'none'}">
+      <td>MO proporcional ao período (R$) <small style="color:#555;font-weight:normal">— MO × (${dias}/30)</small></td>
+      <td id="imr_mo_prop_${u}">${BRL(moEfetivo)}</td>
+    </tr>
+    <tr class="imr-calc-row" style="background:#fff3e0!important;">
+      <td>Desconto por qualidade (R$) <small style="color:#888;font-weight:normal">— MO × (1 − % liberação)</small></td>
+      <td id="imr_desconto_${u}" style="color:#c62828;">${BRL(calc.grade!=='-'?fl2(moEfetivo*(1-calc.pct)):0)}</td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Valor mensal c/ material (R$) <small style="color:#555;font-weight:normal">— soma automática de todos os materiais em ${period}</small></td>
+      <td id="imr_mat_${u}">${BRL(matVal)}</td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Valor mensal + Reembolsos (R$)</td>
+      <td id="imr_total_${u}">${BRL(totalMensalVal)}</td>
+    </tr>
+    <tr class="imr-calc-row">
+      <td>Percentual de liberação</td>
+      <td id="imr_pct_fin_${u}" style="text-align:center;font-size:12px;">${calc.grade!=='-'?(calc.pct*100).toFixed(0)+'%':'–'}</td>
+    </tr>
+    <tr class="imr-calc-row imr-lib-row">
+      <td><b>Valor liberado para Faturamento (R$)</b></td>
+      <td id="imr_lib_${u}">${BRL(liberado)}</td>
+    </tr>
+  </table>`;
+
+  document.getElementById('imrContent').innerHTML=h;
+}
+
+// ─── HELPERS MO PARA RELATÓRIO ────────────────────────────────────
+// Retorna dados de MO para um período/unidade (baseado em IMR)
+function getMoUnit(mes,u){
+  const moVal=totalAreaPeriod(mes);
+  const d=db.imr?.[mes]?.[u];
+  if(!d) return {moPrev:moVal,moReal:moVal,pctMO:100,desconto:0};
+  const dias=Math.min(30,Math.max(0,+(d.diasTrabalhados)||0));
+  const moEf=dias>0?fl2(moVal*dias/30):moVal;
+  const calc=calcIMR(d.itens);
+  const desconto=calc.grade!=='-'?fl2(moEf*(1-calc.pct)):0;
+  const moReal=fl2(moEf-desconto);
+  return{moPrev:moEf,moReal,pctMO:moEf>0?Math.round(moReal/moEf*100):100,desconto};
+}
+// Versão global (visão geral): usa média dos pct de unidades avaliadas
+function getMoGlobal(mes){
+  const moVal=totalAreaPeriod(mes);
+  let totalMoReal=0,totalMoPrev=0,avaliadas=0;
+  for(let u=1;u<=N;u++){
+    const r=getMoUnit(mes,u);
+    totalMoPrev+=r.moPrev; totalMoReal+=r.moReal; avaliadas++;
+  }
+  if(avaliadas===0) return{moPrev:moVal,moReal:moVal,pctMO:100};
+  return{moPrev:fl2(totalMoPrev/N),moReal:fl2(totalMoReal/N),
+         pctMO:totalMoPrev>0?Math.round(totalMoReal/totalMoPrev*100):100};
+}
+function saveUpdMO(mes,u,val){getLanc(mes,u).moAtualizado=val;autosave();}
+
+// ─── RELATÓRIO ────────────────────────────────────────────────────
+function renderRelatorio(){
+  coleta();
+  const c=document.getElementById('relContent');
+  let h='';
+  h+=`<div class="sec-title"><span>RELATÓRIO CONSOLIDADO</span></div>`;
+
+  const TH_MAT='background:#1a3a6b;color:#fff;';
+  const TH_MO='background:#1a5276;color:#fff;';
+  const hdrRel=`<tr>
+    <th rowspan="2">Período</th>
+    <th colspan="4" style="${TH_MAT}">MATERIAL</th>
+    <th colspan="4" style="${TH_MO}">MÃO DE OBRA</th>
+  </tr><tr>
+    <th style="${TH_MAT}">Previsto</th>
+    <th style="${TH_MAT}">Realizado</th>
+    <th style="${TH_MAT}">% Real.</th>
+    <th style="${TH_MAT};background:#3a6b23;">Vlr Atualiz.</th>
+    <th style="${TH_MO}">Prevista</th>
+    <th style="${TH_MO}">Realizada</th>
+    <th style="${TH_MO}">% Real.</th>
+    <th style="${TH_MO};background:#1a6b5a;">Vlr Atualiz.</th>
+  </tr>`;
+
+  h+=`<div class="sec-title" style="background:#556b2f;margin-top:8px;"><span>VISÃO GERAL – TODOS OS MESES</span></div>`;
+  h+=`<div style="overflow-x:auto;"><table class="rel-tbl"><thead>${hdrRel}</thead><tbody>`;
+
+  let hasMes=false;
+  MESES.forEach(mes=>{
+    let prev=0,real=0;
+    for(let u=1;u<=N;u++){
+      const itens=db.materiais[u]||[];
+      prev+=itens.reduce((s,it)=>s+fl2(it.qtdMensal*getPreco(it,mes)),0);
+      real+=totalMes(mes,u);
+    }
+    const moG=getMoGlobal(mes);
+    if(prev===0&&real===0&&moG.moPrev===0) return;
+    hasMes=true;
+    const pctMat=prev>0?Math.round(real/prev*100):0;
+    let updMat=0,hasUpdMat=false;
+    for(let u=1;u<=N;u++){const v=+db.lancamentos[mes]?.[u]?.valorAtualizado||0;if(v){updMat+=v;hasUpdMat=true;}}
+    let updMO=0,hasUpdMO=false;
+    for(let u=1;u<=N;u++){const v=+db.lancamentos[mes]?.[u]?.moAtualizado||0;if(v){updMO+=v;hasUpdMO=true;}}
+    h+=`<tr>
+      <td class="per">${mes}</td>
+      <td>${BRL(prev)}</td>
+      <td style="color:${real>prev?'#c62828':'#1b5e20'}">${BRL(real)}</td>
+      <td style="text-align:center;font-weight:bold;">${pctMat}%</td>
+      <td class="upd">${hasUpdMat?BRL(updMat):'—'}</td>
+      <td>${BRL(moG.moPrev)}</td>
+      <td style="color:${moG.moReal<moG.moPrev?'#c62828':'#1b5e20'}">${BRL(moG.moReal)}</td>
+      <td style="text-align:center;font-weight:bold;">${moG.pctMO}%</td>
+      <td class="upd">${hasUpdMO?BRL(updMO):'—'}</td>
+    </tr>`;
+  });
+  if(!hasMes) h+=`<tr><td colspan="9" style="text-align:center;color:#999;padding:10px;">Nenhum lançamento realizado ainda.</td></tr>`;
+  h+=`</tbody></table></div>`;
+
+  for(let u=1;u<=N;u++){
+    const itens=db.materiais[u]||[];
+    let has=false;
+    MESES.forEach(m=>{if(db.lancamentos[m]?.[u]) has=true;});
+    if(!has&&!itens.length) continue;
+    h+=`<div class="sec-title" style="background:#2e74b5;margin-top:14px;"><span>📍 ${escH(unNome(u))}</span></div>`;
+    h+=`<div style="overflow-x:auto;"><table class="rel-tbl"><thead>${hdrRel}</thead><tbody>`;
+    MESES.forEach(mes=>{
+      const lanc=db.lancamentos[mes]?.[u];
+      const prev=itens.reduce((s,it)=>s+fl2(it.qtdMensal*getPreco(it,mes)),0);
+      const real=totalMes(mes,u);
+      const moD=getMoUnit(mes,u);
+      if(!lanc&&prev===0&&moD.moPrev===0) return;
+      const pctMat=prev>0?Math.round(real/prev*100):0;
+      const updMat=+lanc?.valorAtualizado||0;
+      const updMO=+lanc?.moAtualizado||0;
+      h+=`<tr>
+        <td class="per">${mes}</td>
+        <td>${BRL(prev)}</td>
+        <td style="color:${real>prev?'#c62828':'#1b5e20'}">${BRL(real)}</td>
+        <td style="text-align:center;font-weight:bold;">${pctMat}%</td>
+        <td class="upd"><input class="ri" type="number" step="0.01" placeholder="—"
+          value="${updMat||''}" onchange="saveUpd('${mes}',${u},+this.value||0)"></td>
+        <td>${BRL(moD.moPrev)}</td>
+        <td style="color:${moD.moReal<moD.moPrev?'#c62828':'#1b5e20'}">${BRL(moD.moReal)}</td>
+        <td style="text-align:center;font-weight:bold;">${moD.pctMO}%</td>
+        <td class="upd"><input class="ri" type="number" step="0.01" placeholder="—"
+          value="${updMO||''}" onchange="saveUpdMO('${mes}',${u},+this.value||0)"></td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>`;
+  }
+  c.innerHTML=h;
+}
+function saveUpd(mes,u,val){getLanc(mes,u).valorAtualizado=val;autosave();}
+
+// ─── TRAVA ────────────────────────────────────────────────────────
+let globalLocked=false,globalPwd='';
+const LOCK_FIELDS=['empresa','contrato','inicio','fiscal','headerUpdate','headerOrg','headerMain'];
+function lockAll(){
+  const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
+  if(!pwd||pwd.length<4){alert('Senha inválida.');return;}
+  globalPwd=pwd;globalLocked=true;applyLock();
+  db.locked=true;db.pwd=pwd;autosave(); // persiste a trava (permanece travado ao recarregar)
+  document.getElementById('btnLock').style.display='none';
+  document.getElementById('btnUnlock').style.display='inline-block';
+  document.getElementById('btnLimpar').style.display='none';
+  if(activeTab==='materiais') renderMateriais(activeMatUnit);
+  alert('✅ Formulário travado!');
+}
+function unlockAll(){
+  const pwd=prompt('Digite a senha para desbloquear:');
+  if(pwd!==globalPwd){alert('❌ Senha incorreta.');return;}
+  globalLocked=false;globalPwd='';applyLock();
+  db.locked=false;db.pwd='';autosave(); // persiste o destravamento
+  document.getElementById('btnLock').style.display='inline-block';
+  document.getElementById('btnUnlock').style.display='none';
+  document.getElementById('btnLimpar').style.display='inline-block';
+  if(activeTab==='materiais') renderMateriais(activeMatUnit);
+}
+function applyLock(){
+  const fields=[...LOCK_FIELDS];
+  for(let i=1;i<=N;i++) fields.push(`un${i}`);
+  fields.forEach(id=>{const el=document.getElementById(id);if(el){el.disabled=globalLocked;el.style.background=globalLocked?'transparent':'';}});
+  // Aba Relatório fica oculta quando o formulário está travado
+  const relTab=document.querySelectorAll('.nav-tab')[4];
+  if(relTab) relTab.style.display=globalLocked?'none':'';
+  if(globalLocked && activeTab==='relatorio') showTab('materiais');
+}
+
+// ═══ IMPRESSÃO / PDF ═════════════════════════════════════════════
+// Cabeçalho de cada folha (logo + títulos globais + 5 campos pedidos)
+function printHeaderHTML(u){
+  const c=db.contrato||{};
+  const org =escH(gv('headerOrg') ||db.headerOrg ||'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6');
+  const main=escH(gv('headerMain')||db.headerMain||'INSTRUMENTO DE MEDIÇÃO DE RESULTADO');
+  const cell=(lbl,val,full)=>`<div class="c${full?' full':''}"><b>${lbl}</b> ${escH((val||'').toString()||'—')}</div>`;
+  return `<div class="p-head">
+    <div class="p-head-top">
+      <div class="p-head-logo">UFRJ</div>
+      <div class="p-head-tit"><div class="o">${org}</div><div class="m">${main}</div></div>
+      <div class="p-head-badge">IMR</div>
+    </div>
+    <div class="p-info">
+      ${cell('EMPRESA / CONTRATADA:',c.empresa,true)}
+      ${cell('CONTRATO Nº:',c.numero)}
+      ${cell('FISCAL OPERACIONAL:',c.fiscal)}
+      ${cell('UNIDADE:',unNome(u),true)}
+    </div>
+  </div>`;
+}
+
+// Meses "preenchidos" de uma unidade = têm algum lançamento > 0. Retorna as últimas ≤12.
+function mesesPreenchidosUnidade(u){
+  const filled=MESES.filter(mes=>{
+    const it=db.lancamentos[mes]?.[u]?.itens;
+    return it && Object.values(it).some(v=>(+v||0)>0);
+  });
+  return filled.slice(-12);
+}
+
+// Uma planilha de Materiais (paisagem) por unidade
+function matSheetHTML(u){
+  // oculta linhas com Qtd Prev./Mês = 0 no PDF
+  const itens=(db.materiais[u]||[]).filter(it=>(+it.qtdMensal||0)>0);
+  if(!itens.length) return '';
+  const meses=mesesPreenchidosUnidade(u);
+  let h=`<section class="print-sheet sheet-port">`;
+  h+=printHeaderHTML(u);
+  h+=`<div class="p-title">MATERIAIS – ${escH(unNome(u))}</div>`;
+  h+=`<table class="p-tbl"><thead><tr>`;
+  h+=`<th style="min-width:110px">Item</th><th style="min-width:150px">Produto / Descrição</th>`;
+  h+=`<th>Und</th><th>Valor<br>Unit.(R$)</th><th>Qtd Prev.<br>/Mês</th>`;
+  meses.forEach(m=>h+=`<th>${m}</th>`);
+  h+=`<th>Qtd Total<br>Estimada</th><th>Saldo</th></tr></thead><tbody>`;
+  itens.forEach(it=>{
+    const qtdEst=qtdTotalEstimada(it);
+    const saldo=fl2(qtdEst-consumoTotal(u,it.id));
+    const preco=getLatestPreco(it);
+    h+=`<tr>`;
+    h+=`<td class="l">${escH(it.item||'')}</td>`;
+    h+=`<td class="l">${escH(it.produto||'')}</td>`;
+    h+=`<td>${escH(it.und||'')}</td>`;
+    h+=`<td>${preco?BR2(preco):'—'}</td>`;
+    h+=`<td>${it.qtdMensal?BR2(it.qtdMensal):'—'}</td>`;
+    meses.forEach(mes=>{
+      const qr=+db.lancamentos[mes]?.[u]?.itens?.[it.id]||0;
+      h+=`<td>${qr?BR2(qr):''}</td>`;
+    });
+    h+=`<td class="calc">${BR2(qtdEst)}</td>`;
+    h+=`<td class="calc${saldo<0?' neg':''}">${BR2(saldo)}</td>`;
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table></section>`;
+  return h;
+}
+
+// Monta todo o documento: Materiais (paisagem) → IMR (retrato) → Área (retrato)
+function buildPrintDoc(){
+  const units=unidadesCadastradas();
+  let html='';
+  // A. Materiais
+  units.forEach(u=>{ html+=matSheetHTML(u); });
+  // B. IMR — reaproveita renderIMRForm() por unidade
+  const savedIMR=activeIMRUnit;
+  units.forEach(u=>{
+    activeIMRUnit=u; renderIMRForm();
+    const inner=document.getElementById('imrContent').innerHTML;
+    html+=`<section class="print-sheet sheet-port">${printHeaderHTML(u)}${inner}</section>`;
+  });
+  activeIMRUnit=savedIMR; renderIMRForm();
+  // C. Área — reaproveita renderAreaForm(period,u) por unidade.
+  // No PDF, mostra só as linhas com valor na coluna M² (contratado).
+  const per=activeAreaPeriod||MESES[0];
+  const savedArea=activeAreaUnit;
+  _areaPrintMode=true;
+  units.forEach(u=>{
+    renderAreaForm(per,u);
+    const inner=document.getElementById('areaContent').innerHTML;
+    html+=`<section class="print-sheet sheet-port">${printHeaderHTML(u)}${inner}</section>`;
+  });
+  _areaPrintMode=false;
+  renderAreaForm(per,savedArea);
+  return html;
+}
+
+// Ajusta cada folha para caber em 1 página (mede fora da tela e aplica zoom)
+function fitAllSheets(){
+  const pa=document.getElementById('printArea');
+  const prev={position:pa.style.position,left:pa.style.left,top:pa.style.top,display:pa.style.display};
+  pa.style.position='absolute'; pa.style.left='-10000px'; pa.style.top='0'; pa.style.display='block';
+  const MM=96/25.4;
+  pa.querySelectorAll('.print-sheet').forEach(sh=>{
+    sh.style.zoom='';
+    sh.querySelectorAll('*').forEach(e=>{ e.style.overflow='visible'; e.style.maxHeight='none'; });
+    const land=sh.classList.contains('sheet-land');
+    const uW=((land?297:210)-16)*MM, uH=((land?210:297)-16)*MM;
+    sh.style.width=uW+'px';
+    const w=sh.scrollWidth, h=sh.scrollHeight;
+    const z=Math.min(1,(uW*0.99)/w,(uH*0.98)/h);
+    sh.style.zoom=(z>0&&isFinite(z))?z:1;
+  });
+  pa.style.position=prev.position; pa.style.left=prev.left; pa.style.top=prev.top; pa.style.display=prev.display;
+}
+
+let _pendingMatSalvo=false;
+function salvarPDF(){
+  coleta();
+  const units=unidadesCadastradas();
+  if(!units.length){ alert('Cadastre ao menos uma unidade (com nome) na aba Contrato antes de gerar o PDF.'); return; }
+  // Aviso exibido ao salvar PDF; a ocultação só ocorre DEPOIS de gerar o PDF.
+  if(!confirm('após salvar não será possível editar os valores, para isso deverá entrar em contato com o servidor responsável do faturamento.')) return;
+  const pa=document.getElementById('printArea');
+  pa.innerHTML=buildPrintDoc();
+  document.body.classList.add('printing');
+  fitAllSheets();
+  _pendingMatSalvo=true;
+  window.print();
+}
+function cleanupPrint(){
+  document.body.classList.remove('printing');
+  const pa=document.getElementById('printArea'); if(pa) pa.innerHTML='';
+  // Só após transformar em PDF: marca os meses preenchidos como salvos (ocultam quando travado)
+  if(_pendingMatSalvo){
+    _pendingMatSalvo=false;
+    marcarMateriaisSalvos();
+    if(activeTab==='materiais') renderMateriais(activeMatUnit);
+  }
+}
+window.addEventListener('afterprint',cleanupPrint);
+function limparTudo(){
+  if(!confirm('⚠ Limpar TODOS os dados?')) return;
+  localStorage.removeItem('imr_atlantica-34-25-macae');location.reload();
+}
+
+// ─── EXPORTAR TRAVADO ─────────────────────────────────────────────
+function exportLocked(){
+  const pwd=prompt('Defina uma senha para a versão travada (mín. 4 caracteres):');
+  if(!pwd||pwd.length<4){alert('Senha inválida.');return;}
+  coleta();autosave();
+  const safePwd=pwd.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeData=JSON.stringify(db);
+  const parser=new DOMParser();
+  const exportDoc=parser.parseFromString(document.documentElement.outerHTML,'text/html');
+  ['matContent','relContent','matPills','imrContent','imrPills','areaContent','areaPills'].forEach(id=>{const el=exportDoc.getElementById(id);if(el)el.innerHTML='';});
+  const imrSel=exportDoc.getElementById('imrPeriodSel');if(imrSel)imrSel.innerHTML='';
+  const areaSel=exportDoc.getElementById('areaPeriodSel');if(areaSel)areaSel.innerHTML='';
+  let html='<!DOCTYPE html>\n'+exportDoc.documentElement.outerHTML;
+  html=html.replace("const INIT_LOCKED=false;/*§LOCK§*/","const INIT_LOCKED=true;/*§LOCK§*/");
+  html=html.replace("const INIT_PWD='';/*§PWD§*/",`const INIT_PWD='${safePwd}';/*§PWD§*/`);
+  html=html.replace("const INIT_DATA_EXPORT=null;/*§DATA_EXP§*/",`const INIT_DATA_EXPORT=${safeData};/*§DATA_EXP§*/`);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='IMR_Limpeza_travado.html';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  alert('✅ "IMR_Limpeza_travado.html" exportado!');
+}
+
+// ─── IMPORTAR DO EXCEL ───────────────────────────────────────────
+let _importUnit=1;
+function openImportModal(u){
+  _importUnit=u;
+  document.getElementById('importTxt').value='';
+  document.getElementById('importPreview').textContent='Cole os dados e veja o preview aqui.';
+  document.getElementById('modalImport').classList.add('open');
+}
+function closeImportModal(){document.getElementById('modalImport').classList.remove('open');}
+
+function previewImport(){
+  const rows=parseExcelPaste(document.getElementById('importTxt').value);
+  if(!rows.length){document.getElementById('importPreview').textContent='Nenhuma linha reconhecida.';return;}
+  document.getElementById('importPreview').textContent=
+    `${rows.length} item(s) encontrado(s):\n`+
+    rows.map((r,i)=>`${i+1}. [${r.item}] ${r.produto} | ${r.und} | R$${r.valorUnit} | Qtd/mês:${r.qtdMensal}`).join('\n');
+}
+
+function parseExcelPaste(txt){
+  return txt.split(/\r?\n/)
+    .map(l=>l.split('\t').map(c=>c.trim()))
+    .filter(cols=>cols.length>=2 && cols.some(c=>c!==''))
+    .map((cols,i)=>({
+      id: Date.now()+i,
+      item:    cols[0]||'',
+      produto: cols[1]||'',
+      und:     cols[2]||'',
+      valorUnit:  parseFloat((cols[3]||'0').replace(',','.'))||0,
+      qtdMensal:  parseFloat((cols[4]||'0').replace(',','.'))||0
+    }));
+}
+
+function confirmImport(){
+  const rows=parseExcelPaste(document.getElementById('importTxt').value);
+  if(!rows.length){alert('Nenhuma linha reconhecida. Verifique os dados.');return;}
+  const mode=document.querySelector('input[name="importMode"]:checked').value;
+  if(!db.materiais[_importUnit]) db.materiais[_importUnit]=[];
+  if(mode==='replace') db.materiais[_importUnit]=rows;
+  else db.materiais[_importUnit].push(...rows);
+  autosave();
+  closeImportModal();
+  renderMateriais(_importUnit);
+}
+
+// ─── COPIAR ENTRE UNIDADES ───────────────────────────────────────
+let _copyUnit=1;
+function openCopyModal(u){
+  _copyUnit=u;
+  const grid=document.getElementById('copyUnitGrid');
+  grid.innerHTML='';
+  for(let i=1;i<=N;i++){
+    if(i===u) continue;
+    const nome=unNome(i);
+    grid.innerHTML+=`<label class="unit-check-item">
+      <input type="checkbox" name="copyTarget" value="${i}">
+      <span>Unidade ${i}: <b>${escH(nome)}</b></span>
+    </label>`;
+  }
+  document.getElementById('copySrcName').textContent=`Unidade ${u}: ${unNome(u)}`;
+  document.getElementById('copySrcCount').textContent=`${(db.materiais[u]||[]).length} item(s) cadastrado(s)`;
+  document.getElementById('modalCopy').classList.add('open');
+}
+function closeCopyModal(){document.getElementById('modalCopy').classList.remove('open');}
+
+function toggleAllCopy(chk){
+  document.querySelectorAll('input[name="copyTarget"]').forEach(el=>el.checked=chk);
+}
+
+function confirmCopy(){
+  const targets=[...document.querySelectorAll('input[name="copyTarget"]:checked')].map(el=>+el.value);
+  if(!targets.length){alert('Selecione ao menos uma unidade de destino.');return;}
+  const mode=document.querySelector('input[name="copyMode"]:checked').value;
+  const src=JSON.parse(JSON.stringify(db.materiais[_copyUnit]||[])); // deep copy
+  targets.forEach(t=>{
+    if(!db.materiais[t]) db.materiais[t]=[];
+    // Gera novos IDs para não colidir com lancamentos existentes
+    const cloned=src.map((it,i)=>({...it,id:Date.now()+t*1000+i}));
+    if(mode==='replace') db.materiais[t]=cloned;
+    else db.materiais[t].push(...cloned);
+  });
+  autosave();
+  closeCopyModal();
+  renderMateriais(_copyUnit);
+  alert(`✅ Itens copiados para ${targets.length} unidade(s)!`);
+}
+
+// ─── ÁREA FÍSICA ──────────────────────────────────────────────────
+let activeAreaPeriod='', activeAreaUnit=1, _areaPrecoU=1;
+
+function getAreaU(u){
+  if(!db.area) db.area={};
+  if(!db.area[u]) db.area[u]={contrato:{},vm2hist:{},linhaData:{},lancamentos:{}};
+  if(!db.area[u].vm2hist)   db.area[u].vm2hist={};
+  if(!db.area[u].linhaData) db.area[u].linhaData={};
+  return db.area[u];
+}
+// Retorna valor de campo (cod/desc/turno/ins) com override por unidade
+function getAreaLinhaVal(u,key,field){
+  const ln=AREA_LINHAS.find(function(l){return l.key===key;});
+  const def=ln?(ln[field]||''):'';
+  if(!db.area||!db.area[u]||!db.area[u].linhaData) return def;
+  const ovr=db.area[u].linhaData[key];
+  return (ovr&&field in ovr)?ovr[field]:def;
+}
+function setAreaLinhaData(u,key,field,val){
+  const d=getAreaU(u);
+  if(!d.linhaData[key]) d.linhaData[key]={};
+  d.linhaData[key][field]=val;
+  autosave();
+}
+// Retorna o total da aba Área para um determinado período (soma de todas as unidades)
+function totalAreaPeriod(period){
+  if(!db.area) return 0;
+  let total=0;
+  for(let u=1;u<=N;u++){
+    const aU=db.area[u]; if(!aU) continue;
+    const lanc=(aU.lancamentos||{})[period]||{};
+    AREA_LINHAS.forEach(function(ln){
+      const m2a=+(lanc[ln.key]||0);
+      const vm2=getAreaVm2(u,ln.codeKey,period);
+      total=fl2(total+fl2(m2a*vm2));
+    });
+  }
+  return total;
+}
+function getAreaLanc(mes,u){
+  const d=getAreaU(u);
+  if(!d.lancamentos[mes]) d.lancamentos[mes]={};
+  return d.lancamentos[mes];
+}
+
+// ── Histórico de Valor m² (compartilhado entre Diurno e Vespertino do mesmo código) ──
+function getAreaVm2Hist(u,ck){
+  const d=getAreaU(u);
+  // retrocompatibilidade: se havia valorM2 direto no contrato, migra
+  if(!d.vm2hist[ck]){
+    const oldD=d.contrato[ck+'_d'];
+    const seed=(oldD&&oldD.valorM2)||0;
+    d.vm2hist[ck]=seed?[{mesInicio:MESES[0],valor:seed}]:[];
+  }
+  return d.vm2hist[ck];
+}
+function getAreaVm2(u,ck,mes){
+  const hist=getAreaVm2Hist(u,ck);
+  if(!hist.length) return 0;
+  const mesIdx=MESES.indexOf(mes);
+  let val=hist[0].valor;
+  for(const e of hist){if(MESES.indexOf(e.mesInicio)<=mesIdx)val=e.valor;else break;}
+  return val;
+}
+function getAreaLatestVm2(u,ck){
+  const hist=getAreaVm2Hist(u,ck);
+  return hist.length?hist[hist.length-1].valor:0;
+}
+function setAreaVm2Base(u,ck,val){
+  const d=getAreaU(u);
+  const hist=getAreaVm2Hist(u,ck);
+  if(!hist.length) d.vm2hist[ck]=[{mesInicio:MESES[0],valor:val}];
+  else hist[0].valor=val;
+  autosave();
+  renderAreaForm(activeAreaPeriod,u);
+}
+
+function setAreaContrato(u,key,field,val){
+  const d=getAreaU(u);
+  if(!d.contrato[key]) d.contrato[key]={m2:0};
+  d.contrato[key][field]=val;
+  autosave();
+  renderAreaForm(activeAreaPeriod,u);
+}
+function setAreaLanc(mes,u,key,val){
+  getAreaLanc(mes,u)[key]=val;
+  autosave();
+  renderAreaForm(mes,u);
+}
+function onAreaPeriodChange(mes){
+  activeAreaPeriod=mes;
+  if(activeTab==='area'){ const i=MESES.indexOf(mes); hdrPeriodIdx=(i>=0?i:0); refreshHeaderBar(); }
+  renderAreaForm(mes,activeAreaUnit);
+}
+
+// ── Modal de Atualização de Preços da Área ──
+function openAreaBulkPrecoModal(u){
+  _areaPrecoU=u;
+  const sel=document.getElementById('areaBulkMes');
+  if(sel){
+    let def=MESES[0];
+    for(let i=MESES.length-1;i>=0;i--){if(getAreaU(u).lancamentos[MESES[i]]&&Object.keys(getAreaU(u).lancamentos[MESES[i]]).length){def=MESES[Math.min(i+1,MESES.length-1)];break;}}
+    sel.innerHTML=MESES.map(m=>'<option value="'+m+'"'+(m===def?' selected':'')+'>'+m+'</option>').join('');
+  }
+  document.getElementById('areaBulkPasteArea').value='';
+  document.getElementById('modalAreaBulkPreco').classList.add('open');
+  renderAreaBulkPrecoModal();
+}
+function closeAreaBulkPrecoModal(){document.getElementById('modalAreaBulkPreco').classList.remove('open');}
+function renderAreaBulkPrecoModal(){
+  const u=_areaPrecoU;
+  const seen=[];
+  let h='<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  h+='<tr style="background:#1f3864;color:#fff;"><th style="padding:4px 6px;text-align:left;">Cód.</th><th style="padding:4px 6px;text-align:left;min-width:140px;">Descrição</th><th style="padding:4px 6px;font-size:9px;">Regime</th><th style="padding:4px 6px;text-align:right;">Valor atual</th><th style="padding:4px 6px;">Novo Valor m²</th></tr>';
+  AREA_LINHAS.forEach(function(ln){
+    if(!ln.isFirst||seen.includes(ln.codeKey)) return;
+    seen.push(ln.codeKey);
+    const latest=getAreaLatestVm2(u,ln.codeKey);
+    const regime=AREA_GRUPOS[ln.grupo].substring(0,30)+'…';
+    h+='<tr style="border-bottom:1px solid #e0e8f0;">';
+    h+='<td style="padding:3px 6px;font-weight:bold;color:#1f3864;">'+escH(ln.cod)+'</td>';
+    h+='<td style="padding:3px 6px;">'+escH(ln.desc)+'</td>';
+    h+='<td style="padding:3px 6px;font-size:9px;color:#666;">'+escH(regime)+'</td>';
+    h+='<td style="padding:3px 6px;text-align:right;color:#888;">'+BRL(latest)+'</td>';
+    h+='<td style="padding:3px 4px;"><input class="mi r" type="number" step="0.01" min="0" placeholder="'+latest+'" id="areabp_'+ln.codeKey+'" style="width:90px;text-align:right;"></td>';
+    h+='</tr>';
+  });
+  h+='</table>';
+  document.getElementById('areaBulkPrecoBody').innerHTML=h;
+}
+function applyAreaBulkPaste(){
+  const raw=document.getElementById('areaBulkPasteArea').value;
+  const vals=raw.split(/\r?\n/).map(function(l){return l.trim().replace(',','.');});
+  const seen=[];
+  AREA_LINHAS.forEach(function(ln){if(!ln.isFirst||seen.includes(ln.codeKey))return;seen.push(ln.codeKey);});
+  seen.forEach(function(ck,idx){
+    const inp=document.getElementById('areabp_'+ck);
+    const v=vals[idx]; if(!inp||v===undefined||v==='') return;
+    const n=parseFloat(v); if(!isNaN(n)&&n>0) inp.value=n;
+  });
+}
+function confirmAreaBulkPreco(){
+  const mes=document.getElementById('areaBulkMes').value;
+  const u=_areaPrecoU;
+  const seen=[];
+  AREA_LINHAS.forEach(function(ln){if(!ln.isFirst||seen.includes(ln.codeKey))return;seen.push(ln.codeKey);});
+  let updated=0;
+  seen.forEach(function(ck){
+    const inp=document.getElementById('areabp_'+ck);
+    if(!inp||inp.value==='') return;
+    const val=parseFloat(inp.value); if(isNaN(val)||val<=0) return;
+    const d=getAreaU(u);
+    const hist=getAreaVm2Hist(u,ck);
+    if(!hist.length) d.vm2hist[ck]=[{mesInicio:MESES[0],valor:0}];
+    const exi=d.vm2hist[ck].findIndex(function(e){return e.mesInicio===mes;});
+    if(exi>=0) d.vm2hist[ck][exi].valor=val; else d.vm2hist[ck].push({mesInicio:mes,valor:val});
+    d.vm2hist[ck].sort(function(a,b){return MESES.indexOf(a.mesInicio)-MESES.indexOf(b.mesInicio);});
+    updated++;
+  });
+  if(!updated){alert('Nenhum valor preenchido.');return;}
+  autosave(); closeAreaBulkPrecoModal(); renderAreaForm(activeAreaPeriod,u);
+  alert('✅ '+updated+' código(s) atualizado(s) a partir de '+mes+'!');
+}
+
+function renderArea(){
+  if(!activeAreaPeriod||!MESES.includes(activeAreaPeriod)) activeAreaPeriod=MESES[0];
+  {const _d=unidadesParaExibir(); if(!_d.includes(activeAreaUnit)) activeAreaUnit=_d[0];}
+  const sel=document.getElementById('areaPeriodSel');
+  if(sel) sel.innerHTML=MESES.map(m=>'<option value="'+m+'"'+(m===activeAreaPeriod?' selected':'')+'>'+m+'</option>').join('');
+  renderPills('areaPills',activeAreaUnit,function(u){activeAreaUnit=u;renderAreaForm(activeAreaPeriod,u);});
+  renderAreaForm(activeAreaPeriod,activeAreaUnit);
+}
+
+let _areaPrintMode=false; // no PDF, filtra as linhas da Área p/ só as com M² preenchido
+function renderAreaForm(period,u){
+  activeAreaPeriod=period;
+  activeAreaUnit=u;
+  const contrato=getAreaU(u).contrato;
+  const lanc=getAreaLanc(period,u);
+  const lk=globalLocked?'disabled':'';
+
+  let totalM2C=0,totalM2A=0,totalVL=0;
+
+  let h='<div class="sec-title"><span>CONTROLE DE ÁREA FÍSICA LIMPA – '+escH(unNome(u))+' – '+period+'</span></div>';
+  h+='<div style="overflow-x:auto;">';
+  h+='<table class="area-tbl">';
+  h+='<thead><tr>';
+  h+='<th rowspan="2" style="min-width:32px;">Cód.</th>';
+  h+='<th rowspan="2" style="min-width:170px;">Descrição</th>';
+  h+='<th rowspan="2">Turno</th>';
+  h+='<th rowspan="2">Insalubridade</th>';
+  h+='<th colspan="2" style="background:#1a3a6b;">CONTRATADO</th>';
+  h+='<th colspan="2" style="background:#1a5276;">ÁREA LIMPA AFERIDA – '+escH(period)+'</th>';
+  h+='</tr><tr>';
+  h+='<th>M²</th><th style="text-align:center;">Valor m²</th><th>M² Aferido</th><th>Valor Liberado</th>';
+  h+='</tr></thead><tbody>';
+
+  let lastGrupo=-1, lastTipo='__';
+
+  // No PDF, só as linhas que têm valor na coluna M² (contratado)
+  const _linhas=_areaPrintMode
+    ? AREA_LINHAS.filter(function(ln){ return +((contrato[ln.key]||{}).m2||0)>0; })
+    : AREA_LINHAS;
+  _linhas.forEach(function(ln){
+    const c=contrato[ln.key]||{};
+    const m2c=+(c.m2||0);
+    const vm2Hist=getAreaVm2Hist(u,ln.codeKey);
+    const multiVm2=vm2Hist.length>1;
+    const vm2AtPeriod=getAreaVm2(u,ln.codeKey,period);  // preço válido no período exibido
+    const latestVm2=getAreaLatestVm2(u,ln.codeKey);
+    const m2a=+(lanc[ln.key]||0);
+    const vl=fl2(m2a*vm2AtPeriod);
+    totalM2C=fl2(totalM2C+m2c);
+    totalM2A=fl2(totalM2A+m2a);
+    totalVL=fl2(totalVL+vl);
+
+    if(ln.grupo!==lastGrupo){
+      lastGrupo=ln.grupo; lastTipo='__';
+      h+='<tr class="area-grupo-hdr"><td colspan="8">&#128203; Carga semanal: '+escH(AREA_GRUPOS[ln.grupo])+'</td></tr>';
+    }
+    if(ln.tipo&&(ln.isFirst||_areaPrintMode)&&ln.tipo!==lastTipo){
+      lastTipo=ln.tipo;
+      h+='<tr class="area-secao-hdr"><td colspan="8">'+escH(ln.tipo)+'</td></tr>';
+    }
+
+    // valores editáveis por unidade (com fallback para o padrão de AREA_LINHAS)
+    const valCod   =getAreaLinhaVal(u,ln.key,'cod');
+    const valDesc  =getAreaLinhaVal(u,ln.key,'desc');
+    const valTurno =getAreaLinhaVal(u,ln.key,'turno');
+    const valIns   =getAreaLinhaVal(u,ln.key,'ins');
+
+    h+='<tr class="'+(ln.isFirst?'area-row-d':'area-row-v')+'">';
+    // Cód – editável apenas na linha Diurno
+    h+='<td class="area-cod" style="padding:1px 3px;">';
+    if(ln.isFirst) h+='<input class="mi" value="'+escH(valCod)+'" '+lk+' style="width:40px;font-size:10px;" oninput="setAreaLinhaData('+u+',\''+ln.key+'\',\'cod\',this.value)">';
+    h+='</td>';
+    // Descrição – editável apenas na linha Diurno
+    h+='<td class="area-desc" style="padding:1px 3px;">';
+    if(ln.isFirst) h+='<input class="mi" value="'+escH(valDesc)+'" '+lk+' style="width:155px;font-size:10px;" oninput="setAreaLinhaData('+u+',\''+ln.key+'\',\'desc\',this.value)">';
+    h+='</td>';
+    // Turno – editável em cada linha
+    h+='<td style="padding:1px 3px;"><input class="mi" value="'+escH(valTurno)+'" '+lk+' style="width:68px;font-size:10px;" oninput="setAreaLinhaData('+u+',\''+ln.key+'\',\'turno\',this.value)"></td>';
+    // Insalubridade – editável em cada linha
+    h+='<td style="padding:1px 3px;"><input class="mi" value="'+escH(valIns)+'" '+lk+' style="width:90px;font-size:9px;" oninput="setAreaLinhaData('+u+',\''+ln.key+'\',\'ins\',this.value)"></td>';
+    // M² contratado
+    h+='<td style="padding:2px 4px;"><input class="mi r" type="number" step="0.01" min="0" value="'+(m2c||'')+'" placeholder="0" '+lk+' style="width:78px;text-align:right;" onchange="setAreaContrato('+u+',\''+ln.key+'\',\'m2\',+this.value||0)"></td>';
+    // Valor m² – editável (input) com o formulário destravado; texto BRL não editável quando travado.
+    // Quando há histórico de preços (>1), continua só por modal "Atualizar Preços".
+    h+='<td style="text-align:center;padding:2px 6px;font-size:10px;">';
+    if(!globalLocked && !multiVm2){
+      h+='<input class="mi r" type="number" step="0.01" min="0" value="'+(vm2AtPeriod||'')+'" placeholder="0" '
+        +'style="width:74px;text-align:center;'+(ln.isFirst?'font-weight:bold;':'')+'" '
+        +'onchange="setAreaVm2Base('+u+',\''+ln.codeKey+'\',+this.value||0)">';
+    }else{
+      h+=(ln.isFirst?'<b>':'')+BRL(vm2AtPeriod)+(ln.isFirst?'</b>':'')
+        +(multiVm2&&!globalLocked?' <small style="color:#888;">(via Atualizar Preços)</small>':'');
+    }
+    h+='</td>';
+    // M² aferido
+    h+='<td style="padding:2px 4px;"><input class="mi r" type="number" step="0.01" min="0" value="'+(m2a||'')+'" placeholder="0" style="width:78px;text-align:right;" onchange="setAreaLanc(\''+period+'\','+u+',\''+ln.key+'\',+this.value||0)"></td>';
+    h+='<td class="area-calc">'+BRL(vl)+'</td>';
+    h+='</tr>';
+  });
+
+  h+='<tr class="area-total-row">';
+  h+='<td colspan="4" style="text-align:right;"><b>TOTAL</b></td>';
+  h+='<td style="text-align:right;font-weight:bold;">'+BR2(totalM2C)+' m²</td>';
+  h+='<td></td>';
+  h+='<td style="text-align:right;font-weight:bold;">'+BR2(totalM2A)+' m²</td>';
+  h+='<td class="area-calc" style="font-size:11px;">'+BRL(totalVL)+'</td>';
+  h+='</tr>';
+
+  h+='</tbody></table></div>';
+
+  if(!globalLocked){
+    h+='<div style="margin-top:6px;">';
+    h+='<button class="btn btn-blue" onclick="openAreaBulkPrecoModal('+u+')">🔄 Atualizar Preços</button>';
+    h+='</div>';
+  }
+
+  document.getElementById('areaContent').innerHTML=h;
+}
+
+// ─── INICIALIZAÇÃO ────────────────────────────────────────────────
+loadDB();fillForm();
+buildMeses(db.contrato.inicio); // ajusta meses conforme início de vigência salvo
+// Restaura o estado de trava salvo — permanece travado ao recarregar/reentrar no sistema
+if(db.locked){
+  globalLocked=true; globalPwd=db.pwd||''; applyLock();
+  document.getElementById('btnLock').style.display='none';
+  document.getElementById('btnUnlock').style.display='inline-block';
+  document.getElementById('btnLimpar').style.display='none';
+}
+if(INIT_LOCKED&&INIT_DATA_EXPORT){
+  Object.assign(db,INIT_DATA_EXPORT);fillForm();
+  globalPwd=INIT_PWD;globalLocked=true;applyLock();
+  document.getElementById('btnLock').style.display='none';
+  document.getElementById('btnUnlock').style.display='inline-block';
+  document.getElementById('btnLimpar').style.display='none';
+}
+
+// Evita que o scroll do mouse altere o valor de campos numéricos:
+// ao rolar sobre um input[type=number] focado, tira o foco para a página/lista rolar.
+document.addEventListener('wheel',function(e){
+  const a=document.activeElement;
+  if(a&&a.tagName==='INPUT'&&a.type==='number'&&(a===e.target||a.contains(e.target))) a.blur();
+},{passive:true});
+
+initCloud();
+</script>
+
+<!-- MODAL: Atualização de Preços de Área -->
+<div class="modal-overlay" id="modalAreaBulkPreco" onclick="if(event.target===this)closeAreaBulkPrecoModal()">
+  <div class="modal-box" style="width:680px;">
+    <div class="modal-title">🔄 Atualizar Preços de Área (Valor m²)</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:10px;font-weight:bold;color:#1f3864;">Vigência a partir de:</span>
+      <select id="areaBulkMes" onchange="renderAreaBulkPrecoModal()"
+        style="padding:4px 8px;border:1.5px solid #2e74b5;border-radius:3px;font-size:11px;font-family:Arial;color:#1f3864;background:#f0f7ff;"></select>
+    </div>
+    <div style="background:#fffde7;border:1px solid #ffe082;border-radius:4px;padding:8px 10px;margin-bottom:10px;">
+      <p style="font-size:10px;margin:0 0 4px;font-weight:bold;">📋 Colar do Excel</p>
+      <p style="font-size:9px;margin:0 0 6px;color:#555;">Cole uma coluna com os novos valores (um por linha, na ordem dos códigos exibidos).</p>
+      <textarea id="areaBulkPasteArea" rows="4"
+        style="width:100%;font-size:10px;font-family:monospace;border:1px solid #ccc;border-radius:3px;padding:4px;resize:vertical;"
+        placeholder="Cole aqui os valores do Excel..."></textarea>
+      <button class="btn btn-blue" onclick="applyAreaBulkPaste()" style="margin-top:4px;font-size:10px;padding:3px 10px;">📥 Aplicar colagem</button>
+    </div>
+    <div id="areaBulkPrecoBody" style="max-height:380px;overflow-y:auto;border:1px solid #d0d8e8;border-radius:4px;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+      <button class="btn" onclick="closeAreaBulkPrecoModal()" style="background:#888;color:#fff;font-size:11px;">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmAreaBulkPreco()" style="font-size:11px;">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Atualização de Preços em Massa -->
+<div class="modal-overlay" id="modalBulkPreco" onclick="if(event.target===this)closeBulkPrecoModal()">
+  <div class="modal-box" style="width:620px;">
+    <div class="modal-title">🔄 Atualizar Preços</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:10px;font-weight:bold;color:#1f3864;">Vigência a partir de:</span>
+      <select id="bulkPrecoMes" onchange="renderBulkPrecoModal()"
+        style="padding:4px 8px;border:1.5px solid #2e74b5;border-radius:3px;font-size:11px;font-family:Arial;color:#1f3864;background:#f0f7ff;">
+      </select>
+    </div>
+    <div style="background:#fffde7;border:1px solid #ffe082;border-radius:4px;padding:8px 10px;margin-bottom:10px;">
+      <p style="font-size:10px;font-weight:bold;color:#b26a00;margin-bottom:5px;">📋 Colar coluna do Excel</p>
+      <p style="font-size:9px;color:#777;margin-bottom:5px;">Copie a coluna de novos preços do Excel (mesma ordem dos itens abaixo) e cole aqui. Células vazias = sem alteração.</p>
+      <div style="display:flex;gap:8px;align-items:flex-start;">
+        <textarea id="bulkPasteArea" rows="3" placeholder="Cole aqui os valores copiados do Excel (um por linha)..."
+          style="flex:1;font-size:10px;font-family:monospace;border:1.5px solid #ffe082;border-radius:3px;padding:4px 6px;resize:vertical;outline:none;"></textarea>
+        <button class="btn" style="background:#b26a00;color:#fff;padding:5px 12px;font-size:10px;white-space:nowrap;"
+          onclick="applyBulkPaste()">↓ Preencher</button>
+      </div>
+    </div>
+    <div style="overflow-y:auto;max-height:50vh;">
+      <table style="border-collapse:collapse;font-size:10px;width:100%;">
+        <thead><tr>
+          <th style="background:#1f3864;color:#fff;padding:5px 8px;text-align:left;">Item</th>
+          <th style="background:#1f3864;color:#fff;padding:5px 8px;text-align:left;">Produto / Descrição</th>
+          <th style="background:#1f3864;color:#fff;padding:5px 8px;text-align:right;white-space:nowrap;">Preço Atual</th>
+          <th style="background:#1f3864;color:#fff;padding:5px 8px;text-align:center;white-space:nowrap;">Novo Preço (R$)</th>
+        </tr></thead>
+        <tbody id="bulkPrecoBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn btn-red" onclick="closeBulkPrecoModal()">Cancelar</button>
+      <button class="btn" style="background:#b26a00;color:#fff;" onclick="confirmBulkPreco()">✅ Aplicar Atualização</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Histórico de Preços -->
+<div class="modal-overlay" id="modalPreco" onclick="if(event.target===this)closePrecoModal()">
+  <div class="modal-box" style="width:500px;">
+    <div class="modal-title">🕐 Histórico de Preços – <span id="precoModalProd"></span></div>
+    <div id="precoModalContent"></div>
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn btn-blue" onclick="closePrecoModal()">✔ Fechar e atualizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Importar do Excel -->
+<div class="modal-overlay" id="modalImport" onclick="if(event.target===this)closeImportModal()">
+  <div class="modal-box">
+    <div class="modal-title">📋 Importar itens do Excel</div>
+    <p class="modal-hint">
+      No Excel, selecione as linhas dos materiais (sem cabeçalho) e copie (<b>Ctrl+C</b>).<br>
+      Cole abaixo (<b>Ctrl+V</b>). Colunas esperadas na ordem:<br>
+      <b>Item &nbsp;|&nbsp; Produto/Descrição &nbsp;|&nbsp; Und &nbsp;|&nbsp; Valor Unit. &nbsp;|&nbsp; Qtd Prev./Mês</b>
+    </p>
+    <textarea class="modal-textarea" id="importTxt" placeholder="Cole aqui os dados copiados do Excel..."
+      oninput="previewImport()"></textarea>
+    <div class="import-preview" id="importPreview">Cole os dados e veja o preview aqui.</div>
+    <div style="margin-top:10px;font-size:10px;font-weight:bold;color:#1f3864;">Ao importar:</div>
+    <div class="modal-radio">
+      <label><input type="radio" name="importMode" value="replace" checked> Substituir itens existentes</label>
+      <label><input type="radio" name="importMode" value="append"> Adicionar ao final</label>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-red" onclick="closeImportModal()">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmImport()">✅ Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Copiar para outras unidades -->
+<div class="modal-overlay" id="modalCopy" onclick="if(event.target===this)closeCopyModal()">
+  <div class="modal-box">
+    <div class="modal-title">⧉ Copiar itens para outras unidades</div>
+    <p style="font-size:10px;margin-bottom:4px;">
+      Origem: <b id="copySrcName"></b> &nbsp;–&nbsp; <span id="copySrcCount"></span>
+    </p>
+    <p style="font-size:9px;color:#777;margin-bottom:8px;">Selecione as unidades de destino:</p>
+    <div style="display:flex;gap:10px;margin-bottom:4px;font-size:9px;">
+      <span style="cursor:pointer;color:#2e74b5;text-decoration:underline;" onclick="toggleAllCopy(true)">Selecionar todas</span>
+      <span style="cursor:pointer;color:#c62828;text-decoration:underline;" onclick="toggleAllCopy(false)">Desmarcar todas</span>
+    </div>
+    <div class="unit-check-grid" id="copyUnitGrid"></div>
+    <div style="margin-top:10px;font-size:10px;font-weight:bold;color:#1f3864;">Ao copiar:</div>
+    <div class="modal-radio">
+      <label><input type="radio" name="copyMode" value="replace" checked> Substituir itens existentes nas unidades destino</label>
+      <label><input type="radio" name="copyMode" value="append"> Adicionar ao final</label>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-red" onclick="closeCopyModal()">Cancelar</button>
+      <button class="btn" style="background:#5c3d91;color:#fff;" onclick="confirmCopy()">⧉ Copiar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
