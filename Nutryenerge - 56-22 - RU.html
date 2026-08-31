@@ -33,6 +33,8 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .header-title .org{font-size:11px;color:#7a2e12;font-weight:bold;}
 .header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
 .header-title .sub{font-size:10px;color:#555;margin-top:2px;font-style:italic;}
+.header-title .sub-input{font-size:10px;color:#555;margin-top:3px;font-style:italic;text-align:center;border:none;border-bottom:1px dashed #b5502e;background:#fff7f2;outline:none;font-family:Arial;width:88%;padding:1px 4px;border-radius:2px;}
+.header-title .sub-input:disabled{background:transparent;border-bottom:1px solid transparent;color:#555;cursor:not-allowed;}
 .header-badge{width:80px;border-left:1.5px solid #7a2e12;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#7a2e12;color:#fff;font-weight:bold;font-size:16px;letter-spacing:2px;}
 .header-badge small{font-size:9px;letter-spacing:0;font-weight:normal;margin-top:2px;}
 
@@ -107,6 +109,12 @@ textarea.ocorr:disabled{background:#f0f0f0;color:#555;}
 .lock-btn:hover{opacity:.8;}
 .print-btn{font-size:10px;padding:4px 12px;background:#455a64;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
 .print-btn:hover{opacity:.85;}
+.mini-inp{width:74px;border:none;border-bottom:1.5px solid #b5502e;background:#fffde7;text-align:right;font-family:Arial;font-size:11px;padding:1px 4px;border-radius:2px;outline:none;}
+.mini-inp:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;}
+.subdesc-line{margin:8px 0 2px;font-size:11px;color:#333;}
+.clear-btn{font-size:11px;padding:6px 18px;background:#b71c1c;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;margin-top:14px;}
+.clear-btn:hover{opacity:.85;}
+.clear-btn:disabled{background:#ccc;cursor:not-allowed;}
 
 /* ── REFERÊNCIA ── */
 .ref-wrap{border:2px solid #556b2f;border-radius:5px;overflow:hidden;margin-top:4px;}
@@ -142,7 +150,7 @@ textarea.ocorr:disabled{background:#f0f0f0;color:#555;}
       <div class="header-title">
         <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
         <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
-        <div class="sub">Serviço de alimentação e nutrição — Restaurantes Universitários (Central, CT, Letras, Centro e Praia Vermelha)</div>
+        <input class="sub sub-input" id="subtitle" placeholder="Descrição do serviço / unidades" oninput="onSubtitle(this.value)">
       </div>
       <div class="header-badge">IMR<small>Nº 01</small></div>
     </div>
@@ -151,7 +159,7 @@ textarea.ocorr:disabled{background:#f0f0f0;color:#555;}
       <div class="info-cell"><label>CONTRATO</label><span class="fixed">56/22</span></div>
       <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Aditivo 05/26</span></div>
       <div class="info-cell"><label>UNIDADE</label><span class="fixed">RU — Restaurantes Universitários</span></div>
-      <div class="info-cell"><label>Resp. fiscalização</label><input id="respFisc" placeholder="Responsável pela fiscalização" oninput="onResp(this.value)"></div>
+      <div class="info-cell"><label>Período</label><input id="periodo" placeholder="Ex.: Agosto/2025" oninput="onPeriodoInput(this.value)" onchange="onPeriodoCommit(this.value)"></div>
       <div class="info-cell"><label>Fiscal de contrato</label><input id="fiscal" placeholder="Nome do fiscal de contrato" oninput="onFiscal(this.value)"></div>
     </div>
   </div>
@@ -166,10 +174,19 @@ textarea.ocorr:disabled{background:#f0f0f0;color:#555;}
 <script>
 /* ═══════════════════ CONSTANTES / MODELO DE DADOS ═══════════════════ */
 const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-// 24 meses: Agosto/2025 → Julho/2027 (termo vigente TA 04/25 em diante)
-const MONTHS=[];
-for(let k=0;k<24;k++){ const t=7+k; const y=2025+Math.floor(t/12); const m=((t%12)+12)%12; MONTHS.push(MESES_CAP[m]+'/'+y); }
-const NUM_MONTHS=MONTHS.length;
+// 24 abas; período inicial padrão Agosto/2025 (termo vigente TA 04/25) — editável e re-sequenciável
+const NUM_MONTHS=24;
+function periodLabel(m,y){ return MESES_CAP[m]+'/'+y; }
+function defaultPeriodo(idx){ const t=7+idx; const y=2025+Math.floor(t/12); const m=((t%12)+12)%12; return periodLabel(m,y); }
+function parsePeriodo(str){
+  if(!str) return null; str=String(str).trim();
+  let mm=str.match(/^([A-Za-zÀ-ÿ]+)[\s\/\-]+(\d{4})$/);
+  if(mm){ const mi=MESES_CAP.findIndex(x=>x.toLowerCase()===mm[1].toLowerCase()); if(mi>=0) return {m:mi,y:+mm[2]}; }
+  mm=str.match(/^(\d{1,2})[\/\-](\d{2,4})$/);
+  if(mm){ const mi=(+mm[1])-1; let y=+mm[2]; if(y<100) y+=2000; if(mi>=0&&mi<12) return {m:mi,y}; }
+  return null;
+}
+const DEFAULT_SUBTITLE='Serviço de alimentação e nutrição — Restaurantes Universitários (Central, CT, Letras, Centro e Praia Vermelha)';
 
 // 5 Restaurantes Universitários (colunas do IMR / linhas do faturamento)
 const RUS=['CENTRAL','CT','LETRAS','CENTRO','PV'];
@@ -181,7 +198,7 @@ const RU_FULL=[
   'RESTAURANTE UNIVERSITÁRIO - PRAIA VERMELHA'
 ];
 const DEFAULT_UNIT=[15.35,16.30,16.30,16.18,17.40]; // valor unitário base (subsídio integral) por RU
-const SUB_DESC=2; // F7 — contribuição fixa do estudante (valor unit. estudante = base − 2)
+const DEFAULT_SUBDESC=2; // desconto do estudante (F7) — valor unit. estudante = base − desconto; editável por período
 
 // Indicadores de qualidade agrupados (réplica da planilha)
 const GROUPS=[
@@ -253,16 +270,16 @@ let state=null;
 let currentTab=0; // 0..NUM_MONTHS-1 = mês ; 'ref' = referência
 
 /* ── período em branco ── */
-function blankPeriod(){
+function blankPeriod(idx){
   const qtd=RUS.map(()=>[ '', '', '' ]);           // [bolsistas, estudantes, servidores] por RU
   const unit=DEFAULT_UNIT.slice();                  // valor unitário base por RU
   const scores={};
   GROUPS.forEach(G=>G.subs.forEach(s=>{ scores[s.key]=s.items.map(()=>RUS.map(()=>3)); }));
-  return {qtd, unit, scores, ocorr:''};
+  return {periodo:defaultPeriodo(idx), subtitle:DEFAULT_SUBTITLE, subDesc:DEFAULT_SUBDESC, qtd, unit, scores, ocorr:''};
 }
 function defaultState(){
-  const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankPeriod());
-  return {respFisc:'', fiscal:'', locked:false, pwd:'', months};
+  const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankPeriod(i));
+  return {fiscal:'', locked:false, pwd:'', months};
 }
 
 /* ═══════════════════ PARSE / FORMATO ═══════════════════ */
@@ -297,15 +314,16 @@ function payPct(nota){ return nota>=8.1?1 : nota>=7.65?0.95 : nota>=6.75?0.90 : 
 // faturamento
 function faturamento(period){
   const pct=payPct(notaFinal(period));
+  const sd=num(period.subDesc);
   let bruto=0, direto=0, totB=0, totE=0, totS=0;
   const perRU=RUS.map((_,i)=>{
     const b=num(parseInt0(period.qtd[i][0])), e=num(parseInt0(period.qtd[i][1])), s=num(parseInt0(period.qtd[i][2]));
-    const u=num(period.unit[i]); const eu=u-SUB_DESC;
+    const u=num(period.unit[i]); const eu=u-sd;
     const brutoRU=b*u + e*eu;          // valor bruto subsidiado do RU
     const liberadoRU=brutoRU*pct;       // valor apurado (após IMR)
     const qFat=b+e;                     // quantidade faturada (subsidiada)
     const uFat=qFat>0?liberadoRU/qFat:0;// valor unit. faturado médio
-    bruto+=brutoRU; direto+= e*SUB_DESC + s*u; totB+=b; totE+=e; totS+=s;
+    bruto+=brutoRU; direto+= e*sd + s*u; totB+=b; totE+=e; totS+=s;
     return {b,e,s,u,eu,brutoRU,liberadoRU,qFat,uFat};
   });
   const totalSubsid=bruto;              // M27 = M21
@@ -316,10 +334,14 @@ function faturamento(period){
 /* ═══════════════════ RENDER ═══════════════════ */
 function renderTabs(){
   const bar=document.getElementById('tabbar'); bar.innerHTML='';
-  MONTHS.forEach((lbl,i)=>{
+  state.months.forEach((mo,i)=>{
+    const lbl=mo.periodo||''; const parts=lbl.split('/');
+    const abbr=parts[0]?parts[0].trim().slice(0,3):('M'+(i+1));
+    const yy=parts[1]?parts[1].trim().slice(2):'';
     const b=document.createElement('button');
     b.className='tab-btn'+(currentTab===i?' active':'');
-    b.innerHTML='<b>'+lbl.split('/')[0].slice(0,3)+'</b><span>/'+lbl.split('/')[1].slice(2)+'</span>';
+    b.innerHTML='<b>'+esc(abbr)+'</b><span>'+(yy?'/'+esc(yy):'')+'</span>';
+    b.title=lbl;
     b.onclick=()=>{ currentTab=i; render(); };
     bar.appendChild(b);
   });
@@ -333,8 +355,16 @@ function render(){
   renderTabs();
   const info=document.getElementById('tabInfo');
   const content=document.getElementById('content');
-  if(currentTab==='ref'){ info.textContent='Referência — faixas de ajuste e pontuação'; content.innerHTML=refHTML(); return; }
-  info.textContent='Período de referência: '+MONTHS[currentTab];
+  const pin=document.getElementById('periodo'), sin=document.getElementById('subtitle');
+  if(currentTab==='ref'){
+    info.textContent='Referência — faixas de ajuste e pontuação';
+    if(pin){ pin.value=''; pin.disabled=true; } if(sin){ sin.disabled=true; }
+    content.innerHTML=refHTML(); return;
+  }
+  const p=state.months[currentTab];
+  info.textContent='Período de referência: '+p.periodo;
+  if(pin){ pin.value=p.periodo; pin.disabled=state.locked; }
+  if(sin){ sin.value=p.subtitle; sin.disabled=state.locked; }
   content.innerHTML=periodHTML(currentTab);
   recalc();
 }
@@ -344,10 +374,13 @@ function periodHTML(mi){
   let h='';
 
   /* ── 1) FATURAMENTO ── */
-  h+='<div class="sec-title"><span>TABELA DE COMPOSIÇÃO DE VALORES PARA FATURAMENTO — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="sec-title"><span>TABELA DE COMPOSIÇÃO DE VALORES PARA FATURAMENTO — '+esc(p.periodo)+'</span></div>';
   h+='<div class="instrucao"><b>Quantitativo de refeições entregues</b> (células amarelas): informe, por RU, o nº de refeições de <b>bolsistas</b>, <b>estudantes</b> e <b>servidores</b>. '+
-     'O valor unitário base é o subsídio integral por refeição (o valor do estudante é o base menos R$ '+fmtUnit(SUB_DESC)+'). '+
-     'Editar um valor unitário replica-o para os meses seguintes. O valor liberado usa o percentual apurado no IMR (abaixo).</div>';
+     'O valor unitário base é o subsídio integral por refeição (o valor do estudante é o base menos o desconto informado abaixo). '+
+     'Editar um valor unitário ou o desconto replica-o para os meses seguintes. O valor liberado usa o percentual apurado no IMR (abaixo).</div>';
+  h+='<div class="subdesc-line"><b>Desconto do estudante:</b> valor unit. do estudante = base − R$ '+
+     '<input class="mini-inp" id="subDescInp" '+lk+' value="'+esc(fmtUnit(p.subDesc))+'" oninput="setSubDesc('+mi+',this.value)" onblur="fmtSubDescBlur('+mi+')"> '+
+     '<span style="color:#777">(replicado para os meses seguintes)</span></div>';
   h+='<div class="tscroll"><table class="grid"><thead>';
   h+='<tr><th rowspan="2" style="min-width:220px;text-align:left">Restaurante Universitário</th>'+
      '<th colspan="3">Quantitativo de refeições entregues</th>'+
@@ -424,6 +457,9 @@ function periodHTML(mi){
   h+='<div class="instrucao">Obrigatório principalmente quando a fiscalização apontar falhas na execução (notas inferiores a 3). Relate todas as falhas ocorridas durante a execução do objeto.</div>';
   h+='<textarea class="ocorr" '+lk+' oninput="setOcorr('+mi+',this.value)" placeholder="Descreva as ocorrências do período...">'+esc(p.ocorr)+'</textarea>';
 
+  /* ── 5) LIMPAR ── */
+  h+='<div><button class="clear-btn" '+lk+' onclick="limparPeriodo('+mi+')">🧹 Limpar quantitativo e notas</button></div>';
+
   return h;
 }
 function scoreSelect(mi,key,ir,ui,v,lk){
@@ -474,15 +510,37 @@ function setScore(mi,key,ir,ui,v){ const n=Number(v); state.months[mi].scores[ke
   const sel=event&&event.target; if(sel){ sel.className=n===3?'s3':n===1?'s1':'s0'; }
   persist(); recalc(); }
 function setOcorr(mi,v){ state.months[mi].ocorr=v; persist(); }
-function onResp(v){ state.respFisc=v; persist(); }
 function onFiscal(v){ state.fiscal=v; persist(); }
+
+/* período: editável; ao confirmar re-sequencia os meses seguintes (mantém os anteriores) */
+function onPeriodoInput(v){ if(currentTab==='ref') return; state.months[currentTab].periodo=v; persist(); }
+function onPeriodoCommit(v){ if(currentTab==='ref') return; state.months[currentTab].periodo=v; resequenceFrom(currentTab); persist(); render(); }
+function resequenceFrom(i){
+  const base=parsePeriodo(state.months[i].periodo); if(!base) return;
+  state.months[i].periodo=periodLabel(base.m,base.y);
+  for(let k=i+1;k<NUM_MONTHS;k++){ const t=base.m+(k-i); const y=base.y+Math.floor(t/12); const m=((t%12)+12)%12; state.months[k].periodo=periodLabel(m,y); }
+}
+/* subtítulo: cascata para frente, mantém os anteriores */
+function onSubtitle(v){ if(currentTab==='ref') return; for(let k=currentTab;k<NUM_MONTHS;k++){ state.months[k].subtitle=v; } persist(); }
+/* desconto do estudante: cascata para frente */
+function setSubDesc(mi,v){ const n=parseMoney(v); const val=(n===''?'':n); for(let k=mi;k<NUM_MONTHS;k++){ state.months[k].subDesc=val; } persist(); recalc(); }
+function fmtSubDescBlur(mi){ const val=state.months[mi].subDesc; const inp=document.getElementById('subDescInp'); if(inp&&val!=='') inp.value=fmtUnit(val); recalc(); }
+/* limpar: zera o quantitativo de refeições e volta todas as notas para 3 (no período atual) */
+function limparPeriodo(mi){
+  if(state.locked) return;
+  if(!confirm('Limpar o quantitativo de refeições e redefinir TODAS as notas para 3 no período '+state.months[mi].periodo+'?')) return;
+  const p=state.months[mi];
+  p.qtd=RUS.map(()=>['','','']);
+  GROUPS.forEach(G=>G.subs.forEach(s=>{ p.scores[s.key]=s.items.map(()=>RUS.map(()=>3)); }));
+  persist(); render();
+}
 
 /* ═══════════════════ TRAVA ═══════════════════ */
 function applyLockUI(){
   const b=document.getElementById('lockBtn');
   if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
   else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
-  ['respFisc','fiscal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=state.locked; });
+  ['periodo','subtitle','fiscal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=state.locked; });
 }
 function toggleLock(){
   if(!state.locked){
@@ -497,29 +555,30 @@ function toggleLock(){
 }
 
 /* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
-function collectData(){ return {v:1, respFisc:state.respFisc, fiscal:state.fiscal, locked:state.locked, pwd:state.pwd, months:state.months}; }
+function collectData(){ return {v:1, fiscal:state.fiscal, locked:state.locked, pwd:state.pwd, months:state.months}; }
 function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
 function applyData(pd){
   if(!pd) return;
-  state.respFisc=pd.respFisc||''; state.fiscal=pd.fiscal||'';
+  state.fiscal=pd.fiscal||'';
   state.locked=!!pd.locked; state.pwd=pd.pwd||'';
   if(Array.isArray(pd.months)){
     for(let i=0;i<NUM_MONTHS;i++){
       const src=pd.months[i]; if(!src) continue;
       const dst=state.months[i];
+      if(src.periodo!=null && src.periodo!=='') dst.periodo=src.periodo;
+      if(src.subtitle!=null) dst.subtitle=src.subtitle;
+      if(src.subDesc!=null && src.subDesc!=='') dst.subDesc=src.subDesc;
       if(Array.isArray(src.qtd)) src.qtd.forEach((row,ri)=>{ if(dst.qtd[ri]&&Array.isArray(row)) for(let c=0;c<3;c++) dst.qtd[ri][c]=(row[c]==null?'':row[c]); });
       if(Array.isArray(src.unit)) src.unit.forEach((u,ri)=>{ if(ri<dst.unit.length) dst.unit[ri]=(u==null?'':u); });
       if(src.scores) Object.keys(dst.scores).forEach(key=>{ if(Array.isArray(src.scores[key])) src.scores[key].forEach((row,ir)=>{ if(dst.scores[key][ir]&&Array.isArray(row)) row.forEach((val,ui)=>{ if(ui<RUS.length) dst.scores[key][ir][ui]=(val==null?3:Number(val)); }); }); });
       dst.ocorr=src.ocorr||'';
     }
   }
-  const rf=document.getElementById('respFisc'); if(rf) rf.value=state.respFisc;
   const fc=document.getElementById('fiscal'); if(fc) fc.value=state.fiscal;
 }
 function loadState(){
   state=defaultState();
   try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
-  const rf=document.getElementById('respFisc'); if(rf) rf.value=state.respFisc;
   const fc=document.getElementById('fiscal'); if(fc) fc.value=state.fiscal;
 }
 
@@ -593,8 +652,8 @@ function refHTML(){
      '<tr><td>6,75 ≤ x &lt; 7,65</td><td>90%</td></tr><tr><td>x &lt; 6,75</td><td>85%</td></tr></tbody></table>';
   h+='<h4>Faturamento</h4>'+
      '<ul><li>Valor bruto subsidiado = Σ (bolsistas × valor unit. base) + Σ (estudantes × valor unit. estudante).</li>'+
-     '<li>Valor unit. estudante = valor unit. base − R$ '+fmtUnit(SUB_DESC)+'.</li>'+
-     '<li>Valor recebido direto = Σ (estudantes × R$ '+fmtUnit(SUB_DESC)+') + Σ (servidores × valor unit. base).</li>'+
+     '<li>Valor unit. estudante = valor unit. base − desconto do estudante (padrão R$ '+fmtUnit(DEFAULT_SUBDESC)+', editável por período).</li>'+
+     '<li>Valor recebido direto = Σ (estudantes × desconto) + Σ (servidores × valor unit. base).</li>'+
      '<li><b>Valor liberado para pagamento = valor bruto subsidiado × percentual do IMR.</b></li></ul>';
   h+='</div></div>';
   return h;
