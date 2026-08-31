@@ -971,6 +971,19 @@ select.doc-inp{cursor:pointer}
   </div>
 </div>
 
+    <!-- ALERTA: solicitações de retirada (Conta Vinculada) pendentes do usuário -->
+<div class="mo" id="pend-mo" onclick="if(event.target===this)fecharPendModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="mh"><div><div class="mt">🔒 Conta Vinculada</div><div class="ms" id="pend-sub">—</div></div>
+      <button class="mc" onclick="fecharPendModal()">✕</button></div>
+    <div class="mb" id="pend-body"></div>
+    <div class="mo-actions">
+      <button class="btn-cancel-e" onclick="fecharPendModal()">Fechar</button>
+      <button class="btn-save" onclick="fecharPendModal(); showView('contas')">Ver Solicitação Empresa</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1396,6 +1409,8 @@ function launchApp(u) {
     var cvId = sessionStorage.getItem('ufrj_cvform');
     if (lastView === 'cvform' && cvId) cvAbrirFormulario(cvId);
     else if (lastView && lastView !== 'dashboard') showView(lastView);
+    // Avisa se há solicitação de retirada (Conta Vinculada) pendente do usuário.
+    checarPendenciasContaVinculada();
   });
 }
 
@@ -4593,6 +4608,55 @@ function contaSituacaoAuto(c) {
   if (c && String(c.envioPR3 || '').trim()) return 'ENVIADO À PR3';
   if (c && String(c.folhaInfo || '').trim()) return 'BLOCO 743';
   return 'PENDENTE';
+}
+
+// ── Alerta de login: solicitações de retirada (Conta Vinculada) pendentes ──
+// Uma "solicitação de retirada a ser feita" = registro da Solicitação Empresa
+// (CONTAS) cuja Situação automática está PENDENTE. Mostramos só as do usuário
+// que logou: o vínculo é o nome do responsável casando com o login OU com o
+// Nome de exibição (comparados como só letras/dígitos, sem acento, maiúsculas —
+// assim "renanmedeiros" casa com "RENAN MEDEIROS").
+function chaveResponsavel(s) {
+  // unidadeChave já faz NFD + remove acento + maiúsculas + colapsa espaços;
+  // aqui removemos tudo que não é letra/dígito para "renanmedeiros" casar com
+  // "RENAN MEDEIROS".
+  return unidadeChave(s).replace(/[^A-Z0-9]/g, '');
+}
+
+function fecharPendModal() {
+  var el = document.getElementById('pend-mo');
+  if (el) el.classList.remove('open');
+}
+
+function checarPendenciasContaVinculada() {
+  var info = USERS_DB[currentUserLogin] || {};
+  var chaves = [chaveResponsavel(currentUserLogin)];
+  if (info.nome) chaves.push(chaveResponsavel(info.nome));
+  chaves = chaves.filter(function(k, i, a) { return k && a.indexOf(k) === i; });
+  if (!chaves.length) return;
+
+  var pend = CONTAS.filter(function(c) {
+    if (contaSituacaoAuto(c) !== 'PENDENTE') return false;
+    return chaves.indexOf(chaveResponsavel(c.responsavel)) !== -1;
+  });
+  if (!pend.length) return;
+
+  var n = pend.length;
+  var msg = n === 1
+    ? 'Existe <b>1</b> solicitação de retirada de conta Vinculada a ser feita.'
+    : 'Existem <b>' + n + '</b> solicitações de retirada de conta vinculada a serem feitas.';
+  var itens = pend.map(function(c) {
+    return '<li style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;'
+      + 'margin-bottom:8px;background:var(--surface2);display:flex;gap:10px;align-items:baseline">'
+      + '<b style="color:var(--accent);white-space:nowrap;font-size:13px">' + esc(c.contrato || '—') + '</b>'
+      + '<span style="color:var(--text);font-size:13px">' + esc(c.empresa || '—') + '</span></li>';
+  }).join('');
+
+  document.getElementById('pend-sub').textContent = 'Solicitações da empresa pendentes';
+  document.getElementById('pend-body').innerHTML =
+    '<div style="padding:2px 2px 14px;font-size:14px;color:var(--text);line-height:1.5">' + msg + '</div>'
+    + '<ul style="list-style:none;margin:0;padding:0;max-height:320px;overflow:auto">' + itens + '</ul>';
+  document.getElementById('pend-mo').classList.add('open');
 }
 
 function contaInlineSalvar(id, campo, valor) {
