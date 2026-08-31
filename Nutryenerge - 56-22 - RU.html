@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMR Nutryenerge - 56-22 - RU</title>
+<meta property="og:title" content="IMR Nutryenerge - 56-22 - Restaurantes Universitários">
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
+
+/* ── PAGE ── */
+.page{background:#fff;width:1320px;max-width:98vw;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+/* ── TAB BAR ── */
+.tab-nav{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.tab-info{font-size:12px;font-weight:bold;color:#7a2e12;}
+.tab-hint{font-size:10px;color:#777;font-style:italic;margin-left:auto;}
+.tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#7a2e12;border-radius:4px;margin-bottom:10px;}
+.tab-btn{flex:0 0 auto;min-width:78px;padding:5px 8px;font-size:10px;border:1px solid #b5502e;background:#b5502e;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.25;}
+.tab-btn.active{background:#fff;color:#7a2e12;font-weight:bold;border-color:#fff;}
+.tab-btn.special{background:#556b2f;border-color:#6b8e23;}
+.tab-btn.special.active{background:#fff;color:#33450f;border-color:#fff;}
+.tab-btn:hover{opacity:.92;}
+
+/* ── HEADER ── */
+.header-wrap{border:2px solid #7a2e12;}
+.header-top{display:flex;align-items:stretch;}
+.header-logo{width:90px;border-right:1.5px solid #7a2e12;display:flex;align-items:center;justify-content:center;padding:6px;background:#f5f5f5;}
+.header-logo span{font-size:9px;color:#777;text-align:center;line-height:1.3;font-weight:bold;}
+.header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+.header-title .org{font-size:11px;color:#7a2e12;font-weight:bold;}
+.header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
+.header-title .sub{font-size:10px;color:#555;margin-top:2px;font-style:italic;}
+.header-badge{width:80px;border-left:1.5px solid #7a2e12;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#7a2e12;color:#fff;font-weight:bold;font-size:16px;letter-spacing:2px;}
+.header-badge small{font-size:9px;letter-spacing:0;font-weight:normal;margin-top:2px;}
+
+/* ── INFO GRID ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #7a2e12;border-top:none;}
+.info-cell{display:flex;align-items:center;padding:4px 8px;gap:6px;border-bottom:1px solid #bbb;border-right:1px solid #bbb;}
+.info-cell:nth-child(2n){border-right:none;}
+.info-cell.full{grid-column:1/-1;border-right:none;}
+.info-cell label{font-weight:bold;white-space:nowrap;color:#7a2e12;min-width:96px;}
+.info-cell input{flex:1;border:none;border-bottom:1.5px solid #b5502e;outline:none;font-size:11px;font-family:Arial;background:#fff7f2;padding:2px 4px;border-radius:2px;}
+.info-cell input:disabled{background:#f0f0f0;color:#555;cursor:not-allowed;}
+.info-cell .fixed{flex:1;padding:2px 4px;font-weight:bold;color:#222;}
+
+/* ── SECTION TITLE BAR ── */
+.sec-title{background:#7a2e12;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:14px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.sec-title span{flex:1;}
+.grp-title{background:#5c4033;color:#fff;font-weight:bold;font-size:11px;padding:4px 10px;margin-top:10px;}
+
+.instrucao{background:#fffde7;border:1px solid #f0e2a0;border-radius:3px;font-size:10px;color:#665c00;padding:6px 10px;margin:8px 0;line-height:1.4;}
+
+/* ── TABELAS ── */
+.tscroll{overflow-x:auto;}
+table.grid{width:100%;border-collapse:collapse;font-size:10px;}
+table.grid th{background:#7a2e12;color:#fff;border:1px solid #555;padding:4px 4px;text-align:center;vertical-align:middle;line-height:1.15;}
+table.grid th.cat{background:#b5502e;}
+table.grid th small{display:block;font-weight:normal;font-size:9px;opacity:.9;}
+table.grid td{border:1px solid #bbb;padding:2px 4px;vertical-align:middle;text-align:center;}
+table.grid td.lbl{text-align:left;background:#faf3ee;}
+table.grid td.calc{background:#eef5ee;font-weight:bold;color:#245c24;}
+table.grid td.money{text-align:right;padding-right:6px;}
+table.grid input.ci{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;outline:none;background:#fffde7;font-family:Arial;padding:1px 2px;text-align:center;}
+table.grid input.ci.val{text-align:right;}
+table.grid input.ci:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+table.grid tr.totrow td{background:#f0e0d8;font-weight:bold;color:#7a2e12;}
+
+/* ── IMR SCORING ── */
+table.score{width:100%;border-collapse:collapse;font-size:10px;min-width:960px;}
+table.score th{background:#5c4033;color:#fff;border:1px solid #555;padding:4px 4px;text-align:center;line-height:1.15;}
+table.score th.unit{background:#7a2e12;min-width:64px;}
+table.score td{border:1px solid #ccc;padding:1px 3px;vertical-align:middle;}
+table.score td.lbl{text-align:left;}
+table.score td.peso{text-align:center;background:#f3ede7;font-weight:bold;color:#5c4033;}
+table.score select{width:52px;border:1px solid #cbb;border-radius:3px;font-size:10px;padding:1px;text-align:center;background:#fff;font-family:Arial;}
+table.score select:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;}
+table.score select.s3{color:#1b5e20;font-weight:bold;}
+table.score select.s1{color:#e65100;font-weight:bold;background:#fff7e6;}
+table.score select.s0{color:#b71c1c;font-weight:bold;background:#fdeaea;}
+table.score tr.subtot td{background:#efeae4;font-weight:bold;color:#5c4033;}
+table.score tr.subtot td.calc{background:#e7efe0;color:#33501a;}
+
+/* ── RESULTADO ── */
+.result-cards{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.rc{border:1.5px solid #7a2e12;border-radius:5px;padding:6px 14px;min-width:150px;background:#fff7f2;}
+.rc .lbl{font-size:9px;color:#7a2e12;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;}
+.rc .num{font-size:16px;font-weight:bold;color:#12481a;margin-top:2px;}
+.rc.brown .num{color:#7a2e12;}
+.rc.big{min-width:190px;}
+.rc.big .num{font-size:19px;}
+
+.faixa-tbl{width:auto;border-collapse:collapse;font-size:10px;margin-top:8px;}
+.faixa-tbl th,.faixa-tbl td{border:1px solid #b98;padding:3px 10px;text-align:center;}
+.faixa-tbl th{background:#5c4033;color:#fff;}
+.faixa-tbl tr.on td{background:#e7efe0;font-weight:bold;color:#33501a;}
+
+textarea.ocorr{width:100%;min-height:70px;border:1px solid #b98;border-radius:3px;font-size:11px;font-family:Arial;padding:6px;background:#fffdf8;outline:none;resize:vertical;}
+textarea.ocorr:disabled{background:#f0f0f0;color:#555;}
+
+/* ── LOCK BUTTONS ── */
+.lock-btn{font-size:10px;padding:3px 10px;border:1.5px solid;border-radius:3px;cursor:pointer;font-family:Arial;font-weight:bold;white-space:nowrap;}
+.lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
+.lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
+.lock-btn:hover{opacity:.8;}
+.print-btn{font-size:10px;padding:4px 12px;background:#455a64;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
+.print-btn:hover{opacity:.85;}
+
+/* ── REFERÊNCIA ── */
+.ref-wrap{border:2px solid #556b2f;border-radius:5px;overflow:hidden;margin-top:4px;}
+.ref-head{background:#556b2f;color:#fff;font-weight:bold;font-size:12px;padding:6px 12px;}
+.ref-body{padding:10px 14px;font-size:11px;line-height:1.5;color:#333;}
+.ref-body h4{color:#33450f;margin:8px 0 3px;}
+.ref-body ul{margin:2px 0 8px 18px;}
+
+@media print{
+  body{background:#fff;}
+  .page{width:auto;box-shadow:none;margin:0;padding:0;}
+  .tabbar,.tab-nav,.no-print{display:none!important;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- barra de navegação -->
+  <div class="tab-nav">
+    <span class="tab-info" id="tabInfo">—</span>
+    <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
+    <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
+    <button class="lock-btn unlocked" id="lockBtn" onclick="toggleLock()">🔓 Destravado</button>
+    <span class="tab-hint">Preencha as células em amarelo. Notas, percentuais e valores são calculados.</span>
+  </div>
+  <div class="tabbar" id="tabbar"></div>
+
+  <!-- cabeçalho -->
+  <div class="header-wrap">
+    <div class="header-top">
+      <div class="header-logo"><span>UFRJ<br>PR-6</span></div>
+      <div class="header-title">
+        <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
+        <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
+        <div class="sub">Serviço de alimentação e nutrição — Restaurantes Universitários (Central, CT, Letras, Centro e Praia Vermelha)</div>
+      </div>
+      <div class="header-badge">IMR<small>Nº 01</small></div>
+    </div>
+    <div class="info-grid">
+      <div class="info-cell"><label>EMPRESA</label><span class="fixed">NUTRYENERGE REFEIÇÕES COLETIVAS LTDA</span></div>
+      <div class="info-cell"><label>CONTRATO</label><span class="fixed">56/22</span></div>
+      <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Aditivo 05/26</span></div>
+      <div class="info-cell"><label>UNIDADE</label><span class="fixed">RU — Restaurantes Universitários</span></div>
+      <div class="info-cell"><label>Resp. fiscalização</label><input id="respFisc" placeholder="Responsável pela fiscalização" oninput="onResp(this.value)"></div>
+      <div class="info-cell"><label>Fiscal de contrato</label><input id="fiscal" placeholder="Nome do fiscal de contrato" oninput="onFiscal(this.value)"></div>
+    </div>
+  </div>
+
+  <!-- conteúdo -->
+  <div id="content"></div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+/* ═══════════════════ CONSTANTES / MODELO DE DADOS ═══════════════════ */
+const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+// 24 meses: Agosto/2025 → Julho/2027 (termo vigente TA 04/25 em diante)
+const MONTHS=[];
+for(let k=0;k<24;k++){ const t=7+k; const y=2025+Math.floor(t/12); const m=((t%12)+12)%12; MONTHS.push(MESES_CAP[m]+'/'+y); }
+const NUM_MONTHS=MONTHS.length;
+
+// 5 Restaurantes Universitários (colunas do IMR / linhas do faturamento)
+const RUS=['CENTRAL','CT','LETRAS','CENTRO','PV'];
+const RU_FULL=[
+  'RESTAURANTE UNIVERSITÁRIO - CENTRAL',
+  'RESTAURANTE UNIVERSITÁRIO - CT',
+  'RESTAURANTE UNIVERSITÁRIO - LETRAS',
+  'RESTAURANTE UNIVERSITÁRIO - CENTRO (IFCS/FND)',
+  'RESTAURANTE UNIVERSITÁRIO - PRAIA VERMELHA'
+];
+const DEFAULT_UNIT=[15.35,16.30,16.30,16.18,17.40]; // valor unitário base (subsídio integral) por RU
+const SUB_DESC=2; // F7 — contribuição fixa do estudante (valor unit. estudante = base − 2)
+
+// Indicadores de qualidade agrupados (réplica da planilha)
+const GROUPS=[
+ {g:'GRUPO I – ATIVIDADES DE PLANEJAMENTO E ADEQUAÇÃO À LEGISLAÇÃO',
+  subs:[
+    {key:'g1a', title:'1. A – Rotinas de Serviço', peso:0.6, items:[
+      '1.A.1 Conformidade com o cardápio previamente aprovado',
+      '1.A.2 Controle do armazenamento de gêneros',
+      '1.A.3 Registro dos procedimentos do MBP',
+      '1.A.4 Resolução das ocorrências e reclamações dos usuários (ouvidoria, site e redes sociais)',
+      '1.A.5 Higienização (utensílios, equip., mobiliário e ambiente)',
+      '1.A.6 Controle bacteriológico das preparações',
+      '1.A.7 Boas práticas ambientais',
+      '1.A.8 Abastecimento de material de higiene pessoal']},
+    {key:'g1b', title:'1. B – Mão de Obra', peso:0.4, items:[
+      '1.B.1 Qualificação Profissional',
+      '1.B.2 Relação Interpessoal',
+      '1.B.3 Quantitativo compatível para execução com qualidade do serviço',
+      '1.B.4 Uniformes e EPI',
+      '1.B.5 Higiene pessoal']},
+  ]},
+ {g:'GRUPO 2 – AVALIAÇÃO DO FLUXOGRAMA PRODUTIVO',
+  subs:[
+    {key:'g2a', title:'2. A – Qualidade da Refeição Transportada', peso:0.4, items:[
+      '2.A.1 Controle higiênico-sanitário dos equipamentos',
+      '2.A.2 Qualidade do envase e da expedição',
+      '2.A.3 Identificação das preparações',
+      '2.A.5 Condições do veículo de transporte']},
+    {key:'g2b', title:'2. B – Planejamento, Organização e Coordenação da Qualidade e da Quantidade das Refeições', peso:0.6, items:[
+      '2.B.1 PIQ dos gêneros alimentícios',
+      '2.B.2 Quantitativo de Refeições',
+      '2.B.3 Aspectos higiênico sanitários da manipulação',
+      '2.B.4 Tempo e temperatura de preparo, pré-preparo e manutenção das preparações',
+      '2.B.5 Aquisição dos produtos da agricultura familiar',
+      '2.B.6 Características sensoriais',
+      '2.B.7 Técnicas de preparo e fichas técnicas de preparação',
+      '2.B.8 Porcionamento das preparações',
+      '2.B.9 Quantidade de utensílios para as diferentes etapas do fluxograma',
+      '2.B.10 Manutenção dos itens do cardápio do início ao fim da distribuição']},
+  ]},
+ {g:'GRUPO 3 – GESTÃO TÉCNICO ADMINISTRATIVA E LEGAL',
+  subs:[
+    {key:'g3a', title:'3. A – Coordenação e Comando das Atividades Técnicas e Operacionais', peso:0.6, items:[
+      '3.A.1 Coordenação e comando da gerência de contrato',
+      '3.A.2 Coordenação e comando da chefia local',
+      '3.A.3 Programa de capacitação',
+      '3.A.4 Inventário de utensílios',
+      '3.A.5 Reposição de utensílios',
+      '3.A.6 Inventário de equipamentos e mobiliário',
+      '3.A.7 Manutenção preventiva de equipamentos',
+      '3.A.8 Manutenção corretiva de equipamentos',
+      '2.A.4 Temperatura das preparações',
+      '3.A.9 Manutenção predial',
+      '3.A.10 Controle integrado de Pragas',
+      '3.A.11 Higienização do reservatório de água e limpeza da caixa de gordura',
+      '3.A.12 Manutenção/reposição de Equip. de Proteção Coletiva',
+      '3.A.13 Entrega no prazo e com qualidade dos gêneros alimentícios solicitados']},
+    {key:'g3b', title:'3. B – Saúde, salários, benefícios e obrigações trabalhistas', peso:0.4, items:[
+      '3.B.1 Cumprimento das obrigações trabalhistas',
+      '3.B.2 Realização de exames periódicos de saúde']},
+  ]},
+];
+// mapa key→sub para cálculo
+const SUBMAP={}; GROUPS.forEach(G=>G.subs.forEach(s=>SUBMAP[s.key]=s));
+const GROUP_KEYS=[['g1a','g1b'],['g2a','g2b'],['g3a','g3b']];
+
+const STORAGE_KEY='IMR_NUTRY_5622_RU';
+let state=null;
+let currentTab=0; // 0..NUM_MONTHS-1 = mês ; 'ref' = referência
+
+/* ── período em branco ── */
+function blankPeriod(){
+  const qtd=RUS.map(()=>[ '', '', '' ]);           // [bolsistas, estudantes, servidores] por RU
+  const unit=DEFAULT_UNIT.slice();                  // valor unitário base por RU
+  const scores={};
+  GROUPS.forEach(G=>G.subs.forEach(s=>{ scores[s.key]=s.items.map(()=>RUS.map(()=>3)); }));
+  return {qtd, unit, scores, ocorr:''};
+}
+function defaultState(){
+  const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankPeriod());
+  return {respFisc:'', fiscal:'', locked:false, pwd:'', months};
+}
+
+/* ═══════════════════ PARSE / FORMATO ═══════════════════ */
+function parseInt0(s){ if(s===''||s==null) return ''; const n=Number(String(s).replace(/\./g,'').replace(',','.')); return isNaN(n)?'':n; }
+function parseMoney(s){ if(s===''||s==null) return ''; let t=String(s).replace(/[R$\s]/g,''); if(t.indexOf(',')>-1){ t=t.replace(/\./g,'').replace(',','.'); } const n=Number(t); return isNaN(n)?'':n; }
+function num(v){ return v===''||v==null||isNaN(v)?0:Number(v); }
+function fmtMoney(n){ if(n===''||n==null||isNaN(n)) return '—'; return 'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtUnit(n){ if(n===''||n==null||isNaN(n)) return ''; return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtInt(n){ if(n===''||n==null||isNaN(n)) return '0'; return Number(n).toLocaleString('pt-BR'); }
+function fmtNota(n){ return Number(n).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3}); }
+function round2(n){ return Math.round(n*100)/100; }
+
+/* ═══════════════════ CÁLCULO ═══════════════════ */
+// total de um subgrupo, por unidade: ROUND(média dos itens da unidade × peso, 2)
+function subUnitTotal(period, key, ui){
+  const s=SUBMAP[key]; const grid=period.scores[key];
+  let sum=0; for(let it=0;it<s.items.length;it++){ sum+=num(grid[it][ui]); }
+  const avg=sum/s.items.length;
+  return round2(avg*s.peso);
+}
+function groupScore(period, gi){
+  const [ka,kb]=GROUP_KEYS[gi];
+  const a=RUS.map((_,ui)=>subUnitTotal(period,ka,ui));
+  const b=RUS.map((_,ui)=>subUnitTotal(period,kb,ui));
+  const avgA=a.reduce((x,y)=>x+y,0)/a.length;
+  const avgB=b.reduce((x,y)=>x+y,0)/b.length;
+  return avgA+avgB;
+}
+function notaFinal(period){ return groupScore(period,0)+groupScore(period,1)+groupScore(period,2); }
+function payPct(nota){ return nota>=8.1?1 : nota>=7.65?0.95 : nota>=6.75?0.90 : 0.85; }
+
+// faturamento
+function faturamento(period){
+  const pct=payPct(notaFinal(period));
+  let bruto=0, direto=0, totB=0, totE=0, totS=0;
+  const perRU=RUS.map((_,i)=>{
+    const b=num(parseInt0(period.qtd[i][0])), e=num(parseInt0(period.qtd[i][1])), s=num(parseInt0(period.qtd[i][2]));
+    const u=num(period.unit[i]); const eu=u-SUB_DESC;
+    const brutoRU=b*u + e*eu;          // valor bruto subsidiado do RU
+    const liberadoRU=brutoRU*pct;       // valor apurado (após IMR)
+    const qFat=b+e;                     // quantidade faturada (subsidiada)
+    const uFat=qFat>0?liberadoRU/qFat:0;// valor unit. faturado médio
+    bruto+=brutoRU; direto+= e*SUB_DESC + s*u; totB+=b; totE+=e; totS+=s;
+    return {b,e,s,u,eu,brutoRU,liberadoRU,qFat,uFat};
+  });
+  const totalSubsid=bruto;              // M27 = M21
+  const liberado=totalSubsid*pct;       // M28 = M27 × pct
+  return {pct, perRU, bruto, direto, totalSubsid, liberado, totB, totE, totS, totRef:totB+totE+totS};
+}
+
+/* ═══════════════════ RENDER ═══════════════════ */
+function renderTabs(){
+  const bar=document.getElementById('tabbar'); bar.innerHTML='';
+  MONTHS.forEach((lbl,i)=>{
+    const b=document.createElement('button');
+    b.className='tab-btn'+(currentTab===i?' active':'');
+    b.innerHTML='<b>'+lbl.split('/')[0].slice(0,3)+'</b><span>/'+lbl.split('/')[1].slice(2)+'</span>';
+    b.onclick=()=>{ currentTab=i; render(); };
+    bar.appendChild(b);
+  });
+  const r=document.createElement('button');
+  r.className='tab-btn special'+(currentTab==='ref'?' active':'');
+  r.textContent='📑 Faixas / Pontuação';
+  r.onclick=()=>{ currentTab='ref'; render(); };
+  bar.appendChild(r);
+}
+function render(){
+  renderTabs();
+  const info=document.getElementById('tabInfo');
+  const content=document.getElementById('content');
+  if(currentTab==='ref'){ info.textContent='Referência — faixas de ajuste e pontuação'; content.innerHTML=refHTML(); return; }
+  info.textContent='Período de referência: '+MONTHS[currentTab];
+  content.innerHTML=periodHTML(currentTab);
+  recalc();
+}
+
+function periodHTML(mi){
+  const p=state.months[mi]; const lk=state.locked?'disabled':'';
+  let h='';
+
+  /* ── 1) FATURAMENTO ── */
+  h+='<div class="sec-title"><span>TABELA DE COMPOSIÇÃO DE VALORES PARA FATURAMENTO — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="instrucao"><b>Quantitativo de refeições entregues</b> (células amarelas): informe, por RU, o nº de refeições de <b>bolsistas</b>, <b>estudantes</b> e <b>servidores</b>. '+
+     'O valor unitário base é o subsídio integral por refeição (o valor do estudante é o base menos R$ '+fmtUnit(SUB_DESC)+'). '+
+     'Editar um valor unitário replica-o para os meses seguintes. O valor liberado usa o percentual apurado no IMR (abaixo).</div>';
+  h+='<div class="tscroll"><table class="grid"><thead>';
+  h+='<tr><th rowspan="2" style="min-width:220px;text-align:left">Restaurante Universitário</th>'+
+     '<th colspan="3">Quantitativo de refeições entregues</th>'+
+     '<th rowspan="2">Valor unit.<small>base (R$)</small></th>'+
+     '<th rowspan="2">Valor unit.<small>estud. (R$)</small></th>'+
+     '<th rowspan="2">Valor bruto<small>subsidiado (R$)</small></th>'+
+     '<th rowspan="2">Valor apurado<small>liberado (R$)</small></th></tr>';
+  h+='<tr><th class="cat">Bolsistas</th><th class="cat">Estudantes</th><th class="cat">Servidores</th></tr>';
+  h+='</thead><tbody>';
+  RUS.forEach((r,i)=>{
+    h+='<tr><td class="lbl">'+esc(RU_FULL[i])+'</td>';
+    for(let c=0;c<3;c++){ h+='<td><input class="ci" '+lk+' value="'+esc(p.qtd[i][c])+'" oninput="setQtd('+mi+','+i+','+c+',this.value)"></td>'; }
+    h+='<td><input class="ci val" '+lk+' value="'+esc(fmtUnit(p.unit[i]))+'" oninput="setUnit('+mi+','+i+',this.value)" onblur="fmtUnitBlur('+mi+','+i+')"></td>';
+    h+='<td class="calc money" data-eu="'+i+'">—</td>';
+    h+='<td class="calc money" data-bru="'+i+'">—</td>';
+    h+='<td class="calc money" data-lib="'+i+'">—</td></tr>';
+  });
+  h+='<tr class="totrow"><td style="text-align:right">QTD. DE REFEIÇÕES / TOTAIS</td>'+
+     '<td data-tb>0</td><td data-te>0</td><td data-ts>0</td>'+
+     '<td colspan="2" style="text-align:right">Total de refeições:&nbsp;<span data-tref>0</span></td>'+
+     '<td class="money" data-tbru>—</td><td class="money" data-tlib>—</td></tr>';
+  h+='</tbody></table></div>';
+  // resumo faturamento
+  h+='<div class="result-cards">'+
+     '<div class="rc brown"><div class="lbl">Valor total bruto subsidiado pela UFRJ</div><div class="num" data-c-bru>—</div></div>'+
+     '<div class="rc brown"><div class="lbl">Valor recebido direto (estudantes + servidores)</div><div class="num" data-c-dir>—</div></div>'+
+     '<div class="rc"><div class="lbl">Percentual liberado (IMR)</div><div class="num" data-c-pct>—</div></div>'+
+     '<div class="rc big"><div class="lbl">Valor liberado para pagamento pela UFRJ</div><div class="num" data-c-lib>—</div></div>'+
+     '</div>';
+
+  /* ── 2) IMR — INDICADORES ── */
+  h+='<div class="sec-title"><span>FORMULÁRIO DE INSTRUMENTO DE MEDIÇÃO E RESULTADO (IMR) — RU: Central, CT, Letras, Centro e PV</span></div>';
+  h+='<div class="instrucao">Pontuação por indicador e por RU: <b>3</b> = realizado &nbsp;·&nbsp; <b>1</b> = parcialmente realizado &nbsp;·&nbsp; <b>0</b> = não realizado. '+
+     'Os totais por subgrupo, a pontuação por grupo e a nota final são calculados automaticamente.</div>';
+  GROUPS.forEach((G,gi)=>{
+    h+='<div class="grp-title">'+esc(G.g)+'</div>';
+    G.subs.forEach(s=>{
+      h+='<div class="tscroll"><table class="score"><thead><tr>'+
+         '<th style="text-align:left;min-width:340px">'+esc(s.title)+'</th>'+
+         '<th style="width:44px">PESO</th>';
+      RUS.forEach(r=>h+='<th class="unit">'+esc(r)+'</th>');
+      h+='</tr></thead><tbody>';
+      s.items.forEach((it,ir)=>{
+        h+='<tr><td class="lbl">'+esc(it)+'</td>';
+        h+='<td class="peso">'+(ir===0?s.peso.toLocaleString('pt-BR',{minimumFractionDigits:1}):'')+'</td>';
+        RUS.forEach((r,ui)=>{
+          const v=p.scores[s.key][ir][ui];
+          h+='<td>'+scoreSelect(mi,s.key,ir,ui,v,lk)+'</td>';
+        });
+        h+='</tr>';
+      });
+      h+='<tr class="subtot"><td style="text-align:right">TOTAL — '+esc(s.title.split('–')[0].trim())+' (média × peso)</td><td></td>';
+      RUS.forEach((r,ui)=>h+='<td class="calc" data-sub="'+s.key+'" data-ui="'+ui+'">—</td>');
+      h+='</tr></tbody></table></div>';
+    });
+    h+='<div style="text-align:right;font-weight:bold;color:#5c4033;padding:4px 2px">PONTUAÇÃO '+(gi===0?'GRUPO 1':gi===1?'GRUPO 2':'GRUPO 3')+': <span data-grp="'+gi+'">—</span></div>';
+  });
+
+  /* ── 3) FAIXA DE AJUSTE / NOTA FINAL ── */
+  h+='<div class="sec-title"><span>FAIXA DE AJUSTE DE PAGAMENTO</span></div>';
+  h+='<div class="result-cards">'+
+     '<div class="rc brown big"><div class="lbl">Nota final obtida pelo IMR (0 a 9)</div><div class="num" data-c-nota>—</div></div>'+
+     '<div class="rc big"><div class="lbl">Percentual para pagamento</div><div class="num" data-c-pct2>—</div></div>'+
+     '</div>';
+  h+='<table class="faixa-tbl"><thead><tr><th>Nota final mensal</th><th>Percentual do valor mensal</th></tr></thead><tbody>'+
+     '<tr data-fx="1"><td>8,1 ≤ x ≤ 9</td><td>100%</td></tr>'+
+     '<tr data-fx="0.95"><td>7,65 ≤ x &lt; 8,1</td><td>95%</td></tr>'+
+     '<tr data-fx="0.9"><td>6,75 ≤ x &lt; 7,65</td><td>90%</td></tr>'+
+     '<tr data-fx="0.85"><td>x &lt; 6,75</td><td>85%</td></tr>'+
+     '</tbody></table>';
+
+  /* ── 4) OCORRÊNCIAS ── */
+  h+='<div class="sec-title"><span>OCORRÊNCIAS OBSERVADAS EM RELAÇÃO À CONTRATADA — JUSTIFICATIVAS DA AVALIAÇÃO</span></div>';
+  h+='<div class="instrucao">Obrigatório principalmente quando a fiscalização apontar falhas na execução (notas inferiores a 3). Relate todas as falhas ocorridas durante a execução do objeto.</div>';
+  h+='<textarea class="ocorr" '+lk+' oninput="setOcorr('+mi+',this.value)" placeholder="Descreva as ocorrências do período...">'+esc(p.ocorr)+'</textarea>';
+
+  return h;
+}
+function scoreSelect(mi,key,ir,ui,v,lk){
+  const cls=v===3?'s3':v===1?'s1':'s0';
+  let h='<select class="'+cls+'" '+lk+' onchange="setScore('+mi+',\''+key+'\','+ir+','+ui+',this.value)">';
+  [3,1,0].forEach(o=>{ h+='<option value="'+o+'"'+(v===o?' selected':'')+'>'+o+'</option>'; });
+  h+='</select>';
+  return h;
+}
+
+/* ═══════════════════ RECÁLCULO (DOM do período atual) ═══════════════════ */
+function recalc(){
+  if(currentTab==='ref') return;
+  const mi=currentTab, p=state.months[mi];
+  const f=faturamento(p);
+  // faturamento por RU
+  f.perRU.forEach((ru,i)=>{
+    setTxt('[data-eu="'+i+'"]', ru.u?fmtUnit(ru.eu):'—');
+    setTxt('[data-bru="'+i+'"]', fmtMoney(ru.brutoRU));
+    setTxt('[data-lib="'+i+'"]', fmtMoney(ru.liberadoRU));
+  });
+  setTxt('[data-tb]', fmtInt(f.totB)); setTxt('[data-te]', fmtInt(f.totE)); setTxt('[data-ts]', fmtInt(f.totS));
+  setTxt('[data-tref]', fmtInt(f.totRef));
+  setTxt('[data-tbru]', fmtMoney(f.bruto)); setTxt('[data-tlib]', fmtMoney(f.liberado));
+  setTxt('[data-c-bru]', fmtMoney(f.bruto)); setTxt('[data-c-dir]', fmtMoney(f.direto));
+  setTxt('[data-c-pct]', Math.round(f.pct*100)+'%'); setTxt('[data-c-lib]', fmtMoney(f.liberado));
+  // subtotais IMR
+  document.querySelectorAll('[data-sub]').forEach(td=>{
+    const key=td.dataset.sub, ui=+td.dataset.ui;
+    td.textContent=subUnitTotal(p,key,ui).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  });
+  document.querySelectorAll('[data-grp]').forEach(sp=>{ sp.textContent=fmtNota(groupScore(p,+sp.dataset.grp)); });
+  const nota=notaFinal(p), pct=payPct(nota);
+  setTxt('[data-c-nota]', fmtNota(nota)); setTxt('[data-c-pct]', Math.round(pct*100)+'%'); setTxt('[data-c-pct2]', Math.round(pct*100)+'%');
+  document.querySelectorAll('[data-fx]').forEach(tr=>tr.classList.toggle('on', Math.abs(parseFloat(tr.dataset.fx)-pct)<1e-9));
+}
+function setTxt(sel,txt){ const el=document.querySelector(sel); if(el) el.textContent=txt; }
+
+/* ═══════════════════ EDIÇÃO ═══════════════════ */
+function setQtd(mi,i,c,v){ state.months[mi].qtd[i][c]=v; persist(); recalc(); }
+function setUnit(mi,i,v){ // replica p/ os meses seguintes (cascata)
+  const n=parseMoney(v); const val=(n===''?'':n);
+  for(let k=mi;k<NUM_MONTHS;k++){ state.months[k].unit[i]=val; }
+  persist(); recalc();
+}
+function fmtUnitBlur(mi,i){ const val=state.months[mi].unit[i]; const inp=document.querySelector('table.grid tbody tr:nth-child('+(i+1)+') input.val'); if(inp&&val!=='') inp.value=fmtUnit(val); recalc(); }
+function setScore(mi,key,ir,ui,v){ const n=Number(v); state.months[mi].scores[key][ir][ui]=n;
+  const sel=event&&event.target; if(sel){ sel.className=n===3?'s3':n===1?'s1':'s0'; }
+  persist(); recalc(); }
+function setOcorr(mi,v){ state.months[mi].ocorr=v; persist(); }
+function onResp(v){ state.respFisc=v; persist(); }
+function onFiscal(v){ state.fiscal=v; persist(); }
+
+/* ═══════════════════ TRAVA ═══════════════════ */
+function applyLockUI(){
+  const b=document.getElementById('lockBtn');
+  if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
+  else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
+  ['respFisc','fiscal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=state.locked; });
+}
+function toggleLock(){
+  if(!state.locked){
+    const pwd=prompt('Defina uma senha para TRAVAR o formulário (deixe em branco para travar sem senha):');
+    if(pwd===null) return;
+    state.locked=true; state.pwd=pwd||'';
+  } else {
+    if(state.pwd){ const t=prompt('Digite a senha para DESTRAVAR:'); if(t===null) return; if(t!==state.pwd){ alert('Senha incorreta.'); return; } }
+    state.locked=false;
+  }
+  persist(); applyLockUI(); render();
+}
+
+/* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
+function collectData(){ return {v:1, respFisc:state.respFisc, fiscal:state.fiscal, locked:state.locked, pwd:state.pwd, months:state.months}; }
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
+function applyData(pd){
+  if(!pd) return;
+  state.respFisc=pd.respFisc||''; state.fiscal=pd.fiscal||'';
+  state.locked=!!pd.locked; state.pwd=pd.pwd||'';
+  if(Array.isArray(pd.months)){
+    for(let i=0;i<NUM_MONTHS;i++){
+      const src=pd.months[i]; if(!src) continue;
+      const dst=state.months[i];
+      if(Array.isArray(src.qtd)) src.qtd.forEach((row,ri)=>{ if(dst.qtd[ri]&&Array.isArray(row)) for(let c=0;c<3;c++) dst.qtd[ri][c]=(row[c]==null?'':row[c]); });
+      if(Array.isArray(src.unit)) src.unit.forEach((u,ri)=>{ if(ri<dst.unit.length) dst.unit[ri]=(u==null?'':u); });
+      if(src.scores) Object.keys(dst.scores).forEach(key=>{ if(Array.isArray(src.scores[key])) src.scores[key].forEach((row,ir)=>{ if(dst.scores[key][ir]&&Array.isArray(row)) row.forEach((val,ui)=>{ if(ui<RUS.length) dst.scores[key][ir][ui]=(val==null?3:Number(val)); }); }); });
+      dst.ocorr=src.ocorr||'';
+    }
+  }
+  const rf=document.getElementById('respFisc'); if(rf) rf.value=state.respFisc;
+  const fc=document.getElementById('fiscal'); if(fc) fc.value=state.fiscal;
+}
+function loadState(){
+  state=defaultState();
+  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+  const rf=document.getElementById('respFisc'); if(rf) rf.value=state.respFisc;
+  const fc=document.getElementById('fiscal'); if(fc) fc.value=state.fiscal;
+}
+
+/* ═══════════════════ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═══════════════════ */
+const FORM_ID='nutryenerge-56-22-ru';
+const firebaseConfig={
+  apiKey:            "AIzaSyBwL87K4sGeVB1bAvqY1a8yv5otKLez8cw",
+  authDomain:        "imr-fiscalizacao.firebaseapp.com",
+  projectId:         "imr-fiscalizacao",
+  storageBucket:     "imr-fiscalizacao.firebasestorage.app",
+  messagingSenderId: "552588739135",
+  appId:             "1:552588739135:web:a43155ae2e7932da57ae8a"
+};
+let cloudDb=null, cloudDocRef=null, cloudReady=false;
+let applyingRemote=false, remotePending=null, cloudSaveTimer=null;
+function cloudEnabled(){ return (typeof firebase!=='undefined') && firebaseConfig.projectId && !/COLE_AQUI/.test(firebaseConfig.projectId); }
+function setCloudStatus(t){ const el=document.getElementById('cloudStatus'); if(el) el.textContent=t; }
+function initCloud(){
+  if(!cloudEnabled()){ setCloudStatus(''); return; }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    cloudDb=firebase.firestore();
+    cloudDocRef=cloudDb.collection('imr_forms').doc(FORM_ID);
+    cloudReady=true;
+    setCloudStatus('☁ Conectando…');
+    cloudDocRef.onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;
+      if(!snap.exists){ pushCloud(); return; }
+      const data=snap.data(); if(!data||!data.payload) return;
+      let payload; try{ payload=JSON.parse(data.payload); }catch(e){ return; }
+      applyRemote(payload);
+    }, function(err){ setCloudStatus('⚠ Nuvem indisponível (usando cópia local)'); });
+  }catch(e){ cloudReady=false; setCloudStatus('⚠ Falha ao conectar à nuvem'); }
+}
+function applyRemote(payload){
+  const a=document.activeElement;
+  const editing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
+  if(editing){ remotePending=payload; return; }
+  applyingRemote=true;
+  applyData(payload);
+  applyLockUI();
+  render();
+  saveState();
+  applyingRemote=false;
+  setCloudStatus('☁ Atualizado de outro computador');
+}
+function pushCloud(){
+  if(!cloudReady||!cloudDocRef) return;
+  try{
+    cloudDocRef.set({ payload: JSON.stringify(collectData()), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setCloudStatus('☁ Salvo na nuvem');
+  }catch(e){ setCloudStatus('⚠ Erro ao salvar na nuvem'); }
+}
+function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
+function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
+document.addEventListener('focusout', function(){ if(remotePending){ const p=remotePending; remotePending=null; setTimeout(()=>applyRemote(p),50); } });
+
+/* ═══════════════════ REFERÊNCIA ═══════════════════ */
+function refHTML(){
+  let h='<div class="ref-wrap"><div class="ref-head">Referência — pontuação, cálculo e faixas de ajuste</div><div class="ref-body">';
+  h+='<h4>Pontuação por indicador (por RU)</h4><ul>'+
+     '<li><b>3</b> — realizado</li><li><b>1</b> — parcialmente realizado</li><li><b>0</b> — não realizado</li></ul>';
+  h+='<h4>Cálculo da nota</h4>'+
+     '<ul><li>Para cada subgrupo e RU: <b>total = média dos indicadores × peso do subgrupo</b> (arredondada a 2 casas).</li>'+
+     '<li>Pontuação do grupo = média (entre os 5 RUs) do subgrupo A + média do subgrupo B.</li>'+
+     '<li>Pesos: 1.A = 0,6 · 1.B = 0,4 · 2.A = 0,4 · 2.B = 0,6 · 3.A = 0,6 · 3.B = 0,4 (cada grupo vale no máximo 3).</li>'+
+     '<li><b>Nota final = Grupo 1 + Grupo 2 + Grupo 3</b> (0 a 9).</li></ul>';
+  h+='<h4>Faixa de ajuste de pagamento</h4>'+
+     '<table class="faixa-tbl"><thead><tr><th>Nota final mensal</th><th>Percentual do valor mensal para pagamento</th></tr></thead><tbody>'+
+     '<tr><td>8,1 ≤ x ≤ 9</td><td>100%</td></tr><tr><td>7,65 ≤ x &lt; 8,1</td><td>95%</td></tr>'+
+     '<tr><td>6,75 ≤ x &lt; 7,65</td><td>90%</td></tr><tr><td>x &lt; 6,75</td><td>85%</td></tr></tbody></table>';
+  h+='<h4>Faturamento</h4>'+
+     '<ul><li>Valor bruto subsidiado = Σ (bolsistas × valor unit. base) + Σ (estudantes × valor unit. estudante).</li>'+
+     '<li>Valor unit. estudante = valor unit. base − R$ '+fmtUnit(SUB_DESC)+'.</li>'+
+     '<li>Valor recebido direto = Σ (estudantes × R$ '+fmtUnit(SUB_DESC)+') + Σ (servidores × valor unit. base).</li>'+
+     '<li><b>Valor liberado para pagamento = valor bruto subsidiado × percentual do IMR.</b></li></ul>';
+  h+='</div></div>';
+  return h;
+}
+
+/* ═══════════════════ UTIL ═══════════════════ */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ═══════════════════ INIT ═══════════════════ */
+loadState();
+applyLockUI();
+render();
+initCloud();
+</script>
+</body>
+</html>
