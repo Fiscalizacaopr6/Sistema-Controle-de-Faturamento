@@ -392,7 +392,7 @@ function periodHTML(mi){
   h+='</thead><tbody>';
   RUS.forEach((r,i)=>{
     h+='<tr><td class="lbl">'+esc(RU_FULL[i])+'</td>';
-    for(let c=0;c<3;c++){ h+='<td><input class="ci" '+lk+' value="'+esc(p.qtd[i][c])+'" oninput="setQtd('+mi+','+i+','+c+',this.value)"></td>'; }
+    for(let c=0;c<3;c++){ h+='<td><input class="ci" value="'+esc(p.qtd[i][c])+'" oninput="setQtd('+mi+','+i+','+c+',this.value)"></td>'; }
     h+='<td><input class="ci val" '+lk+' value="'+esc(fmtUnit(p.unit[i]))+'" oninput="setUnit('+mi+','+i+',this.value)" onblur="fmtUnitBlur('+mi+','+i+')"></td>';
     h+='<td class="calc money" data-eu="'+i+'">—</td>';
     h+='<td class="calc money" data-bru="'+i+'">—</td>';
@@ -428,7 +428,7 @@ function periodHTML(mi){
         h+='<td class="peso">'+(ir===0?s.peso.toLocaleString('pt-BR',{minimumFractionDigits:1}):'')+'</td>';
         RUS.forEach((r,ui)=>{
           const v=p.scores[s.key][ir][ui];
-          h+='<td>'+scoreSelect(mi,s.key,ir,ui,v,lk)+'</td>';
+          h+='<td>'+scoreSelect(mi,s.key,ir,ui,v,'')+'</td>';
         });
         h+='</tr>';
       });
@@ -455,10 +455,10 @@ function periodHTML(mi){
   /* ── 4) OCORRÊNCIAS ── */
   h+='<div class="sec-title"><span>OCORRÊNCIAS OBSERVADAS EM RELAÇÃO À CONTRATADA — JUSTIFICATIVAS DA AVALIAÇÃO</span></div>';
   h+='<div class="instrucao">Obrigatório principalmente quando a fiscalização apontar falhas na execução (notas inferiores a 3). Relate todas as falhas ocorridas durante a execução do objeto.</div>';
-  h+='<textarea class="ocorr" '+lk+' oninput="setOcorr('+mi+',this.value)" placeholder="Descreva as ocorrências do período...">'+esc(p.ocorr)+'</textarea>';
+  h+='<textarea class="ocorr" oninput="setOcorr('+mi+',this.value)" placeholder="Descreva as ocorrências do período...">'+esc(p.ocorr)+'</textarea>';
 
   /* ── 5) LIMPAR ── */
-  h+='<div><button class="clear-btn" '+lk+' onclick="limparPeriodo('+mi+')">🧹 Limpar quantitativo e notas</button></div>';
+  h+='<div><button class="clear-btn" onclick="limparPeriodo('+mi+')">🧹 Limpar quantitativo e notas</button></div>';
 
   return h;
 }
@@ -527,7 +527,6 @@ function setSubDesc(mi,v){ const n=parseMoney(v); const val=(n===''?'':n); for(l
 function fmtSubDescBlur(mi){ const val=state.months[mi].subDesc; const inp=document.getElementById('subDescInp'); if(inp&&val!=='') inp.value=fmtUnit(val); recalc(); }
 /* limpar: zera o quantitativo de refeições e volta todas as notas para 3 (no período atual) */
 function limparPeriodo(mi){
-  if(state.locked) return;
   if(!confirm('Limpar o quantitativo de refeições e redefinir TODAS as notas para 3 no período '+state.months[mi].periodo+'?')) return;
   const p=state.months[mi];
   p.qtd=RUS.map(()=>['','','']);
@@ -540,7 +539,9 @@ function applyLockUI(){
   const b=document.getElementById('lockBtn');
   if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
   else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
-  ['periodo','subtitle','fiscal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=state.locked; });
+  // trava só os campos de CONFIGURAÇÃO do contrato; Fiscal de contrato continua editável
+  ['periodo','subtitle'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=state.locked; });
+  const fc=document.getElementById('fiscal'); if(fc) fc.disabled=false;
 }
 function toggleLock(){
   if(!state.locked){
