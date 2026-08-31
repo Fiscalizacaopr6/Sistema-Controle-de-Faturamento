@@ -1850,6 +1850,7 @@ function limparMateriais(){
   if(!confirm('⚠ Limpar todos os materiais? A planilha de materiais ficará vazia.')) return;
   db.materiais={};
   autosave();
+  pushCloud(); // envia já, sem esperar o debounce, p/ um snapshot antigo não restaurar
   renderMateriais(activeMatUnit);
 }
 // IMR: deixa as colunas BOM, REGULAR, RUIM e Não se Aplica em branco (todos os períodos/unidades)
@@ -1861,6 +1862,7 @@ function limparIMR(){
         if(db.imr[period][u]) db.imr[period][u].itens={};
   }
   autosave();
+  pushCloud(); // envia já, sem esperar o debounce, p/ um snapshot antigo não restaurar
   renderIMR();
 }
 // Área: deixa a aba Área em branco, sem valores (todas as unidades)
@@ -1868,6 +1870,7 @@ function limparArea(){
   if(!confirm('⚠ Limpar a aba Área? Todos os valores serão removidos.')) return;
   db.area={};
   autosave();
+  pushCloud(); // envia já, sem esperar o debounce, p/ um snapshot antigo não restaurar
   renderArea();
 }
 
