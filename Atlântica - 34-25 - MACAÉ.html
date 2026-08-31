@@ -351,7 +351,14 @@ function applyLockUI(){
   const bl=document.getElementById('btnLock'),bu=document.getElementById('btnUnlock'),blm=document.getElementById('btnLimpar');
   if(bl)bl.style.display=globalLocked?'none':'inline-block';
   if(bu)bu.style.display=globalLocked?'inline-block':'none';
-  if(blm)blm.style.display=globalLocked?'none':'inline-block';
+  updateLimparBtn();
+}
+// Rótulo e visibilidade do botão Limpar conforme a aba ativa (por-aba)
+function updateLimparBtn(){
+  const b=document.getElementById('btnLimpar'); if(!b) return;
+  const map={materiais:'🗑 Limpar materiais',imr:'🗑 Limpar IMR',area:'🗑 Limpar área'};
+  b.textContent=map[activeTab]||'🗑 Limpar';
+  b.style.display=(!globalLocked && map[activeTab])?'inline-block':'none';
 }
 function applyRemote(payload){
   const a=document.activeElement;
@@ -679,6 +686,7 @@ function showTab(tab){
   // Botão Salvar PDF só nas abas que entram no PDF (não em Contrato/Relatório)
   const pdfBtn=document.getElementById('btnPDF');
   if(pdfBtn) pdfBtn.style.display=(tab==='materiais'||tab==='imr'||tab==='area')?'inline-block':'none';
+  updateLimparBtn();
 }
 
 // ─── PÍLULAS ─────────────────────────────────────────────────────
@@ -1678,7 +1686,7 @@ function unlockAll(){
   db.locked=false;db.pwd='';autosave(); // persiste o destravamento
   document.getElementById('btnLock').style.display='inline-block';
   document.getElementById('btnUnlock').style.display='none';
-  document.getElementById('btnLimpar').style.display='inline-block';
+  updateLimparBtn();
   if(activeTab==='materiais') renderMateriais(activeMatUnit);
 }
 function applyLock(){
@@ -1831,9 +1839,36 @@ function cleanupPrint(){
   }
 }
 window.addEventListener('afterprint',cleanupPrint);
+// Botão Limpar age conforme a aba ativa
 function limparTudo(){
-  if(!confirm('⚠ Limpar TODOS os dados?')) return;
-  localStorage.removeItem('imr_atlantica-34-25-macae');location.reload();
+  if(activeTab==='materiais') return limparMateriais();
+  if(activeTab==='imr')       return limparIMR();
+  if(activeTab==='area')      return limparArea();
+}
+// Materiais: esvazia a planilha de materiais (todas as unidades)
+function limparMateriais(){
+  if(!confirm('⚠ Limpar todos os materiais? A planilha de materiais ficará vazia.')) return;
+  db.materiais={};
+  autosave();
+  renderMateriais(activeMatUnit);
+}
+// IMR: deixa as colunas BOM, REGULAR, RUIM e Não se Aplica em branco (todos os períodos/unidades)
+function limparIMR(){
+  if(!confirm('⚠ Limpar as avaliações IMR? As colunas BOM, REGULAR, RUIM e Não se Aplica ficarão em branco.')) return;
+  if(db.imr){
+    for(const period in db.imr)
+      for(const u in db.imr[period])
+        if(db.imr[period][u]) db.imr[period][u].itens={};
+  }
+  autosave();
+  renderIMR();
+}
+// Área: deixa a aba Área em branco, sem valores (todas as unidades)
+function limparArea(){
+  if(!confirm('⚠ Limpar a aba Área? Todos os valores serão removidos.')) return;
+  db.area={};
+  autosave();
+  renderArea();
 }
 
 // ─── EXPORTAR TRAVADO ─────────────────────────────────────────────
@@ -2232,6 +2267,7 @@ function renderAreaForm(period,u){
 // ─── INICIALIZAÇÃO ────────────────────────────────────────────────
 loadDB();fillForm();
 buildMeses(db.contrato.inicio); // ajusta meses conforme início de vigência salvo
+updateLimparBtn(); // rótulo/visibilidade do botão Limpar conforme a aba inicial
 // Restaura o estado de trava salvo — permanece travado ao recarregar/reentrar no sistema
 if(db.locked){
   globalLocked=true; globalPwd=db.pwd||''; applyLock();
