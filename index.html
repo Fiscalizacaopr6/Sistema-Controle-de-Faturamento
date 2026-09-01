@@ -984,6 +984,19 @@ select.doc-inp{cursor:pointer}
   </div>
 </div>
 
+    <!-- ALERTA: contratos aguardando designação de responsável (só p/ certos usuários) -->
+<div class="mo" id="desig-mo" onclick="if(event.target===this)fecharDesigModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="mh"><div><div class="mt">📋 Designação de Contrato</div><div class="ms" id="desig-sub">—</div></div>
+      <button class="mc" onclick="fecharDesigModal()">✕</button></div>
+    <div class="mb" id="desig-body"></div>
+    <div class="mo-actions">
+      <button class="btn-cancel-e" onclick="fecharDesigModal()">Fechar</button>
+      <button class="btn-save" onclick="fecharDesigModal(); showView('contratos')">Ver Contratos</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1409,8 +1422,8 @@ function launchApp(u) {
     var cvId = sessionStorage.getItem('ufrj_cvform');
     if (lastView === 'cvform' && cvId) cvAbrirFormulario(cvId);
     else if (lastView && lastView !== 'dashboard') showView(lastView);
-    // Avisa se há solicitação de retirada (Conta Vinculada) pendente do usuário.
-    checarPendenciasContaVinculada();
+    // Alertas de login (Conta Vinculada pendente e, p/ certos usuários, designação).
+    checarAlertasLogin();
   });
 }
 
@@ -4623,40 +4636,98 @@ function chaveResponsavel(s) {
   return unidadeChave(s).replace(/[^A-Z0-9]/g, '');
 }
 
+// Lista de <li> "contrato — empresa" reutilizada pelos dois alertas de login.
+function _liContratoEmpresa(numero, empresa) {
+  return '<li style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;'
+    + 'margin-bottom:8px;background:var(--surface2);display:flex;gap:10px;align-items:baseline">'
+    + '<b style="color:var(--accent);white-space:nowrap;font-size:13px">' + esc(numero || '—') + '</b>'
+    + '<span style="color:var(--text);font-size:13px">' + esc(empresa || '—') + '</span></li>';
+}
+
+// ── Fila de alertas de login (mostra um modal de cada vez, sem sobrepor) ──
+var _loginAlertQueue = [];
+function _proximoAlertaLogin() {
+  var fn = _loginAlertQueue.shift();
+  if (fn) fn();
+}
+
+function checarAlertasLogin() {
+  _loginAlertQueue = [];
+  var cv = _pendenciasCV();
+  if (cv.length) _loginAlertQueue.push(function(){ _mostrarModalCV(cv); });
+  // Alerta de designação: apenas para os logins abaixo.
+  if (LOGINS_DESIGNACAO.indexOf(String(currentUserLogin || '').toLowerCase()) !== -1) {
+    var dl = _contratosAguardandoDesignacao();
+    if (dl.length) _loginAlertQueue.push(function(){ _mostrarModalDesig(dl); });
+  }
+  _proximoAlertaLogin();
+}
+
+// ── Alerta 1: solicitações de retirada (Conta Vinculada) pendentes ──
 function fecharPendModal() {
   var el = document.getElementById('pend-mo');
   if (el) el.classList.remove('open');
+  _proximoAlertaLogin();
 }
 
-function checarPendenciasContaVinculada() {
+function _pendenciasCV() {
   var info = USERS_DB[currentUserLogin] || {};
   var chaves = [chaveResponsavel(currentUserLogin)];
   if (info.nome) chaves.push(chaveResponsavel(info.nome));
   chaves = chaves.filter(function(k, i, a) { return k && a.indexOf(k) === i; });
-  if (!chaves.length) return;
-
-  var pend = CONTAS.filter(function(c) {
+  if (!chaves.length) return [];
+  return CONTAS.filter(function(c) {
     if (contaSituacaoAuto(c) !== 'PENDENTE') return false;
     return chaves.indexOf(chaveResponsavel(c.responsavel)) !== -1;
   });
-  if (!pend.length) return;
+}
 
+function _mostrarModalCV(pend) {
   var n = pend.length;
   var msg = n === 1
     ? 'Existe <b>1</b> solicitação de retirada de conta Vinculada a ser feita.'
     : 'Existem <b>' + n + '</b> solicitações de retirada de conta vinculada a serem feitas.';
-  var itens = pend.map(function(c) {
-    return '<li style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;'
-      + 'margin-bottom:8px;background:var(--surface2);display:flex;gap:10px;align-items:baseline">'
-      + '<b style="color:var(--accent);white-space:nowrap;font-size:13px">' + esc(c.contrato || '—') + '</b>'
-      + '<span style="color:var(--text);font-size:13px">' + esc(c.empresa || '—') + '</span></li>';
-  }).join('');
-
+  var itens = pend.map(function(c) { return _liContratoEmpresa(c.contrato, c.empresa); }).join('');
   document.getElementById('pend-sub').textContent = 'Solicitações da empresa pendentes';
   document.getElementById('pend-body').innerHTML =
     '<div style="padding:2px 2px 14px;font-size:14px;color:var(--text);line-height:1.5">' + msg + '</div>'
     + '<ul style="list-style:none;margin:0;padding:0;max-height:320px;overflow:auto">' + itens + '</ul>';
   document.getElementById('pend-mo').classList.add('open');
+}
+
+// ── Alerta 2: contratos aguardando designação de responsável ──
+// Só para os logins em LOGINS_DESIGNACAO. Um contrato "aguarda designação"
+// quando o seu TERMO ATUAL (maior TÉRMINO por CONTRATO, mesmo critério do
+// dashboard) NÃO está encerrado e tem RESPONSÁVEL = "A DESIGNAR" — o mesmo que
+// aparece na coluna Responsável da tela Contratos.
+var LOGINS_DESIGNACAO = ['mayaracruz', 'ismaeloliveira'];
+
+function fecharDesigModal() {
+  var el = document.getElementById('desig-mo');
+  if (el) el.classList.remove('open');
+  _proximoAlertaLogin();
+}
+
+function _contratosAguardandoDesignacao() {
+  var alvo = chaveResponsavel('A DESIGNAR');
+  return unVigentePorContrato(DADOS).filter(function(d) {
+    if (!d || !String(d['CONTRATO'] || '').trim()) return false;
+    if (d._st === 'ENCERRADO') return false;
+    return chaveResponsavel(d['RESPONSÁVEL NO FATURAMENTO']) === alvo;
+  });
+}
+
+function _mostrarModalDesig(lista) {
+  var n = lista.length;
+  var msg = n === 1
+    ? 'Existe <b>1</b> contrato que aguarda designação de responsável.'
+    : 'Existem <b>' + n + '</b> contratos que aguardam designação de responsável.';
+  var itens = lista.map(function(d) { return _liContratoEmpresa(d['CONTRATO'], d['EMPRESA']); }).join('');
+  document.getElementById('desig-sub').textContent = 'Aguardando designação de responsável';
+  document.getElementById('desig-body').innerHTML =
+    '<div style="padding:2px 2px 14px;font-size:14px;color:var(--text);line-height:1.5">' + msg + '</div>'
+    + '<ul style="list-style:none;margin:0;padding:0;max-height:320px;overflow:auto">' + itens + '</ul>';
+  document.getElementById('desig-mo').classList.add('open');
 }
 
 function contaInlineSalvar(id, campo, valor) {
