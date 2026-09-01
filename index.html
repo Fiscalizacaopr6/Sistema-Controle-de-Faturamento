@@ -992,7 +992,7 @@ select.doc-inp{cursor:pointer}
     <div class="mb" id="desig-body"></div>
     <div class="mo-actions">
       <button class="btn-cancel-e" onclick="fecharDesigModal()">Fechar</button>
-      <button class="btn-save" onclick="fecharDesigModal(); showView('contratos')">Ver Contratos</button>
+      <button class="btn-save" onclick="verContratosDesignacao()">Ver Contratos</button>
     </div>
   </div>
 </div>
@@ -4706,6 +4706,20 @@ function fecharDesigModal() {
   var el = document.getElementById('desig-mo');
   if (el) el.classList.remove('open');
   _proximoAlertaLogin();
+}
+
+// "Ver Contratos" do alerta de designação: vai para a tela Contratos já com o
+// filtro Responsável em "A DESIGNAR". populateContratoFilters garante que a
+// opção exista antes de selecioná-la; fillSelectFilter preserva o valor.
+function verContratosDesignacao() {
+  fecharDesigModal();
+  showView('contratos');
+  if (typeof populateContratoFilters === 'function') populateContratoFilters();
+  var sel = document.getElementById('f-re');
+  if (sel) {
+    sel.value = 'A DESIGNAR';
+    applyFilters();
+  }
 }
 
 function _contratosAguardandoDesignacao() {
