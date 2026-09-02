@@ -576,8 +576,19 @@ select.doc-inp{cursor:pointer}
           style="min-width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;cursor:pointer;outline:none">
           <option value="">Selecione um contrato…</option>
         </select>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="db-contrato-manual" type="text" placeholder="Nº do contrato (ex: 34/25)"
+            onkeydown="if(event.key==='Enter')openContratoManual()"
+            style="width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;outline:none">
+          <button onclick="openContratoManual()" title="Abrir contrato pelo número digitado"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">🔍 Buscar</button>
+        </div>
         <div id="db-extra-filters" style="display:flex;align-items:center;gap:10px">
           <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+          <select id="db-empresa-filter" onchange="setEmpresaFilter(this.value)"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none;max-width:220px">
+            <option value="">Todas as empresas</option>
+          </select>
           <select id="db-year-filter" onchange="setYearFilter(this.value)"
             style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
             <option value="">Todos os anos</option>
@@ -1589,6 +1600,7 @@ function showChart(key) {
 var currentYearFilter = '';
 var currentTipoFilter = '';
 var currentSubtipoFilter = '';
+var currentEmpresaFilter = '';
 
 var SUBTIPOS = ['COM DEDICAÇÃO EXCLUSIVA', 'SEM DEDICAÇÃO EXCLUSIVA'];
 
@@ -1610,6 +1622,31 @@ function populateSubtipoFilter() {
   sel.value = currentSubtipoFilter;
 }
 
+function populateEmpresaFilter() {
+  var sel = document.getElementById('db-empresa-filter');
+  if (!sel) return;
+  var empresas = distinctSorted(DADOS, function(d){ return d['EMPRESA']; });
+  var opts = '<option value="">Todas as empresas</option>';
+  empresas.forEach(function(e){ opts += '<option value="'+esc(e)+'">'+esc(e)+'</option>'; });
+  sel.innerHTML = opts;
+  sel.value = currentEmpresaFilter;
+}
+
+function setEmpresaFilter(empresa) {
+  currentEmpresaFilter = empresa;
+  buildDashboard();
+}
+
+// Abre o contrato digitado manualmente no campo de busca
+function openContratoManual() {
+  var el = document.getElementById('db-contrato-manual');
+  if (!el) return;
+  var num = (el.value || '').trim();
+  if (!num) return;
+  openContratoModal(num);
+  el.value = '';
+}
+
 function setTipoFilter(tipo) {
   currentTipoFilter = tipo;
   buildDashboard();
@@ -1624,6 +1661,9 @@ function clearDashFilters() {
   currentYearFilter = '';
   currentTipoFilter = '';
   currentSubtipoFilter = '';
+  currentEmpresaFilter = '';
+  var man = document.getElementById('db-contrato-manual');
+  if (man) man.value = '';
   hideContratoDetail();
   buildDashboard();
 }
@@ -1673,6 +1713,7 @@ function populateContratoFilter() {
   var seen = {};
   var lista = [];
   DADOS.forEach(function(d) {
+    if (currentEmpresaFilter && String(d['EMPRESA']||'').trim() !== currentEmpresaFilter) return;
     var c = (d['CONTRATO'] || '').trim();
     if (!c || seen[c]) return;
     seen[c] = true;
@@ -1717,8 +1758,10 @@ function buildDashboard() {
   if (currentYearFilter)    base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
   if (currentTipoFilter)    base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
   if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
+  if (currentEmpresaFilter) base = base.filter(function(d){ return String(d['EMPRESA']||'').trim() === currentEmpresaFilter; });
 
   populateContratoFilter();
+  populateEmpresaFilter();
   populateYearFilter();
   populateTipoFilter();
   populateSubtipoFilter();
