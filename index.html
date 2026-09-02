@@ -1131,6 +1131,18 @@ var EDIT_PERMS = {
   area51: '*'
 };
 
+// Permissões EXTRAS por usuário (login em minúsculas) → chaves de edição
+// concedidas ao usuário além do que o nível dele permite. Usado para casos
+// pontuais em que uma pessoa precisa editar uma tela específica sem mudar de
+// nível. Ex.: "gabrielacatarino" é Nível 2, mas também pode editar a tela de
+// Reajuste e Repactuação.
+var USER_EXTRA_EDIT = {
+  gabrielacatarino: ['reajustes']
+};
+function userExtraEditKeys(login) {
+  return USER_EXTRA_EDIT[String(login || '').toLowerCase()] || [];
+}
+
 // Compatibilidade com dados antigos (admin/editor/viewer)
 function normalizeRole(r) {
   if (EDIT_PERMS[r] !== undefined) return r;
@@ -1157,9 +1169,12 @@ function canViewView(view, role) {
 function canEditKey(key, role) {
   role = normalizeRole(role || currentRole);
   var p = EDIT_PERMS[role];
-  if (!p) return false;
   if (p === '*') return true;
-  return p.indexOf(key) !== -1;
+  if (p && p.indexOf(key) !== -1) return true;
+  // Override por usuário: aplica-se apenas ao usuário logado ao avaliar o
+  // próprio nível (não quando se avalia o nível de outro usuário).
+  if (role === normalizeRole(currentRole) && userExtraEditKeys(currentUserLogin).indexOf(key) !== -1) return true;
+  return false;
 }
 // Pode o nível 'role' EDITAR a tela 'view'?
 function canEditView(view, role) {
