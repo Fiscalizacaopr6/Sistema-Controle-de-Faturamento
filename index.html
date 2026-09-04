@@ -475,6 +475,13 @@ select.doc-inp{cursor:pointer}
 #doc-ob-menu button:hover{background:var(--surface2);color:var(--accent)}
 #doc-ob-menu button:disabled{color:var(--muted);cursor:not-allowed;background:none}
 #doc-ob-menu button span.ico{font-size:13px;width:14px;text-align:center}
+/* Portaria (Fiscais): input + botão "abrir no SEI" ao lado */
+.fc-por{display:flex;align-items:center;gap:4px}
+.fc-por input{flex:1;min-width:60px}
+.fc-sei-btn{flex:0 0 auto;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--accent);
+  border-radius:4px;font-size:11px;font-weight:700;padding:2px 6px;line-height:1.4;font-family:'Sora',sans-serif}
+.fc-sei-btn:hover{border-color:var(--accent);background:rgba(59,130,246,.12)}
+.fc-sei-btn:disabled{color:var(--muted);cursor:not-allowed;opacity:.4}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -2402,7 +2409,13 @@ function openContratoModal(num) {
         + '<td style="padding:7px 8px">' + (f.email ? '<a href="mailto:' + esc2(f.email) + '" style="color:var(--accent);text-decoration:none">' + esc2(f.email) + '</a>' : '—') + '</td>'
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.telefone || '—') + '</td>'
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.enderecoSei || '—') + '</td>'
-        + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.portaria || '—') + '</td>'
+        + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">'
+          + (f.portaria
+              ? (fcPortariaDoc(f.portaria)
+                  ? '<span class="doc-ob" title="Clique para abrir a portaria no SEI" onclick="fcPortariaSei(' + JSON.stringify(String(f.portaria)) + ',event)">' + esc2(f.portaria) + '</span>'
+                  : esc2(f.portaria))
+              : '—')
+          + '</td>'
         + '</tr>';
     });
     fiscaisHtml += '</tbody></table></div>';
@@ -2996,7 +3009,12 @@ function renderFiscaisTable() {
       +'<td style="font-size:11px">'+edInp(f.id,'email2',f.email2,'type="email"',';font-size:11px')+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(f.id,'telefone',f.telefone)+'</td>'
       +'<td style="font-size:11px;color:var(--muted)">'+edInp(f.id,'enderecoSei',f.enderecoSei,'',';font-size:11px;color:var(--muted)')+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edInp(f.id,'portaria',f.portaria,'',';font-family:\'DM Mono\',monospace;font-size:11px')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'
+       +'<div class="fc-por">'
+         +edInp(f.id,'portaria',f.portaria,'',';font-family:\'DM Mono\',monospace;font-size:11px')
+         +'<button type="button" class="fc-sei-btn" title="Abrir portaria no SEI" onclick="fcPortariaSeiInput(this,event)">↗ SEI</button>'
+       +'</div>'
+      +'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
   }).join('');
@@ -6378,9 +6396,11 @@ function obMenu(ev, num, cfg) {
           + '<span class="ico">↗</span>Abrir ' + (docs.length > 1 ? esc(d) : 'documento') + ' no SEI</button>';
       }).join('')
     : '<button type="button" disabled><span class="ico">↗</span>Sem documento no SEI</button>';
+  var editarHtml = cfg.semEditar ? ''
+    : '<button type="button"' + (cfg.podeEditar ? '' : ' disabled') + ' data-acao="editar">'
+      + '<span class="ico">✎</span>' + esc(cfg.rotuloEditar) + '</button>';
   m.innerHTML = '<div class="ob-cab">' + esc(cfg.titulo || 'Ordem bancária') + '<b>' + esc(num || '—') + '</b></div>'
-    + '<button type="button"' + (cfg.podeEditar ? '' : ' disabled') + ' data-acao="editar">'
-    + '<span class="ico">✎</span>' + esc(cfg.rotuloEditar) + '</button>'
+    + editarHtml
     + btnsSei;
   document.body.appendChild(m);
 
@@ -6403,6 +6423,31 @@ function obMenu(ev, num, cfg) {
     document.addEventListener('keydown', _docObEsc, true);
     window.addEventListener('scroll', docFecharObMenu, true);
   }, 0);
+}
+
+// Portaria (aba Fiscais): o texto costuma ser "4951", "6439155" ou
+// "2295 de 20/03/2024" — o número do documento no SEI é sempre o primeiro
+// numérico da string. docSeiNumeros() partiria o "/" da data em outros tokens
+// (ex.: "2024") e sugeriria abrir o ano como se fosse documento — usamos
+// então uma regra específica só para portaria.
+function fcPortariaDoc(valor) {
+  var m = String(valor == null ? '' : valor).match(/^\s*(\d{4,})/);
+  return m ? m[1] : '';
+}
+
+function fcPortariaSei(valor, ev) {
+  ev.stopPropagation();
+  var doc = fcPortariaDoc(valor);
+  if (!doc) { docToast('Sem número de documento na portaria.', true); return; }
+  docAbrirSei(doc);
+}
+
+// Versão para o input inline: lê o valor atual do campo no clique.
+// Para viewer (sem input), lê o texto do próprio host, tirando o rótulo do botão.
+function fcPortariaSeiInput(btn, ev) {
+  var host = btn.parentNode, inp = host && host.querySelector('input');
+  var val = inp ? inp.value : (host ? host.textContent.replace(btn.textContent, '').trim() : '');
+  fcPortariaSei(val, ev);
 }
 
 function docObMenu(td, ev) {
