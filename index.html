@@ -1814,10 +1814,16 @@ function buildDashboard() {
   // Contratos vigentes distintos: 1 termo por contrato (evita contar 2x quando
   // há mais de um termo vigente no mesmo contrato).
   var vigContratos = unVigentePorContrato(vig);
-  // Agrupa termos por contrato; encerrado = nenhum termo vigente no grupo
-  var _grp = {};
-  base.forEach(function(d){ var k=(d['CONTRATO']||'').trim(); if(k){if(!_grp[k])_grp[k]=[];_grp[k].push(d);} });
-  var encCount = Object.keys(_grp).filter(function(k){ return _grp[k].every(function(d){ return d._st==='ENCERRADO'; }); }).length;
+  // Nomes distintos de fiscais atuando em contratos vigentes (mesmo nome em
+  // mais de um contrato conta 1). Ignora fiscal sem nome ou sem contrato.
+  var vigContSet = new Set(vig.map(function(d){ return (d['CONTRATO']||'').trim(); }).filter(Boolean));
+  var fiscVigNomes = new Set();
+  FISCAIS.forEach(function(f){
+    if (!vigContSet.has((f.contrato||'').trim())) return;
+    var n = (f.nome||'').trim().toUpperCase();
+    if (n) fiscVigNomes.add(n);
+  });
+  var fiscVigCount = fiscVigNomes.size;
   var mensal = vig.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0);
   function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
   var func = vig.reduce(function(s,d){ return s+funcDoTermo(d); }, 0);
@@ -1828,7 +1834,7 @@ function buildDashboard() {
   var kpis = [
     {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
     {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true},
-    {l:'Contratos Encerrados', v:encCount, s:'histórico'+labelAno, c:'red', btnEnc:true},
+    {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', btnFiscVig:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
     {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true},
@@ -1836,9 +1842,9 @@ function buildDashboard() {
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
     var clickFn = k.btn ? 'showKpiLista(\'vigentes\')'
-                : k.btnEnc ? 'showKpiLista(\'encerrados\')'
                 : k.btnEmp ? 'showKpiLista(\'empresas\')'
                 : k.btnV30 ? 'showKpiLista(\'venc30\')'
+                : k.btnFiscVig ? 'showKpiLista(\'fiscaisVig\')'
                 : '';
     var clickable = !!clickFn;
     return '<div class="kpi '+k.c+'"'
@@ -2807,6 +2813,40 @@ function showKpiLista(tipo) {
     rows = lista.length
       ? '<div class="al">' + lista.map(alertaItemHtml).join('') + '</div>'
       : '<div class="empty">Nenhum contrato vencendo nos próximos 30 dias ✓</div>';
+
+  } else if (tipo === 'fiscaisVig') {
+    // Nomes distintos de fiscais em contratos vigentes (respeita o filtro
+    // de ano/tipo/subtipo/empresa que a variável `base` já aplicou acima).
+    var vigCts = new Set(base.filter(function(d){ return d._st === 'VIGENTE'; })
+                             .map(function(d){ return (d['CONTRATO']||'').trim(); })
+                             .filter(Boolean));
+    var mapa = {};
+    FISCAIS.forEach(function(f){
+      var c = (f.contrato||'').trim();
+      if (!vigCts.has(c)) return;
+      var n = (f.nome||'').trim();
+      if (!n) return;
+      var chave = n.toUpperCase();
+      if (!mapa[chave]) mapa[chave] = { nome: n.toUpperCase(), contratos: new Set() };
+      if (c) mapa[chave].contratos.add(c);
+    });
+    var lista = Object.values(mapa).sort(function(a,b){ return a.nome.localeCompare(b.nome,'pt-BR'); });
+    titulo = currentYearFilter ? 'Fiscais em Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')'
+                               : 'Fiscais em Contratos Vigentes (' + lista.length + ')';
+    subtitulo = 'Nomes distintos — o número de contratos ao lado indica em quantos o fiscal atua';
+    rows = lista.length
+      ? lista.map(function(x, i){
+          var cts = Array.from(x.contratos).sort(function(a,b){ return a.localeCompare(b,'pt-BR',{numeric:true}); }).join(', ');
+          return '<div style="display:flex;align-items:center;gap:12px;padding:9px 6px;border-bottom:1px solid var(--border)">'
+            + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:var(--purple);min-width:32px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
+            + '<span style="font-size:13px;color:var(--text);font-weight:500;flex:1;min-width:0">'+esc(x.nome)+'</span>'
+            + '<span style="font-size:10.5px;color:var(--muted);font-family:\'DM Mono\',monospace;white-space:nowrap">'
+              + x.contratos.size + ' contrato' + (x.contratos.size === 1 ? '' : 's')
+              + (cts ? ' · '+esc(cts) : '')
+            + '</span>'
+            + '</div>';
+        }).join('')
+      : '<div class="empty">Nenhum fiscal em contrato vigente para esse filtro.</div>';
 
   } else if (tipo === 'empresas') {
     var empMap = {};
