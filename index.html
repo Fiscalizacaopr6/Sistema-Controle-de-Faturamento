@@ -754,6 +754,15 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Unidade</span>
           <select class="sel" id="fisc-f-unidade" onchange="buildFiscaisCards()"><option value="">Todas</option></select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Status</span>
+          <select class="sel" id="fisc-f-status" onchange="buildFiscaisCards()">
+            <option value="">Todos</option>
+            <option value="VIGENTE">Vigente</option>
+            <option value="A INICIAR">A Iniciar</option>
+            <option value="ENCERRADO">Encerrado</option>
+            <option value="SEM CONTRATO">Sem contrato</option>
+          </select>
+        </div>
         <button class="btn clear" onclick="clearFiscalFilters()">Limpar</button>
       </div>
       <div class="fiscal-cards" id="fiscal-cards"></div>
@@ -2854,19 +2863,31 @@ function populateFiscalFilters() {
 }
 
 function clearFiscalFilters() {
-  clearFilterFields(['fiscal-q','fisc-f-nome','fisc-f-contrato','fisc-f-empresa','fisc-f-unidade'], buildFiscaisCards);
+  clearFilterFields(['fiscal-q','fisc-f-nome','fisc-f-contrato','fisc-f-empresa','fisc-f-unidade','fisc-f-status'], buildFiscaisCards);
+}
+
+// Status do fiscal = status do contrato dele (mesma lógica do selo na linha).
+// 'SEM CONTRATO' quando o fiscal está sem contrato preenchido ou o contrato
+// não existe em /dados.
+function fiscalStatus(f) {
+  var c = (f.contrato || '').trim();
+  if (!c) return 'SEM CONTRATO';
+  var d = DADOS.find(function(x){ return (x['CONTRATO']||'').trim() === c; });
+  return d ? (d._st || 'SEM CONTRATO') : 'SEM CONTRATO';
 }
 
 function buildFiscaisCards() {
   populateFiscalFilters();
   var q = (document.getElementById('fiscal-q') ? document.getElementById('fiscal-q').value : '').toLowerCase();
   var fNome = fVal('fisc-f-nome'), fContrato = fVal('fisc-f-contrato'),
-      fEmpresa = fVal('fisc-f-empresa'), fUnidade = fVal('fisc-f-unidade');
+      fEmpresa = fVal('fisc-f-empresa'), fUnidade = fVal('fisc-f-unidade'),
+      fStatus = fVal('fisc-f-status');
   fcFiltered = FISCAIS.filter(function(f) {
     if (fNome && String(f.nome || '').trim() !== fNome) return false;
     if (fContrato && String(f.contrato || '').trim() !== fContrato) return false;
     if (fEmpresa && String(f.empresa || '').trim() !== fEmpresa) return false;
     if (fUnidade && String(f.unidade || '').trim() !== fUnidade) return false;
+    if (fStatus && fiscalStatus(f) !== fStatus) return false;
     if (!q) return true;
     return (f.nome||'').toLowerCase().indexOf(q) !== -1
         || (f.contrato||'').toLowerCase().indexOf(q) !== -1
