@@ -2968,6 +2968,27 @@ function fcStickyScrollSyncFor(view) {
 
 function fcStickyScrollSync() { fcStickyScrollSyncFor('fiscais'); }
 
+// Re-mede a barra de rolagem horizontal fixa quando a janela muda de tamanho
+// ou o navegador aplica zoom (dispara 'resize'). Sem isso, ao dar zoom num
+// monitor menor a barra continua com a largura antiga e as colunas da direita
+// ficam inacessíveis/cortadas nas telas com tabela larga (ex.: Solicitação Empresa).
+(function() {
+  var VIEWS_COM_STICKY = ['fiscais', 'unidades', 'empresas', 'contas', 'reajustes'];
+  var _stickyResizeTimer = null;
+  function ressincronizarStickyAtivo() {
+    var v = sessionStorage.getItem('ufrj_view');
+    if (VIEWS_COM_STICKY.indexOf(v) === -1) return;
+    fcStickyScrollSyncFor(v);
+  }
+  function agendarRessinc() {
+    clearTimeout(_stickyResizeTimer);
+    _stickyResizeTimer = setTimeout(ressincronizarStickyAtivo, 120);
+  }
+  window.addEventListener('resize', agendarRessinc);
+  // Em muitos navegadores o zoom altera o visualViewport sem disparar 'resize'.
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', agendarRessinc);
+})();
+
 function fcPaginationHtml(total) {
   if (total <= 1) return '';
   var h = '<div class="pagination">';
