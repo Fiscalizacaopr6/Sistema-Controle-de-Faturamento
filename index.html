@@ -4006,17 +4006,24 @@ var IMR_DEFAULTS = [
   { id:'imr-mca-20-26-ccs-polo-biotec-cpmp',      contrato:'20/26', empresa:'MCA MÚLTIPLOS SERVIÇOS LTDA', unidade:'CCS/POLO BIOTEC/CPMP',    link:'Modelo IMR - MCA Múltiplos Serviços Ltda.- 20-26 - CCS-POLO BIOTEC-CPMP.html' },
   { id:'imr-mca-20-26-eefd',                      contrato:'20/26', empresa:'MCA MÚLTIPLOS SERVIÇOS LTDA', unidade:'EEFD',                      link:'Modelo IMR - MCA Múltiplos Serviços Ltda.- 20-26 - EEFD.html' },
   { id:'imr-mca-20-26-residencia-estudantil',     contrato:'20/26', empresa:'MCA MÚLTIPLOS SERVIÇOS LTDA', unidade:'RESIDÊNCIA ESTUDANTIL',    link:'Modelo IMR - MCA Múltiplos Serviços Ltda.- 20-26 - Residência Estudantil.html' },
-  { id:'imr-mca-20-26-restaurante-universitario', contrato:'20/26', empresa:'MCA MÚLTIPLOS SERVIÇOS LTDA', unidade:'RESTAURANTE UNIVERSITÁRIO', link:'Modelo IMR - MCA Múltiplos Serviços Ltda.- 20-26 - Restaurante Universitário.html' }
+  { id:'imr-mca-20-26-restaurante-universitario', contrato:'20/26', empresa:'MCA MÚLTIPLOS SERVIÇOS LTDA', unidade:'RESTAURANTE UNIVERSITÁRIO', link:'Modelo IMR - MCA Múltiplos Serviços Ltda.- 20-26 - Restaurante Universitário.html' },
+  { id:'imr-conseg-13-23-escola-de-musica',                    contrato:'13/23', empresa:'CONSEG EQUIPAMENTOS E SISTEMAS CONTRA INCÊNDIO LTDA', unidade:'ESCOLA DE MÚSICA',                                       link:'Modelo IMR - Conseg Equipamentos e Sistemas Contra Incêndio Ltda.- 13-23 - Escola de Música.html' },
+  { id:'imr-conseg-13-23-fnd',                                 contrato:'13/23', empresa:'CONSEG EQUIPAMENTOS E SISTEMAS CONTRA INCÊNDIO LTDA', unidade:'FND',                                                    link:'Modelo IMR - Conseg Equipamentos e Sistemas Contra Incêndio Ltda.- 13-23 - FND.html' },
+  { id:'imr-conseg-13-23-grafica-almox-polo-pos-eba-incubadora', contrato:'13/23', empresa:'CONSEG EQUIPAMENTOS E SISTEMAS CONTRA INCÊNDIO LTDA', unidade:'GRÁFICA/ALMOX CENTRAL/POLO NAUTICO/PÓS EBA/INCUBADORA', link:'Modelo IMR - Conseg Equipamentos e Sistemas Contra Incêndio Ltda.- 13-23 - Gráfica-Almox Central-Polo Nautico-Pós EBA-Incubadora.html' },
+  { id:'imr-conseg-13-23-ifcs-ih',                             contrato:'13/23', empresa:'CONSEG EQUIPAMENTOS E SISTEMAS CONTRA INCÊNDIO LTDA', unidade:'IFCS/I.H',                                              link:'Modelo IMR - Conseg Equipamentos e Sistemas Contra Incêndio Ltda.- 13-23 - IFCS-IH.html' },
+  { id:'imr-conseg-13-23-museu-nacional',                      contrato:'13/23', empresa:'CONSEG EQUIPAMENTOS E SISTEMAS CONTRA INCÊNDIO LTDA', unidade:'MUSEU NACIONAL',                                        link:'Modelo IMR - Conseg Equipamentos e Sistemas Contra Incêndio Ltda.- 13-23 - Museu Nacional.html' }
 ];
 
 function seedImrDefaults() {
   var added = false;
   IMR_DEFAULTS.forEach(function(seed) {
     var exists = IMR.some(function(r) {
-      return r.id === seed.id ||
-        ((r.contrato||'').trim() === seed.contrato &&
-         (r.unidade||'').trim().toUpperCase() === seed.unidade.toUpperCase() &&
-         (r.empresa||'').toUpperCase().indexOf('MCA') !== -1);
+      if (r.id === seed.id) return true;
+      var sameContrato = (r.contrato||'').trim() === seed.contrato;
+      var sameUnidade  = (r.unidade||'').trim().toUpperCase() === seed.unidade.toUpperCase();
+      var seedEmpKey   = seed.empresa.split(/\s+/)[0].toUpperCase();
+      var sameEmpresa  = (r.empresa||'').toUpperCase().indexOf(seedEmpKey) !== -1;
+      return sameContrato && sameUnidade && sameEmpresa;
     });
     if (!exists) { IMR.push(seed); added = true; }
   });
