@@ -572,12 +572,23 @@ select.doc-inp{cursor:pointer}
     <div class="view active" id="view-dashboard">
       <!-- Filtro de contrato + filtros -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+        <input id="db-busca" type="text" list="db-busca-list" autocomplete="off"
+          placeholder="🔎 Buscar contrato ou empresa…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();dashBuscaGo(this.value,true);}"
+          onchange="dashBuscaGo(this.value,false)"
+          style="min-width:260px;flex:0 1 320px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;padding:9px 14px;outline:none;transition:border-color .15s"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <datalist id="db-busca-list"></datalist>
         <select id="db-contrato-filter" onchange="openContratoModal(this.value); this.value='';"
           style="min-width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;cursor:pointer;outline:none">
           <option value="">Selecione um contrato…</option>
         </select>
         <div id="db-extra-filters" style="display:flex;align-items:center;gap:10px">
           <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+          <select id="db-empresa-filter" onchange="setEmpresaFilter(this.value)"
+            style="max-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
+            <option value="">Todas as empresas</option>
+          </select>
           <select id="db-year-filter" onchange="setYearFilter(this.value)"
             style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
             <option value="">Todos os anos</option>
@@ -1589,6 +1600,7 @@ function showChart(key) {
 var currentYearFilter = '';
 var currentTipoFilter = '';
 var currentSubtipoFilter = '';
+var currentEmpresaFilter = '';
 
 var SUBTIPOS = ['COM DEDICAÇÃO EXCLUSIVA', 'SEM DEDICAÇÃO EXCLUSIVA'];
 
@@ -1615,6 +1627,58 @@ function setTipoFilter(tipo) {
   buildDashboard();
 }
 
+// Filtro de empresa do Dashboard (afeta KPIs e gráficos, como tipo/subtipo).
+function populateEmpresaFilter() {
+  var sel = document.getElementById('db-empresa-filter');
+  if (!sel) return;
+  var lista = distinctSorted(DADOS, function(d){ return d['EMPRESA']; });
+  var opts = '<option value="">Todas as empresas</option>';
+  lista.forEach(function(e){ opts += '<option value="'+esc(e)+'">'+esc(e)+'</option>'; });
+  sel.innerHTML = opts;
+  // Se a empresa filtrada sumiu dos dados, volta para "todas".
+  if (currentEmpresaFilter && lista.indexOf(currentEmpresaFilter) === -1) currentEmpresaFilter = '';
+  sel.value = currentEmpresaFilter;
+}
+
+function setEmpresaFilter(emp) {
+  currentEmpresaFilter = emp;
+  buildDashboard();
+}
+
+// Preenche as sugestões (contratos + empresas) do campo "Buscar" do Dashboard.
+function populateDashBusca() {
+  var dl = document.getElementById('db-busca-list');
+  if (!dl) return;
+  var contratos = distinctSorted(DADOS, function(d){ return d['CONTRATO']; });
+  var empresas  = distinctSorted(DADOS, function(d){ return d['EMPRESA']; });
+  dl.innerHTML = contratos.map(function(c){ return '<option value="'+esc(c)+'">Contrato</option>'; }).join('')
+    + empresas.map(function(e){ return '<option value="'+esc(e)+'">Empresa</option>'; }).join('');
+}
+
+// Busca direta: abre o contrato digitado ou, sendo uma empresa, aplica o filtro
+// de empresa — sem precisar percorrer os seletores. Prioridade: contrato exato,
+// empresa exata, contrato parcial, empresa parcial.
+function dashBuscaGo(txt, fromEnter) {
+  var q = (txt || '').trim();
+  if (!q) return;
+  var qu = q.toUpperCase();
+  function limpar(){ var i = document.getElementById('db-busca'); if (i) i.value = ''; }
+
+  var cExato = DADOS.filter(function(d){ return (d['CONTRATO']||'').trim().toUpperCase() === qu; })[0];
+  if (cExato) { limpar(); openContratoModal(cExato['CONTRATO']); return; }
+
+  var eExata = DADOS.filter(function(d){ return (d['EMPRESA']||'').trim().toUpperCase() === qu; })[0];
+  if (eExata) { limpar(); setEmpresaFilter((eExata['EMPRESA']||'').trim()); return; }
+
+  var cParc = DADOS.filter(function(d){ return (d['CONTRATO']||'').trim().toUpperCase().indexOf(qu) !== -1; })[0];
+  if (cParc) { limpar(); openContratoModal(cParc['CONTRATO']); return; }
+
+  var eParc = DADOS.filter(function(d){ return (d['EMPRESA']||'').trim().toUpperCase().indexOf(qu) !== -1; })[0];
+  if (eParc) { limpar(); setEmpresaFilter((eParc['EMPRESA']||'').trim()); return; }
+
+  if (fromEnter) alert('Nada encontrado para: ' + q);
+}
+
 function setSubtipoFilter(subtipo) {
   currentSubtipoFilter = subtipo;
   buildDashboard();
@@ -1624,6 +1688,9 @@ function clearDashFilters() {
   currentYearFilter = '';
   currentTipoFilter = '';
   currentSubtipoFilter = '';
+  currentEmpresaFilter = '';
+  var busca = document.getElementById('db-busca');
+  if (busca) busca.value = '';
   hideContratoDetail();
   buildDashboard();
 }
@@ -1717,8 +1784,11 @@ function buildDashboard() {
   if (currentYearFilter)    base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
   if (currentTipoFilter)    base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
   if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
+  if (currentEmpresaFilter) base = base.filter(function(d){ return (d['EMPRESA']||'').trim() === currentEmpresaFilter; });
 
   populateContratoFilter();
+  populateEmpresaFilter();
+  populateDashBusca();
   populateYearFilter();
   populateTipoFilter();
   populateSubtipoFilter();
@@ -2635,6 +2705,7 @@ function showKpiLista(tipo) {
   if (currentYearFilter)    base = base.filter(function(d){ return contratoDoAno(d, currentYearFilter); });
   if (currentTipoFilter)    base = base.filter(function(d){ return (d['TIPO']||'') === currentTipoFilter; });
   if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
+  if (currentEmpresaFilter) base = base.filter(function(d){ return (d['EMPRESA']||'').trim() === currentEmpresaFilter; });
   var titulo, subtitulo, rows;
 
   function kpiCard(d, accentColor) {
