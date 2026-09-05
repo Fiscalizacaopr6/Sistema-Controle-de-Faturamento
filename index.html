@@ -1836,7 +1836,7 @@ function buildDashboard() {
     {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
     {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true, btnValor:true},
     {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', btnFiscVig:true},
-    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
+    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple', btnFunc:true},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
     {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', small:true, btnGlobal:true},
     {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', btnEmp:true},
@@ -1848,6 +1848,7 @@ function buildDashboard() {
                 : k.btnFiscVig ? 'showKpiLista(\'fiscaisVig\')'
                 : k.btnValor ? 'showKpiLista(\'valorMensal\')'
                 : k.btnGlobal ? 'showKpiLista(\'valorGlobal\')'
+                : k.btnFunc ? 'showKpiLista(\'funcVig\')'
                 : '';
     var clickable = !!clickFn;
     return '<div class="kpi '+k.c+'"'
@@ -2821,6 +2822,40 @@ function showKpiLista(tipo) {
         + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:13px;color:#3b82f6;min-width:80px">'+esc(contrato)+'</span>'
         + '<span style="font-size:13px;color:var(--text);flex:1;min-width:0">'+esc(empresa)+'</span>'
         + '<span style="font-family:\'DM Mono\',monospace;font-weight:600;font-size:13px;color:var(--text);white-space:nowrap">'+valor+'</span>'
+        + '</div>';
+    }).join('');
+
+  } else if (tipo === 'funcVig') {
+    function funcT(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
+    var vigList = base.filter(function(d){ return d._st === 'VIGENTE'; });
+    var grpF = {};
+    vigList.forEach(function(d){
+      var k = (d['CONTRATO']||'').trim();
+      if (!k) return;
+      if (!grpF[k]) grpF[k] = [];
+      grpF[k].push(d);
+    });
+    var lista = Object.keys(grpF).map(function(k){
+      var terms = grpF[k];
+      var rep = terms.find(function(d){ return /^CONTRATO/i.test(d['TERMO ATUAL']||''); }) || terms[0];
+      var soma = terms.reduce(function(s,d){ return s + funcT(d); }, 0);
+      return { d: rep, qtd: soma };
+    });
+    lista.sort(function(a,b){ return b.qtd - a.qtd; });
+    var totF = lista.reduce(function(s,x){ return s + x.qtd; }, 0);
+    titulo = currentYearFilter ? 'Funcionários Vigentes em ' + currentYearFilter + ' (' + lista.length + ' contratos)'
+                               : 'Funcionários Vigentes (' + lista.length + ' contratos)';
+    subtitulo = 'Ordenado do maior para o menor · Total: ' + totF + ' funcionário' + (totF===1?'':'s');
+    rows = lista.map(function(x, i){
+      var d = x.d;
+      var idx = DADOS.indexOf(d);
+      var contrato = (d['CONTRATO']||'—');
+      var empresa  = (d['EMPRESA']||'').trim() || '—';
+      return '<div onclick="openModal('+idx+')" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:filter .12s" onmouseenter="this.style.filter=\'brightness(1.08)\'" onmouseleave="this.style.filter=\'\'">'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:#8b5cf6;min-width:28px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:13px;color:#8b5cf6;min-width:80px">'+esc(contrato)+'</span>'
+        + '<span style="font-size:13px;color:var(--text);flex:1;min-width:0">'+esc(empresa)+'</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:600;font-size:13px;color:var(--text);white-space:nowrap">'+x.qtd+' func.</span>'
         + '</div>';
     }).join('');
 
