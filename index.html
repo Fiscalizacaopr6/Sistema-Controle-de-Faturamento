@@ -2792,7 +2792,18 @@ function showKpiLista(tipo) {
     titulo = currentYearFilter ? 'Valor Mensal — Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')'
                                : 'Valor Mensal — Contratos Vigentes (' + lista.length + ')';
     subtitulo = 'Ordenado do maior para o menor · Total: ' + fmtBR(totMensal);
-    rows = lista.map(function(d){ return kpiCard(d, '#10b981'); }).join('');
+    rows = lista.map(function(d, i){
+      var idx = DADOS.indexOf(d);
+      var contrato = (d['CONTRATO']||'—');
+      var empresa  = (d['EMPRESA']||'').trim() || '—';
+      var valor    = d['TOTAL MENSAL']!=null ? fmtBR(d['TOTAL MENSAL']) : '—';
+      return '<div onclick="openModal('+idx+')" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:filter .12s" onmouseenter="this.style.filter=\'brightness(1.08)\'" onmouseleave="this.style.filter=\'\'">'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:#10b981;min-width:28px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:13px;color:#10b981;min-width:80px">'+esc(contrato)+'</span>'
+        + '<span style="font-size:13px;color:var(--text);flex:1;min-width:0">'+esc(empresa)+'</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:600;font-size:13px;color:var(--text);white-space:nowrap">'+valor+'</span>'
+        + '</div>';
+    }).join('');
 
   } else if (tipo === 'encerrados') {
     // Agrupa por contrato; exibe apenas os contratos sem nenhum termo vigente
