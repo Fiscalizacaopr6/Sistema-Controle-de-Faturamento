@@ -47,6 +47,7 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 .btn-copiar{background:#0d9488;color:#fff}
 .btn-excel{background:#217346;color:#fff}
 .btn-import{background:#2563eb;color:#fff}
+.btn-pr6{background:#334155;color:#fff}
 .btn:hover{opacity:.88}
 /* Coluna Nome: acompanha o tamanho do texto digitado */
 td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
@@ -112,8 +113,9 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
       <button class="btn btn-excel" id="btn-excel" onclick="baixarExcelContaVinculada()" title="Baixar planilha de conta vinculada mensal em branco" style="display:none">📊 EXCEL</button>
       <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarPlanilha(this)">
       <button class="btn btn-import" id="btn-import" onclick="document.getElementById('imp-file').click()" title="Importar funcionários de uma planilha Excel para o mês atual" style="display:none">📥 IMPORTAR</button>
-      <button class="btn btn-salvar" onclick="salvar(true)">Salvar</button>
-      <button class="btn btn-print" onclick="baixarPDF()">📄 Baixar PDF (mês atual)</button>
+      <button class="btn btn-salvar" onclick="enviarMes()">Enviar</button>
+      <button class="btn btn-print" id="btn-pdf" onclick="baixarPDF()" style="display:none">📄 Baixar PDF (mês atual)</button>
+      <button class="btn btn-pr6" id="btn-pr6" onclick="togglePR6()">🔒 PR6</button>
       <span class="status" id="status"></span>
     </div>
 
@@ -178,6 +180,7 @@ var TOKEN = '';
 var DADOS = null;          // {contrato, empresa, unidade, perc, meses:[{mes,ano}], linhas:[]}
 var MES_ATUAL = 0;
 var fbdb = null, _timer = null, _bloqueado = false;
+var _pr6 = false;          // modo PR6 (senha): mostra todos os períodos e o botão de PDF
 
 // ── Utilidades ──
 function esc(s) {
@@ -236,12 +239,26 @@ function linhasDoMes(i) {
 // ── Tela ──
 function renderTabs() {
   var bar = document.getElementById('tabbar');
-  bar.innerHTML = DADOS.meses.map(function(m, i) {
+  // Fora do modo PR6, aparece só o período atual (o próximo a enviar). Em modo
+  // PR6 (senha), aparecem todos os meses para consulta.
+  var idxs;
+  if (_pr6) {
+    idxs = DADOS.meses.map(function(_, i) { return i; });
+  } else {
+    var atual = DADOS.enviadoAte || 0;
+    idxs = (atual < DADOS.meses.length) ? [atual] : [];
+  }
+  bar.innerHTML = idxs.map(function(i) {
+    var m = DADOS.meses[i];
     var qtd = linhasDoMes(i).length;
     return '<button class="tab-btn' + (i === MES_ATUAL ? ' active' : '') + '" onclick="trocarMes(' + i + ')">'
       + '<b>' + esc(m.mes) + '</b><small>' + esc(m.ano) + ' &middot; ' + qtd + '</small></button>';
   }).join('');
-  if (!DADOS.meses.length) bar.innerHTML = '<span style="color:#fff;font-size:11px;padding:4px">Nenhum mês liberado pela PR6 ainda.</span>';
+  if (!DADOS.meses.length) {
+    bar.innerHTML = '<span style="color:#fff;font-size:11px;padding:4px">Nenhum mês liberado pela PR6 ainda.</span>';
+  } else if (!idxs.length) {
+    bar.innerHTML = '<span style="color:#fff;font-size:11px;padding:4px">Todos os períodos foram enviados. Use o botão PR6 para revê-los.</span>';
+  }
 }
 
 function renderTabela() {
@@ -541,7 +558,8 @@ function iniciar() {
       unidade:  val.unidade || '',
       perc:     (typeof val.perc === 'number') ? val.perc : PERC_SUB_PADRAO,
       meses:    Array.isArray(val.meses) ? val.meses : (val.meses ? Object.values(val.meses) : []),
-      linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : [])
+      linhas:   Array.isArray(val.linhas) ? val.linhas : (val.linhas ? Object.values(val.linhas) : []),
+      enviadoAte: (typeof val.enviadoAte === 'number') ? val.enviadoAte : 0
     };
     _bloqueado = !!val.fechado;
     var faltando = DADOS.linhas.filter(function(l) { return !l.id; });
@@ -559,6 +577,64 @@ function iniciar() {
   });
 }
 
+// ── Envio sequencial dos períodos ──
+// "Enviar" grava a folha do mês e avança para o próximo período: o mês enviado
+// sai da tela e aparece o seguinte. O ponto até onde já se enviou (enviadoAte)
+// fica salvo no banco. Em modo PR6, "Enviar" apenas grava, sem avançar.
+function enviarMes() {
+  if (_bloqueado || !DADOS) return;
+  salvar(true);                       // grava as linhas do mês na hora
+  if (_pr6) { status('✔ salvo ' + new Date().toLocaleTimeString('pt-BR'), 'ok'); return; }
+  var atual = DADOS.enviadoAte || 0;
+  if (atual >= DADOS.meses.length) { status('Todos os períodos já foram enviados.', 'ok'); return; }
+  var m = DADOS.meses[atual], prox = DADOS.meses[atual + 1];
+  var msg = 'Enviar o período ' + mesRotulo(m) + '?\n\nDepois de enviado, este mês sai da tela'
+    + (prox ? ' e aparece ' + mesRotulo(prox) + ' para preenchimento.' : ' (era o último período).')
+    + '\n\nPara rever os meses já enviados, use o botão PR6.';
+  if (!confirm(msg)) return;
+  DADOS.enviadoAte = atual + 1;
+  try { localStorage.setItem(chaveLocal(), JSON.stringify(DADOS)); } catch (e) {}
+  if (fbdb) {
+    fbdb.ref('retencao_empresa/' + TOKEN).update({
+      enviadoAte: DADOS.enviadoAte, atualizadoEm: new Date().toISOString()
+    }).catch(function(e) { console.error(e); });
+  }
+  MES_ATUAL = Math.min(DADOS.enviadoAte, Math.max(0, DADOS.meses.length - 1));
+  renderTabs(); renderTabela(); requestAnimationFrame(syncHBar);
+  if (DADOS.enviadoAte >= DADOS.meses.length) {
+    status('✔ ' + mesRotulo(m) + ' enviado. Todos os períodos foram enviados.', 'ok');
+  } else {
+    status('✔ ' + mesRotulo(m) + ' enviado. Preencha agora ' + mesRotulo(DADOS.meses[DADOS.enviadoAte]) + '.', 'ok');
+  }
+}
+
+// ── Modo PR6 (senha) ──
+// Revela todos os períodos e libera o botão de PDF. A senha é pedida só para
+// ligar; para desligar (voltar a ver só o mês atual) basta clicar de novo.
+function aplicarPR6() {
+  var pdf = document.getElementById('btn-pdf');
+  if (pdf) pdf.style.display = _pr6 ? '' : 'none';
+  var b = document.getElementById('btn-pr6');
+  if (b) b.textContent = _pr6 ? '🔓 PR6 · todos os meses' : '🔒 PR6';
+  renderTabs();
+  renderTabela();
+  requestAnimationFrame(syncHBar);
+}
+function togglePR6() {
+  if (!DADOS) return;
+  if (_pr6) {
+    _pr6 = false;
+    MES_ATUAL = Math.min(DADOS.enviadoAte || 0, Math.max(0, DADOS.meses.length - 1));
+    aplicarPR6();
+    return;
+  }
+  var s = prompt('Senha da PR6 para ver todos os períodos:');
+  if (s === null) return;
+  if (s !== '123456') { alert('Senha incorreta.'); return; }
+  _pr6 = true;
+  aplicarPR6();
+}
+
 function montar() {
   document.getElementById('carregando').style.display = 'none';
   document.getElementById('conteudo').style.display = '';
@@ -573,8 +649,9 @@ function montar() {
       + 'Se precisar corrigir algo, fale com a PR6.';
     document.querySelectorAll('.btn-add,.btn-salvar').forEach(function(b) { b.style.display = 'none'; });
   }
-  renderTabs();
-  renderTabela();
+  // Começa no primeiro período ainda não enviado (0 num formulário novo).
+  MES_ATUAL = Math.min(DADOS.enviadoAte || 0, Math.max(0, DADOS.meses.length - 1));
+  aplicarPR6();      // desenha abas+tabela e define a visibilidade do PDF/PR6
   initHBar();
   requestAnimationFrame(syncHBar);
 }
