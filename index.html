@@ -486,6 +486,8 @@ select.doc-inp{cursor:pointer}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <!-- o ?v= muda a cada versão da base para o navegador não servir uma cópia velha do cache -->
@@ -611,6 +613,8 @@ select.doc-inp{cursor:pointer}
         </div>
         <button onclick="clearDashFilters()" id="db-clear-btn"
           style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:var(--red);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">✕ Limpar filtros</button>
+        <button onclick="exportDashboardPDF()" id="db-pdf-btn"
+          style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.35);border-radius:8px;color:#3b82f6;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">📄 PDF</button>
       </div>
       <div id="db-charts-area">
         <div class="kpi-grid" id="kpi-grid"></div>
@@ -1712,6 +1716,79 @@ function clearDashFilters() {
 }
 
 function updateClearBtn() {}
+
+function exportDashboardPDF() {
+  var btn = document.getElementById('db-pdf-btn');
+  if (!window.html2canvas || !window.jspdf) {
+    alert('Bibliotecas de PDF ainda carregando. Tente novamente em alguns segundos.');
+    return;
+  }
+  var area = document.getElementById('db-charts-area');
+  if (!area) return;
+  var originalTxt = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Gerando…'; }
+
+  var bg = getComputedStyle(document.body).backgroundColor || '#ffffff';
+  html2canvas(area, { backgroundColor: bg, scale: 2, useCORS: true, logging: false })
+    .then(function(canvas){
+      var jsPDF = window.jspdf.jsPDF;
+      var pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      var margin = 8;
+      var headerH = 14;
+
+      // Cabeçalho
+      var titulo = 'Dashboard — Sistema de Controle de Faturamento';
+      var filtros = [];
+      if (currentYearFilter)    filtros.push('Ano: ' + currentYearFilter);
+      if (currentTipoFilter)    filtros.push('Tipo: ' + currentTipoFilter);
+      if (currentSubtipoFilter) filtros.push('Subtipo: ' + currentSubtipoFilter);
+      if (currentEmpresaFilter) filtros.push('Empresa: ' + currentEmpresaFilter);
+      var subtitulo = 'Gerado em ' + new Date().toLocaleString('pt-BR')
+        + (filtros.length ? '  ·  Filtros: ' + filtros.join(' | ') : '');
+
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+      pdf.text(titulo, margin, 8);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+      pdf.text(subtitulo, margin, 13);
+
+      // Imagem escalada mantendo proporção; quebra em várias páginas se necessário
+      var imgW = pageW - margin * 2;
+      var ratio = canvas.height / canvas.width;
+      var imgH = imgW * ratio;
+      var availH = pageH - margin - headerH;
+
+      if (imgH <= availH) {
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, headerH, imgW, imgH);
+      } else {
+        // fatia o canvas em páginas
+        var pxPerPage = Math.floor(canvas.width * (availH / imgW));
+        var offset = 0, pageNo = 0;
+        while (offset < canvas.height) {
+          var sliceH = Math.min(pxPerPage, canvas.height - offset);
+          var slice = document.createElement('canvas');
+          slice.width = canvas.width;
+          slice.height = sliceH;
+          slice.getContext('2d').drawImage(canvas, 0, offset, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+          if (pageNo > 0) {
+            pdf.addPage('a4','landscape');
+            pdf.setFont('helvetica','bold'); pdf.setFontSize(13);
+            pdf.text(titulo, margin, 8);
+            pdf.setFont('helvetica','normal'); pdf.setFontSize(9);
+            pdf.text(subtitulo, margin, 13);
+          }
+          pdf.addImage(slice.toDataURL('image/png'), 'PNG', margin, headerH, imgW, sliceH * (imgW / canvas.width));
+          offset += sliceH; pageNo++;
+        }
+      }
+
+      var stamp = new Date().toISOString().slice(0,10);
+      pdf.save('dashboard-' + stamp + '.pdf');
+    })
+    .catch(function(e){ console.error(e); alert('Não foi possível gerar o PDF: ' + (e && e.message || e)); })
+    .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = originalTxt; } });
+}
 
 // Meses entre INÍCIO DO CONTRATO e TÉRMINO DA VIGÊNCIA (fim exclusivo)
 function termoMeses(t) {
