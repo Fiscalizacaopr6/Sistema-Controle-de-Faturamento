@@ -1829,7 +1829,7 @@ function buildDashboard() {
   var func = vig.reduce(function(s,d){ return s+funcDoTermo(d); }, 0);
   var v30 = vig.filter(function(d){ return d._dias !== null && d._dias <= 30; }).length;
   function valGlobal(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
-  var totalG = base.reduce(function(s,d){ return s + valGlobal(d); }, 0);
+  var totalG = vig.reduce(function(s,d){ return s + valGlobal(d); }, 0);
   var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
@@ -1838,7 +1838,7 @@ function buildDashboard() {
     {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', btnFiscVig:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
-    {l:'Valor Global', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true, btnGlobal:true},
+    {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', small:true, btnGlobal:true},
     {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', btnEmp:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
@@ -2789,10 +2789,13 @@ function showKpiLista(tipo) {
 
   } else if (tipo === 'valorGlobal') {
     function valGlobalT(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
+    var vigCts = new Set(base.filter(function(d){ return d._st === 'VIGENTE'; })
+                             .map(function(d){ return (d['CONTRATO']||'').trim(); })
+                             .filter(Boolean));
     var grpG = {};
     base.forEach(function(d){
       var k = (d['CONTRATO']||'').trim();
-      if (!k) return;
+      if (!k || !vigCts.has(k)) return;
       if (!grpG[k]) grpG[k] = [];
       grpG[k].push(d);
     });
@@ -2804,8 +2807,8 @@ function showKpiLista(tipo) {
     });
     lista.sort(function(a,b){ return b.valor - a.valor; });
     var totG = lista.reduce(function(s,x){ return s + x.valor; }, 0);
-    titulo = currentYearFilter ? 'Valor Global — Contratos em ' + currentYearFilter + ' (' + lista.length + ')'
-                               : 'Valor Global — Contratos (' + lista.length + ')';
+    titulo = currentYearFilter ? 'Valor Global — Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')'
+                               : 'Valor Global — Contratos Vigentes (' + lista.length + ')';
     subtitulo = 'Ordenado do maior para o menor · Total: ' + fmtBR(totG);
     rows = lista.map(function(x, i){
       var d = x.d;
