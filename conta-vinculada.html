@@ -65,7 +65,7 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
 @media print{
   body{background:#fff}
   .page{width:auto;box-shadow:none;margin:0;padding:0}
-  .tabbar,.barra,.rm,.aviso{display:none!important}
+  .tabbar,.barra,.rm,.aviso,#hbar{display:none!important}
   /* No papel não há rolagem: a tabela volta a caber na página (A4 paisagem).
      Compacta fonte/espaçamento e libera as larguras fixas para que todas as
      colunas caibam na largura útil da folha sem cortar nada. */
@@ -120,6 +120,11 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
     <div id="tabela"></div>
   </div>
 </div>
+
+<!-- Barra de rolagem horizontal sempre visível no rodapé da janela: espelha a
+     rolagem da tabela quando ela é mais larga que a tela e sua própria barra
+     está abaixo da dobra (lista grande). -->
+<div id="hbar" style="display:none;position:fixed;bottom:0;height:16px;overflow-x:auto;overflow-y:hidden;z-index:60;background:rgba(255,255,255,.95);box-shadow:0 -1px 5px rgba(0,0,0,.18)"><div id="hbar-inner" style="height:1px"></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -267,6 +272,7 @@ function renderTabela() {
       + (COLS.length + CALC.length + 1) + '" class="vazio">Nenhum funcionário lançado em '
       + esc(mesRotulo(m)) + '. Use "+ Adicionar funcionário".</td></tr></tbody></table>';
     atualizaTotais();
+    requestAnimationFrame(syncHBar);
     return;
   }
 
@@ -287,6 +293,47 @@ function renderTabela() {
     + CALC.map(function(col) { return '<td class="cvc-' + col.k + '">' + esc(moeda(tot[col.k])) + '</td>'; }).join('')
     + '<td class="cvc-x"></td></tr></tfoot></table>';
   atualizaTotais();
+  requestAnimationFrame(syncHBar);
+}
+
+// ── Barra de rolagem horizontal fixa (sempre visível) ──
+// A tabela rola dentro de #tabela; quando ela é mais larga que a tela e fica
+// muito comprida, a barra nativa vai parar lá embaixo. Esta barra fixa no
+// rodapé da janela espelha essa rolagem para ficar sempre ao alcance.
+var _hbarLock = false, _hbarInit = false;
+function syncHBar() {
+  var tab = document.getElementById('tabela');
+  var bar = document.getElementById('hbar');
+  var inner = document.getElementById('hbar-inner');
+  if (!tab || !bar || !inner) return;
+  var precisa = tab.scrollWidth > tab.clientWidth + 1;   // tabela transborda na horizontal
+  var r = tab.getBoundingClientRect();
+  var barraNativaOculta = r.bottom > window.innerHeight;  // barra da tabela está abaixo da dobra
+  var naTela = r.top < window.innerHeight && r.bottom > 0;
+  if (precisa && barraNativaOculta && naTela) {
+    inner.style.width = tab.scrollWidth + 'px';
+    bar.style.left = r.left + 'px';
+    bar.style.width = tab.clientWidth + 'px';
+    bar.style.display = 'block';
+    if (!_hbarLock) { _hbarLock = true; bar.scrollLeft = tab.scrollLeft; _hbarLock = false; }
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function initHBar() {
+  if (_hbarInit) return;
+  _hbarInit = true;
+  var tab = document.getElementById('tabela');
+  var bar = document.getElementById('hbar');
+  if (!tab || !bar) return;
+  tab.addEventListener('scroll', function() {
+    if (_hbarLock) return; _hbarLock = true; bar.scrollLeft = tab.scrollLeft; _hbarLock = false;
+  });
+  bar.addEventListener('scroll', function() {
+    if (_hbarLock) return; _hbarLock = true; tab.scrollLeft = bar.scrollLeft; _hbarLock = false;
+  });
+  window.addEventListener('scroll', syncHBar, {passive: true});
+  window.addEventListener('resize', syncHBar);
 }
 
 function campoHtml(col, l, idx) {
@@ -528,6 +575,8 @@ function montar() {
   }
   renderTabs();
   renderTabela();
+  initHBar();
+  requestAnimationFrame(syncHBar);
 }
 
 // ── Planilha de conta vinculada mensal em branco (botão "EXCEL", 1º mês) ──
