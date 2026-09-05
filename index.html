@@ -1828,7 +1828,8 @@ function buildDashboard() {
   function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
   var func = vig.reduce(function(s,d){ return s+funcDoTermo(d); }, 0);
   var v30 = vig.filter(function(d){ return d._dias !== null && d._dias <= 30; }).length;
-  var totalG = base.reduce(function(s,d){ return s+(d['TOTAL GLOBAL']||0); }, 0);
+  function valGlobal(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
+  var totalG = base.reduce(function(s,d){ return s + valGlobal(d); }, 0);
   var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
@@ -2787,6 +2788,7 @@ function showKpiLista(tipo) {
     rows = lista.map(function(d){ return kpiCard(d, 'var(--accent)'); }).join('');
 
   } else if (tipo === 'valorGlobal') {
+    function valGlobalT(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
     var grpG = {};
     base.forEach(function(d){
       var k = (d['CONTRATO']||'').trim();
@@ -2797,7 +2799,7 @@ function showKpiLista(tipo) {
     var lista = Object.keys(grpG).map(function(k){
       var terms = grpG[k];
       var rep = terms.find(function(d){ return /^CONTRATO/i.test(d['TERMO ATUAL']||''); }) || terms[0];
-      var soma = terms.reduce(function(s,d){ return s + (+d['TOTAL GLOBAL']||0); }, 0);
+      var soma = terms.reduce(function(s,d){ return s + valGlobalT(d); }, 0);
       return { d: rep, valor: soma };
     });
     lista.sort(function(a,b){ return b.valor - a.valor; });
