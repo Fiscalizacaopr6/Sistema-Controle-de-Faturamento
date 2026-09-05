@@ -965,6 +965,8 @@ select.doc-inp{cursor:pointer}
           <select class="sel" id="cv-f-unidade" onchange="cvRender()"><option value="">Todas</option></select>
         </div>
         <button class="btn clear" onclick="cvLimparFiltros()">Limpar</button>
+        <input type="file" id="cv-file-import" accept=".xlsx,.xls" style="display:none" onchange="cvImportarPlanilha(this)">
+        <button class="btn-new" onclick="document.getElementById('cv-file-import').click()" title="Importar a planilha Conta Vinculada Totalizadora (aba Registro). Cada lançamento entra na sua competência (mês/ano).">⬆ Importar planilha</button>
         <button class="btn-new" onclick="cvAddLinha()">+ Adicionar linha</button>
       </div>
 
@@ -8685,6 +8687,211 @@ function cvExportarExcel() {
     }));
   });
   genericExportExcel('Conta Vinculada', cab, linhas, 'conta_vinculada_' + (CV_ATUAL.contrato || '').replace(/\//g,'-'));
+}
+
+// ── Importação da planilha "Conta Vinculada Totalizadora" ──
+// Lê a aba "Registro" da planilha-modelo e cria um lançamento por linha, já
+// com a competência (mês/ano) que consta no arquivo — assim cada período é
+// separado e cai no período correspondente do formulário. As colunas
+// calculadas (13º, férias, rescisão, incidência, totais) não são importadas:
+// são recalculadas pelas fórmulas da tela a partir de remuneração e
+// proporcionalidade. A incidência sobre o submódulo 4.1 é lida da aba
+// "Contrato" quando disponível.
+function cvNormTxt(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+function cvMesCanonico(v) {
+  var t = cvNormTxt(v);
+  if (!t) return '';
+  var m3 = t.slice(0, 3);
+  var idx = CV_MESES.map(function(x){ return x.toLowerCase(); }).indexOf(m3);
+  if (idx !== -1) return CV_MESES[idx];
+  var cheios = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  idx = cheios.indexOf(t);
+  return idx !== -1 ? CV_MESES[idx] : '';
+}
+function cvTipoCanonico(v) {
+  var t = cvNormTxt(v);
+  if (t.indexOf('retirada') !== -1) return 'Retirada';
+  if (t.indexOf('retenc') !== -1) return 'Retenção';
+  return '';
+}
+function cvDataISO(v) {
+  if (v === null || v === undefined || v === '') return '';
+  if (v instanceof Date && !isNaN(v)) {
+    var y = v.getFullYear(), m = ('0'+(v.getMonth()+1)).slice(-2), d = ('0'+v.getDate()).slice(-2);
+    return y + '-' + m + '-' + d;
+  }
+  var s = String(v).trim();
+  var br = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (br) {
+    var yy = br[3].length === 2 ? '20' + br[3] : br[3];
+    return yy + '-' + ('0'+br[2]).slice(-2) + '-' + ('0'+br[1]).slice(-2);
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  return '';
+}
+
+// Localiza a coluna de cada campo a partir da linha de cabeçalho da planilha.
+function cvMapaColunas(rows) {
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i] || [];
+    var norm = r.map(cvNormTxt);
+    var temCpf = norm.indexOf('cpf') !== -1;
+    var temRem = norm.some(function(c){ return c.indexOf('remuneracao') !== -1; });
+    if (!temCpf || !temRem) continue;
+    var map = {};
+    norm.forEach(function(c, idx) {
+      if (c === 'tipo' && map.tipo === undefined) map.tipo = idx;
+      else if (c === 'cpf' && map.cpf === undefined) map.cpf = idx;
+      else if (c.indexOf('nome') === 0 && map.nome === undefined) map.nome = idx;
+      else if (c === 'unidade' && map.unidade === undefined) map.unidade = idx;
+      else if (c === 'funcao' && map.funcao === undefined) map.funcao = idx;
+      else if (c.indexOf('disponibiliza') !== -1 && map.disponibilizacao === undefined) map.disponibilizacao = idx;
+      else if (c.indexOf('desligamento') !== -1 && map.desligamento === undefined) map.desligamento = idx;
+      else if (c === 'situacao' && map.situacao === undefined) map.situacao = idx;
+      else if ((c.indexOf('competencia') !== -1 || c === 'mes') && map.mes === undefined) map.mes = idx;
+      else if (c === 'ano' && map.ano === undefined) map.ano = idx;
+      else if (c.replace(/-/g, '').indexOf('proporcio') !== -1 && map.dias === undefined) map.dias = idx;
+      else if (c.indexOf('remuneracao') !== -1 && map.remuneracao === undefined) map.remuneracao = idx;
+    });
+    // A coluna do ano costuma vir logo depois de "Competência", sem cabeçalho próprio.
+    if (map.mes !== undefined && map.ano === undefined) map.ano = map.mes + 1;
+    return { map: map, headerRow: i };
+  }
+  return null;
+}
+
+// Incidência sobre o submódulo 4.1 na aba "Contrato" (ex.: 0,0739).
+function cvIncidenciaDoContrato(wb) {
+  var nome = wb.SheetNames.find(function(n){ return cvNormTxt(n) === 'contrato'; });
+  if (!nome) return null;
+  var rows = XLSX.utils.sheet_to_json(wb.Sheets[nome], { header: 1, raw: true, defval: null });
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i] || [];
+    var achou = r.some(function(c){ return cvNormTxt(c).indexOf('incidencia sobre o submodulo 4.1') !== -1; });
+    if (!achou) continue;
+    for (var j = 0; j < r.length; j++) {
+      var n = (typeof r[j] === 'number') ? r[j] : cvNum(r[j]);
+      if (n !== null && n > 0 && n < 1) return n;   // fração (7,39% = 0,0739)
+    }
+  }
+  return null;
+}
+
+function cvImportarPlanilha(input) {
+  var arquivo = input && input.files && input.files[0];
+  input.value = '';   // permite reimportar o mesmo arquivo
+  if (!arquivo) return;
+  if (!CV_ATUAL) { alert('Abra um formulário de Conta Vinculada antes de importar.'); return; }
+  if (!cvPodeEditar()) { alert('Você não tem permissão para editar este formulário.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Biblioteca de leitura de planilhas indisponível.'); return; }
+
+  var reader = new FileReader();
+  reader.onerror = function() { alert('Não foi possível ler o arquivo.'); };
+  reader.onload = function(ev) {
+    var wb;
+    try {
+      wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array', cellDates: true });
+    } catch (e) {
+      alert('Arquivo inválido ou corrompido: ' + e.message);
+      return;
+    }
+    var nomeReg = wb.SheetNames.find(function(n){ return cvNormTxt(n) === 'registro'; }) || wb.SheetNames[0];
+    var rows = XLSX.utils.sheet_to_json(wb.Sheets[nomeReg], { header: 1, raw: true, defval: null });
+    var info = cvMapaColunas(rows);
+    if (!info) {
+      alert('Não encontrei o cabeçalho esperado na aba "' + nomeReg + '" (colunas CPF e Remuneração). Verifique a planilha.');
+      return;
+    }
+    var map = info.map;
+    function cell(r, k) { return map[k] === undefined ? null : r[map[k]]; }
+
+    // Chaves já existentes (lançamentos próprios) para não duplicar em reimportações.
+    var existentes = {};
+    cvLinhasProprias().forEach(function(l) {
+      existentes[[l.cpf, l.nome, l.mes, l.ano, l.tipo].join('|')] = true;
+    });
+
+    var novas = [], porPeriodo = {}, ignoradas = 0, duplicadas = 0, seq = 0;
+    for (var i = info.headerRow + 1; i < rows.length; i++) {
+      var r = rows[i] || [];
+      var tipo = cvTipoCanonico(cell(r, 'tipo')) || 'Retenção';
+      var mes = cvMesCanonico(cell(r, 'mes'));
+      var cpfDig = String(cell(r, 'cpf') === null ? '' : cell(r, 'cpf')).replace(/\D/g, '');
+      var nome = cell(r, 'nome'); nome = nome === null ? '' : String(nome).trim();
+      // Linha de dados de verdade: precisa de mês e de alguma identificação.
+      if (!mes || (!cpfDig && !nome)) { continue; }
+
+      var anoRaw = cell(r, 'ano');
+      var ano = anoRaw === null || anoRaw === undefined || anoRaw === '' ? '' : String(anoRaw).replace(/\D/g, '').slice(0, 4);
+      var cpf = cpfDig ? cvCPF(cpfDig.length < 11 ? ('00000000000' + cpfDig).slice(-11) : cpfDig) : '';
+      var remN = cvNum(cell(r, 'remuneracao'));
+      var diasV = cell(r, 'dias');
+      var diasN = cvNum(diasV);
+
+      var chave = [cpf, nome, mes, ano, tipo].join('|');
+      if (existentes[chave]) { duplicadas++; continue; }
+      existentes[chave] = true;
+
+      var l = {
+        id: 'l' + Date.now().toString(36) + (seq++).toString(36) + Math.random().toString(36).slice(2, 5),
+        tipo: tipo,
+        cpf: cpf,
+        nome: nome,
+        unidade: (function(u){ return u === null || u === undefined ? '' : String(u).trim(); })(cell(r, 'unidade')),
+        funcao: (function(f){ return f === null || f === undefined ? '' : String(f).trim(); })(cell(r, 'funcao')),
+        contratado: '',
+        disponibilizacao: cvDataISO(cell(r, 'disponibilizacao')),
+        desligamento: cvDataISO(cell(r, 'desligamento')),
+        situacao: (function(s){ return s === null || s === undefined ? '' : String(s).trim(); })(cell(r, 'situacao')),
+        mes: mes,
+        ano: ano,
+        dias: diasN === null ? '' : String(diasN),
+        remuneracao: remN === null ? '' : remN,
+        s: '', t: '', u: '', v: '',
+        _add: true
+      };
+      novas.push(l);
+      var chaveP = mes + '/' + (ano || '—');
+      porPeriodo[chaveP] = (porPeriodo[chaveP] || 0) + 1;
+    }
+
+    if (!novas.length) {
+      alert('Nenhum lançamento novo encontrado na planilha'
+        + (duplicadas ? ' (' + duplicadas + ' já existiam neste formulário).' : '.'));
+      return;
+    }
+
+    var ordemP = Object.keys(porPeriodo).sort(function(a, b) {
+      var pa = a.split('/'), pb = b.split('/');
+      return (Number(pa[1]) - Number(pb[1])) || (CV_MESES.indexOf(pa[0]) - CV_MESES.indexOf(pb[0]));
+    });
+    var resumo = ordemP.map(function(p){ return '   • ' + p + ': ' + porPeriodo[p] + ' lançamento(s)'; }).join('\n');
+    var msg = 'Importar ' + novas.length + ' lançamento(s) para o formulário, por competência:\n\n' + resumo
+      + (duplicadas ? '\n\n(' + duplicadas + ' já existiam e foram ignorados.)' : '')
+      + '\n\nDeseja continuar?';
+    if (!confirm(msg)) return;
+
+    var inc = cvIncidenciaDoContrato(wb);
+    if (inc !== null) {
+      CV_ATUAL.perc = inc;
+      var pe = document.getElementById('cv-perc');
+      if (pe) pe.value = cvPercTexto(inc);
+    }
+
+    CV_ATUAL.linhas = cvLinhasProprias().concat(novas)
+      .concat(CV_ATUAL.linhas.filter(function(x){ return x._emp; }));
+    CV_PROPRIAS = cvLinhasProprias();
+    cvSalvar(true);
+    cvRender();
+    var el = document.getElementById('cv-status');
+    if (el) el.textContent = '✔ ' + novas.length + ' lançamento(s) importados ('
+      + ordemP.map(function(p){ return p + ': ' + porPeriodo[p]; }).join(' · ') + ')';
+  };
+  reader.readAsArrayBuffer(arquivo);
 }
 
 // ── Boot ──
