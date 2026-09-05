@@ -1592,7 +1592,7 @@ function showView(v) {
   if (v === 'fiscais') buildFiscaisCards();
   var m = document.querySelector('.main');
   if (m) m.scrollTop = 0;
-  fcStickyScrollShow(v === 'fiscais' || v === 'unidades' || v === 'empresas' || v === 'contas' || v === 'reajustes', v);
+  fcStickyScrollShow(v === 'fiscais' || v === 'unidades' || v === 'empresas' || v === 'contas' || v === 'reajustes' || v === 'cvform', v);
   sessionStorage.setItem('ufrj_view', v);
 }
 
@@ -3319,7 +3319,7 @@ function fcStickyScrollSyncFor(view) {
   var bar = document.getElementById('fc-sticky-scroll');
   var inner = document.getElementById('fc-sticky-inner');
   if (!bar || !inner) return;
-  var containerId = view === 'unidades' ? 'unidade-table' : view === 'empresas' ? 'empresa-table' : view === 'contas' ? 'conta-table' : view === 'reajustes' ? 'reajuste-table' : 'fiscal-cards';
+  var containerId = view === 'unidades' ? 'unidade-table' : view === 'empresas' ? 'empresa-table' : view === 'contas' ? 'conta-table' : view === 'reajustes' ? 'reajuste-table' : view === 'cvform' ? 'cv-tabela' : 'fiscal-cards';
   var tableDiv = document.querySelector('#'+containerId+' .table-wrap div[style*="overflow-x"]');
   if (!tableDiv) return;
   inner.style.width = tableDiv.scrollWidth + 'px';
@@ -3334,7 +3334,7 @@ function fcStickyScrollSync() { fcStickyScrollSyncFor('fiscais'); }
 // monitor menor a barra continua com a largura antiga e as colunas da direita
 // ficam inacessíveis/cortadas nas telas com tabela larga (ex.: Solicitação Empresa).
 (function() {
-  var VIEWS_COM_STICKY = ['fiscais', 'unidades', 'empresas', 'contas', 'reajustes'];
+  var VIEWS_COM_STICKY = ['fiscais', 'unidades', 'empresas', 'contas', 'reajustes', 'cvform'];
   var _stickyResizeTimer = null;
   function ressincronizarStickyAtivo() {
     var v = sessionStorage.getItem('ufrj_view');
@@ -8482,6 +8482,8 @@ function cvRender() {
     + '<thead>'+th1+th2+'</thead><tbody>'+linhas+'</tbody></table></div></div>';
 
   cvRenderTotais();
+  // Barra de rolagem horizontal fixa (sempre visível) da totalizadora
+  setTimeout(function(){ fcStickyScrollSyncFor('cvform'); }, 0);
 }
 
 function cvRenderTotais() {
@@ -8654,11 +8656,12 @@ function cvExportarPDF() {
   doc.setTextColor(30, 41, 59);
   y = cardY + cardH + 12;
 
-  // Tabela
-  var head = ['#'].concat(CV_COLS.map(function(c){ return c.label; }));
+  // Tabela — no PDF não entram as colunas do "Registro de retiradas" (grupo 2)
+  var pdfCols = CV_COLS.filter(function(c){ return c.grupo !== 2; });
+  var head = ['#'].concat(pdfCols.map(function(c){ return c.label; }));
   var body = cvFiltradas.map(function(l, i) {
     var c = cvCalc(l, perc);
-    return [i+1].concat(CV_COLS.map(function(col) {
+    return [i+1].concat(pdfCols.map(function(col) {
       if (col.calc) {
         if (col.k === 'erro') return c.erro || '';
         return c[col.k] == null ? '' : cvMoeda(c[col.k]);
