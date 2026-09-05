@@ -1719,13 +1719,23 @@ function updateClearBtn() {}
 
 function exportDashboardPDF() {
   var btn = document.getElementById('db-pdf-btn');
-  if (!window.html2canvas || !window.jspdf) {
-    alert('Bibliotecas de PDF ainda carregando. Tente novamente em alguns segundos.');
+  var det = document.getElementById('db-contrato-detail');
+  var contratoSel = (det && det.dataset && det.dataset.contrato) || window.__dbContratoSel || '';
+  if (contratoSel && det && det.style.display !== 'none') {
+    if (!window.jspdf) {
+      alert('Bibliotecas de PDF ainda carregando. Tente novamente em alguns segundos.');
+      return;
+    }
+    try {
+      exportContratoPDF(contratoSel);
+    } catch (e) {
+      console.error(e);
+      alert('Não foi possível gerar o PDF do contrato: ' + (e && e.message || e));
+    }
     return;
   }
-  var det = document.getElementById('db-contrato-detail');
-  if (det && det.style.display !== 'none' && det.dataset.contrato) {
-    exportContratoPDF(det.dataset.contrato);
+  if (!window.html2canvas || !window.jspdf) {
+    alert('Bibliotecas de PDF ainda carregando. Tente novamente em alguns segundos.');
     return;
   }
   var area = document.getElementById('db-charts-area');
@@ -2391,7 +2401,8 @@ function hideContratoDetail() {
   var det = document.getElementById('db-contrato-detail');
   var area = document.getElementById('db-charts-area');
   var extra = document.getElementById('db-extra-filters');
-  if (det) { det.style.display = 'none'; det.innerHTML = ''; delete det.dataset.contrato; }
+  if (det) { det.style.display = 'none'; det.innerHTML = ''; delete det.dataset.contrato; det.removeAttribute('data-contrato'); }
+  window.__dbContratoSel = '';
   if (area) area.style.display = '';
   if (extra) extra.style.display = '';
   var sel = document.getElementById('db-contrato-filter');
@@ -2588,7 +2599,8 @@ function openContratoModal(num) {
   var extra = document.getElementById('db-extra-filters');
   if (area) area.style.display = 'none';
   if (extra) extra.style.display = 'none';
-  if (det) { det.dataset.contrato = numContrato; det.innerHTML = html; det.style.display = ''; det.scrollIntoView({behavior:'smooth', block:'start'}); }
+  if (det) { det.innerHTML = html; det.style.display = ''; det.dataset.contrato = numContrato; det.setAttribute('data-contrato', numContrato); det.scrollIntoView({behavior:'smooth', block:'start'}); }
+  window.__dbContratoSel = numContrato;
 }
 
 function exportContratoPDF(numContrato) {
