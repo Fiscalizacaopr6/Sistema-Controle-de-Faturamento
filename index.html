@@ -1723,6 +1723,11 @@ function exportDashboardPDF() {
     alert('Bibliotecas de PDF ainda carregando. Tente novamente em alguns segundos.');
     return;
   }
+  var det = document.getElementById('db-contrato-detail');
+  if (det && det.style.display !== 'none' && det.dataset.contrato) {
+    exportContratoPDF(det.dataset.contrato);
+    return;
+  }
   var area = document.getElementById('db-charts-area');
   if (!area) return;
   var originalTxt = btn ? btn.innerHTML : '';
@@ -2386,7 +2391,7 @@ function hideContratoDetail() {
   var det = document.getElementById('db-contrato-detail');
   var area = document.getElementById('db-charts-area');
   var extra = document.getElementById('db-extra-filters');
-  if (det) { det.style.display = 'none'; det.innerHTML = ''; }
+  if (det) { det.style.display = 'none'; det.innerHTML = ''; delete det.dataset.contrato; }
   if (area) area.style.display = '';
   if (extra) extra.style.display = '';
   var sel = document.getElementById('db-contrato-filter');
@@ -2570,7 +2575,6 @@ function openContratoModal(num) {
   var actions = ''
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">'
     +   '<div style="font-size:14px;color:var(--muted)">Detalhes do contrato</div>'
-    +   '<button onclick="exportContratoPDF(\'' + numContrato.replace(/'/g,"\\'") + '\')" style="background:#e53935;border:none;border-radius:8px;color:#fff;font-family:\'Sora\',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer">⬇ Exportar PDF</button>'
     + '</div>';
 
   var html = actions
@@ -2584,7 +2588,7 @@ function openContratoModal(num) {
   var extra = document.getElementById('db-extra-filters');
   if (area) area.style.display = 'none';
   if (extra) extra.style.display = 'none';
-  if (det) { det.innerHTML = html; det.style.display = ''; det.scrollIntoView({behavior:'smooth', block:'start'}); }
+  if (det) { det.dataset.contrato = numContrato; det.innerHTML = html; det.style.display = ''; det.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
 
 function exportContratoPDF(numContrato) {
