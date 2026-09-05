@@ -590,7 +590,7 @@ function enviarMes() {
   var m = DADOS.meses[atual], prox = DADOS.meses[atual + 1];
   var msg = 'Enviar o período ' + mesRotulo(m) + '?\n\nDepois de enviado, este mês sai da tela'
     + (prox ? ' e aparece ' + mesRotulo(prox) + ' para preenchimento.' : ' (era o último período).')
-    + '\n\nPara rever os meses já enviados, use o botão PR6.';
+    + '\n\nPara rever os meses já enviados, entrar em contato com o servidor responsável.';
   if (!confirm(msg)) return;
   DADOS.enviadoAte = atual + 1;
   try { localStorage.setItem(chaveLocal(), JSON.stringify(DADOS)); } catch (e) {}
