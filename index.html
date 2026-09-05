@@ -897,8 +897,9 @@ select.doc-inp{cursor:pointer}
     <div class="view" id="view-retencao">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Retenção e Retirada</h2>
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
-          <input id="ret-q" type="text" placeholder="Buscar por contrato, empresa ou unidade..." oninput="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:640px">
+          <select id="ret-f-resp" onchange="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 10px;outline:none;max-width:210px"><option value="">Responsável: todos</option></select>
+          <input id="ret-q" type="text" placeholder="Buscar por contrato, empresa ou responsável..." oninput="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-new" id="btn-novo-retencao" onclick="openNewRetencaoModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
         </div>
       </div>
@@ -4405,13 +4406,43 @@ function saveRetencaoToStorage() {
 
 var retFiltered = [], retPage = 1, retPer = 50;
 
+// Responsável (no faturamento) do contrato, lido de /dados. Um contrato pode
+// ter vários termos; usa o primeiro termo que tenha o responsável preenchido.
+function retRespDoContrato(contrato) {
+  var c = (contrato || '').trim();
+  if (!c) return '';
+  var linhas = DADOS.filter(function(d){ return (d['CONTRATO']||'').trim() === c; });
+  for (var i = 0; i < linhas.length; i++) {
+    var r = (linhas[i]['RESPONSÁVEL NO FATURAMENTO'] || '').trim();
+    if (r) return r;
+  }
+  return '';
+}
+
+// Preenche o filtro Responsável com os nomes presentes nos contratos de retenção.
+function populateRetFiltroResp() {
+  var sel = document.getElementById('ret-f-resp');
+  if (!sel) return;
+  var atual = sel.value;
+  var set = {};
+  RETENCAO.forEach(function(r){ var x = retRespDoContrato(r.contrato); if (x) set[x] = 1; });
+  var lista = Object.keys(set).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); });
+  sel.innerHTML = '<option value="">Responsável: todos</option>' + lista.map(function(n){
+    return '<option value="' + esc(n) + '"' + (n === atual ? ' selected' : '') + '>' + esc(n) + '</option>';
+  }).join('');
+}
+
 function buildRetencaoTable() {
+  populateRetFiltroResp();
   var q = (document.getElementById('ret-q') ? document.getElementById('ret-q').value : '').toLowerCase();
+  var fResp = (document.getElementById('ret-f-resp') ? document.getElementById('ret-f-resp').value : '');
   retFiltered = RETENCAO.filter(function(r) {
+    var resp = retRespDoContrato(r.contrato);
+    if (fResp && resp !== fResp) return false;
     if (!q) return true;
     return (r.contrato||'').toLowerCase().indexOf(q) !== -1
         || (r.empresa||'').toLowerCase().indexOf(q) !== -1
-        || (r.unidade||'').toLowerCase().indexOf(q) !== -1;
+        || (resp||'').toLowerCase().indexOf(q) !== -1;
   });
   retPage = 1;
   renderRetencaoTable();
@@ -4438,10 +4469,11 @@ function renderRetencaoTable() {
       ? ' <button class="btn-usr-edit" onclick="event.stopPropagation();openEditRetencaoModal(\''+r.id+'\')">Editar</button>'
         +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteRetencao(\''+r.id+'\')">Excluir</button>'
       : '');
+    var resp = retRespDoContrato(r.contrato);
     return '<tr '+rowClick+'>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
       +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
-      +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
+      +'<td style="font-size:12px">'+esc(resp||'—')+'</td>'
       +'<td style="font-size:11px;white-space:nowrap">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span>&nbsp;<button onclick="event.stopPropagation();copyImrLink(this,\''+r.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
       +'<td style="white-space:nowrap">'+actions+'</td>'
       +'</tr>';
@@ -4449,7 +4481,7 @@ function renderRetencaoTable() {
   wrap.innerHTML = '<div class="table-wrap">'
     +'<div class="table-info"><span>'+retFiltered.length+' formulário(s)</span><span>Página '+retPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
-    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Link externo</th><th>Ações</th></tr></thead>'
+    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Responsável</th><th>Link externo</th><th>Ações</th></tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +retPaginationHtml(totalPages)+'</div>';
