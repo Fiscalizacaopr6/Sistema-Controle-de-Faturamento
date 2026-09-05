@@ -113,7 +113,7 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
       <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarPlanilha(this)">
       <button class="btn btn-import" id="btn-import" onclick="document.getElementById('imp-file').click()" title="Importar funcionários de uma planilha Excel para o mês atual" style="display:none">📥 IMPORTAR</button>
       <button class="btn btn-salvar" onclick="salvar(true)">Salvar</button>
-      <button class="btn btn-print" onclick="window.print()">Imprimir / PDF (mês atual)</button>
+      <button class="btn btn-print" onclick="baixarPDF()">📄 Baixar PDF (mês atual)</button>
       <span class="status" id="status"></span>
     </div>
 
@@ -122,6 +122,8 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -749,6 +751,70 @@ function importarPlanilha(input) {
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ── Baixar PDF direto (botão "Baixar PDF") ──
+// Gera o PDF do mês selecionado sem abrir a janela de impressão. Reproduz o
+// mesmo recorte da impressão: colunas de preenchimento (menos "Contratado
+// pela empresa") + "Total depositado", em A4 paisagem, com o período no título.
+function baixarPDF() {
+  if (!DADOS) return;
+  var m = DADOS.meses[MES_ATUAL];
+  if (!m) { alert('Nenhum mês disponível para gerar o PDF.'); return; }
+  var jspdfNS = window.jspdf || (typeof jspdf !== 'undefined' ? jspdf : null);
+  if (!jspdfNS || !jspdfNS.jsPDF) {
+    alert('A biblioteca de PDF ainda não carregou. Verifique a conexão e tente de novo.');
+    return;
+  }
+  var doc = new jspdfNS.jsPDF({orientation: 'landscape', unit: 'pt', format: 'a4'});
+  if (typeof doc.autoTable !== 'function') {
+    alert('O componente de tabela do PDF não carregou. Verifique a conexão e tente de novo.');
+    return;
+  }
+  var W = doc.internal.pageSize.getWidth();
+  var periodo = mesRotulo(m);
+  var linhas = linhasDoMes(MES_ATUAL);
+
+  // Cabeçalho
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(4, 120, 87);
+  doc.text('UNIVERSIDADE FEDERAL DO RIO DE JANEIRO', W / 2, 26, {align: 'center'});
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(85, 85, 85);
+  doc.text('Pró-Reitoria de Gestão e Governança · PR6 — Conta Vinculada: retenção mensal', W / 2, 38, {align: 'center'});
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(4, 120, 87);
+  doc.text('CONTA VINCULADA MENSAL — ' + periodo, W / 2, 58, {align: 'center'});
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+  doc.text('Contrato: ' + (DADOS.contrato || '—') + '     Empresa: ' + (DADOS.empresa || '—'), 20, 74);
+
+  var head = [['CPF', 'Nome do funcionário', 'Unidade', 'Função', 'Data de disponibilização',
+               'Desligamento', 'Situação', 'Prop. (dias)', 'Remuneração', 'Total depositado']];
+  var totR = 0;
+  var body = linhas.map(function(l) {
+    var c = calc(l); totR += c.r;
+    return [l.cpf || '', l.nome || '', l.unidade || '', l.funcao || '',
+            l.disponibilizacao || '', l.desligamento || '', l.situacao || '',
+            (l.dias === '' || l.dias == null ? '' : String(l.dias)),
+            moeda(num(l.remuneracao)), moeda(c.r)];
+  });
+  var foot = [[{content: 'Total de ' + periodo + ' · ' + linhas.length + ' funcionário(s)',
+               colSpan: 9, styles: {halign: 'right'}}, moeda(totR)]];
+
+  doc.autoTable({
+    head: head, body: body, foot: foot, startY: 84,
+    styles: {fontSize: 7, cellPadding: 2, overflow: 'linebreak', lineColor: [201, 201, 201], lineWidth: 0.5},
+    headStyles: {fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold', halign: 'center'},
+    footStyles: {fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold'},
+    alternateRowStyles: {fillColor: [240, 253, 244]},
+    columnStyles: {
+      0: {halign: 'center'}, 1: {halign: 'left'}, 4: {halign: 'center'}, 5: {halign: 'center'},
+      6: {halign: 'center'}, 7: {halign: 'center'}, 8: {halign: 'right'},
+      9: {halign: 'right', fontStyle: 'bold', textColor: [4, 120, 87]}
+    },
+    margin: {left: 20, right: 20}
+  });
+
+  var slug = (DADOS.contrato || 'contrato').replace(/[\/\\]/g, '-').replace(/\s+/g, '');
+  doc.save('conta_vinculada_' + slug + '_' + periodo.replace(/\//g, '-') + '.pdf');
+  status('✔ PDF de ' + periodo + ' baixado.', 'ok');
 }
 
 document.addEventListener('DOMContentLoaded', iniciar);
