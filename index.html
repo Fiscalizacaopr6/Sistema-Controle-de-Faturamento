@@ -1833,7 +1833,7 @@ function buildDashboard() {
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
     {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
-    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true},
+    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true, btnValor:true},
     {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', btnFiscVig:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
@@ -1845,6 +1845,7 @@ function buildDashboard() {
                 : k.btnEmp ? 'showKpiLista(\'empresas\')'
                 : k.btnV30 ? 'showKpiLista(\'venc30\')'
                 : k.btnFiscVig ? 'showKpiLista(\'fiscaisVig\')'
+                : k.btnValor ? 'showKpiLista(\'valorMensal\')'
                 : '';
     var clickable = !!clickFn;
     return '<div class="kpi '+k.c+'"'
@@ -2783,6 +2784,15 @@ function showKpiLista(tipo) {
     titulo = currentYearFilter ? 'Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')' : 'Contratos Vigentes (' + lista.length + ')';
     subtitulo = 'Clique em um contrato para ver os detalhes';
     rows = lista.map(function(d){ return kpiCard(d, 'var(--accent)'); }).join('');
+
+  } else if (tipo === 'valorMensal') {
+    var lista = unVigentePorContrato(base.filter(function(d){ return d._st === 'VIGENTE'; }));
+    lista.sort(function(a,b){ return (+b['TOTAL MENSAL']||0) - (+a['TOTAL MENSAL']||0); });
+    var totMensal = lista.reduce(function(s,d){ return s + (+d['TOTAL MENSAL']||0); }, 0);
+    titulo = currentYearFilter ? 'Valor Mensal — Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')'
+                               : 'Valor Mensal — Contratos Vigentes (' + lista.length + ')';
+    subtitulo = 'Ordenado do maior para o menor · Total: ' + fmtBR(totMensal);
+    rows = lista.map(function(d){ return kpiCard(d, '#10b981'); }).join('');
 
   } else if (tipo === 'encerrados') {
     // Agrupa por contrato; exibe apenas os contratos sem nenhum termo vigente
