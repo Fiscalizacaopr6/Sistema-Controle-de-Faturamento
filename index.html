@@ -1729,7 +1729,28 @@ function exportDashboardPDF() {
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Gerando…'; }
 
   var bg = getComputedStyle(document.body).backgroundColor || '#ffffff';
-  html2canvas(area, { backgroundColor: bg, scale: 2, useCORS: true, logging: false })
+
+  // Expande temporariamente containers com scroll para capturar a lista completa
+  var expanded = [];
+  var scrollables = area.querySelectorAll('[style*="overflow"], [style*="max-height"]');
+  scrollables.forEach(function(el){
+    var s = el.style;
+    expanded.push({el:el, maxH:s.maxHeight, ov:s.overflow, ovY:s.overflowY, h:s.height});
+    s.maxHeight = 'none';
+    s.overflow = 'visible';
+    s.overflowY = 'visible';
+    s.height = 'auto';
+  });
+  function restore(){
+    expanded.forEach(function(x){
+      x.el.style.maxHeight = x.maxH;
+      x.el.style.overflow = x.ov;
+      x.el.style.overflowY = x.ovY;
+      x.el.style.height = x.h;
+    });
+  }
+
+  html2canvas(area, { backgroundColor: bg, scale: 2, useCORS: true, logging: false, windowHeight: area.scrollHeight, height: area.scrollHeight })
     .then(function(canvas){
       var jsPDF = window.jspdf.jsPDF;
       var pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -1787,7 +1808,7 @@ function exportDashboardPDF() {
       pdf.save('dashboard-' + stamp + '.pdf');
     })
     .catch(function(e){ console.error(e); alert('Não foi possível gerar o PDF: ' + (e && e.message || e)); })
-    .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = originalTxt; } });
+    .finally(function(){ restore(); if (btn) { btn.disabled = false; btn.innerHTML = originalTxt; } });
 }
 
 // Meses entre INÍCIO DO CONTRATO e TÉRMINO DA VIGÊNCIA (fim exclusivo)
