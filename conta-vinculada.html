@@ -775,16 +775,7 @@ function baixarPDF() {
   var periodo = mesRotulo(m);
   var linhas = linhasDoMes(MES_ATUAL);
 
-  // Cabeçalho
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(4, 120, 87);
-  doc.text('UNIVERSIDADE FEDERAL DO RIO DE JANEIRO', W / 2, 26, {align: 'center'});
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(85, 85, 85);
-  doc.text('Pró-Reitoria de Gestão e Governança · PR6 — Conta Vinculada: retenção mensal', W / 2, 38, {align: 'center'});
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(4, 120, 87);
-  doc.text('CONTA VINCULADA MENSAL — ' + periodo, W / 2, 58, {align: 'center'});
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
-  doc.text('Contrato: ' + (DADOS.contrato || '—') + '     Empresa: ' + (DADOS.empresa || '—'), 20, 74);
-
+  // Monta o corpo antes do cabeçalho para já ter o total do mês (card).
   var head = [['CPF', 'Nome do funcionário', 'Unidade', 'Função', 'Data de disponibilização',
                'Desligamento', 'Situação', 'Prop. (dias)', 'Remuneração', 'Total depositado']];
   var totR = 0;
@@ -798,8 +789,28 @@ function baixarPDF() {
   var foot = [[{content: 'Total de ' + periodo + ' · ' + linhas.length + ' funcionário(s)',
                colSpan: 9, styles: {halign: 'right'}}, moeda(totR)]];
 
+  // Cabeçalho
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(4, 120, 87);
+  doc.text('UNIVERSIDADE FEDERAL DO RIO DE JANEIRO', W / 2, 26, {align: 'center'});
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(85, 85, 85);
+  doc.text('Pró-Reitoria de Gestão e Governança · PR6 — Conta Vinculada: retenção mensal', W / 2, 38, {align: 'center'});
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(4, 120, 87);
+  doc.text('CONTA VINCULADA MENSAL — ' + periodo, W / 2, 56, {align: 'center'});
+
+  // Card "TOTAL DO MÊS PARA DEPÓSITO" logo abaixo do título (igual ao da tela)
+  var cardW = 260, cardH = 38, cardX = (W - cardW) / 2, cardY = 64;
+  doc.setDrawColor(167, 243, 208); doc.setFillColor(236, 253, 244); doc.setLineWidth(0.8);
+  doc.roundedRect(cardX, cardY, cardW, cardH, 4, 4, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(4, 120, 87);
+  doc.text('TOTAL DO MÊS PARA DEPÓSITO', W / 2, cardY + 13, {align: 'center'});
+  doc.setFontSize(16);
+  doc.text(moeda(totR), W / 2, cardY + 30, {align: 'center'});
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+  doc.text('Contrato: ' + (DADOS.contrato || '—') + '     Empresa: ' + (DADOS.empresa || '—'), 20, 120);
+
   doc.autoTable({
-    head: head, body: body, foot: foot, startY: 84,
+    head: head, body: body, foot: foot, startY: 128,
     styles: {fontSize: 7, cellPadding: 2, overflow: 'linebreak', lineColor: [201, 201, 201], lineWidth: 0.5},
     headStyles: {fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold', halign: 'center'},
     footStyles: {fillColor: [4, 120, 87], textColor: 255, fontStyle: 'bold'},
