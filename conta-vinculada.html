@@ -628,7 +628,7 @@ function togglePR6() {
     aplicarPR6();
     return;
   }
-  var s = prompt('Senha da PR6 para ver todos os períodos:');
+  var s = prompt('Área exclusiva dos servidores da PR6. Requer senha.');
   if (s === null) return;
   if (s !== '123456') { alert('Senha incorreta.'); return; }
   _pr6 = true;
