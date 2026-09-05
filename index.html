@@ -1837,7 +1837,7 @@ function buildDashboard() {
     {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', btnFiscVig:true},
     {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple'},
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
-    {l:'Valor Global Total', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true},
+    {l:'Valor Global', v:fmtBR(totalG), s:currentYearFilter?'contratos de '+currentYearFilter:'todos os contratos', c:'blue', small:true, btnGlobal:true},
     {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', btnEmp:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
@@ -1846,6 +1846,7 @@ function buildDashboard() {
                 : k.btnV30 ? 'showKpiLista(\'venc30\')'
                 : k.btnFiscVig ? 'showKpiLista(\'fiscaisVig\')'
                 : k.btnValor ? 'showKpiLista(\'valorMensal\')'
+                : k.btnGlobal ? 'showKpiLista(\'valorGlobal\')'
                 : '';
     var clickable = !!clickFn;
     return '<div class="kpi '+k.c+'"'
@@ -2784,6 +2785,39 @@ function showKpiLista(tipo) {
     titulo = currentYearFilter ? 'Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ')' : 'Contratos Vigentes (' + lista.length + ')';
     subtitulo = 'Clique em um contrato para ver os detalhes';
     rows = lista.map(function(d){ return kpiCard(d, 'var(--accent)'); }).join('');
+
+  } else if (tipo === 'valorGlobal') {
+    var grpG = {};
+    base.forEach(function(d){
+      var k = (d['CONTRATO']||'').trim();
+      if (!k) return;
+      if (!grpG[k]) grpG[k] = [];
+      grpG[k].push(d);
+    });
+    var lista = Object.keys(grpG).map(function(k){
+      var terms = grpG[k];
+      var rep = terms.find(function(d){ return /^CONTRATO/i.test(d['TERMO ATUAL']||''); }) || terms[0];
+      var soma = terms.reduce(function(s,d){ return s + (+d['TOTAL GLOBAL']||0); }, 0);
+      return { d: rep, valor: soma };
+    });
+    lista.sort(function(a,b){ return b.valor - a.valor; });
+    var totG = lista.reduce(function(s,x){ return s + x.valor; }, 0);
+    titulo = currentYearFilter ? 'Valor Global — Contratos em ' + currentYearFilter + ' (' + lista.length + ')'
+                               : 'Valor Global — Contratos (' + lista.length + ')';
+    subtitulo = 'Ordenado do maior para o menor · Total: ' + fmtBR(totG);
+    rows = lista.map(function(x, i){
+      var d = x.d;
+      var idx = DADOS.indexOf(d);
+      var contrato = (d['CONTRATO']||'—');
+      var empresa  = (d['EMPRESA']||'').trim() || '—';
+      var valor    = fmtBR(x.valor);
+      return '<div onclick="openModal('+idx+')" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:filter .12s" onmouseenter="this.style.filter=\'brightness(1.08)\'" onmouseleave="this.style.filter=\'\'">'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:#3b82f6;min-width:28px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:13px;color:#3b82f6;min-width:80px">'+esc(contrato)+'</span>'
+        + '<span style="font-size:13px;color:var(--text);flex:1;min-width:0">'+esc(empresa)+'</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:600;font-size:13px;color:var(--text);white-space:nowrap">'+valor+'</span>'
+        + '</div>';
+    }).join('');
 
   } else if (tipo === 'valorMensal') {
     var lista = unVigentePorContrato(base.filter(function(d){ return d._st === 'VIGENTE'; }));
