@@ -4274,10 +4274,12 @@ function renderImrTable() {
       ? '<button class="btn-usr-edit" onclick="event.stopPropagation();openEditImrModal(\''+r.id+'\')">Editar</button>'
         +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteImr(\''+r.id+'\')">Excluir</button>'
       : '';
+    var resp = retRespDoContrato(r.contrato);
     return '<tr '+rowClick+'>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
       +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
       +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
+      +'<td style="font-size:12px">'+(resp?'<span class="tag">'+esc(resp)+'</span>':'—')+'</td>'
       +'<td style="font-size:11px;white-space:nowrap">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span>&nbsp;<button onclick="event.stopPropagation();copyImrLink(this,\''+r.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
       +'</tr>';
@@ -4286,7 +4288,7 @@ function renderImrTable() {
   wrap.innerHTML = '<div class="table-wrap">'
     +'<div class="table-info"><span>'+imrFiltered.length+' registro(s)</span><span>Página '+imrPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
-    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Link</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
+    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Responsável</th><th>Link</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +pag+'</div>';
