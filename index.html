@@ -880,8 +880,16 @@ select.doc-inp{cursor:pointer}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
         <h2 style="font-size:15px;font-weight:600;white-space:nowrap">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</h2>
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
-          <input id="imr-q" type="text" placeholder="Buscar por contrato ou empresa..." oninput="buildImrTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <input id="imr-q" type="text" placeholder="Buscar por contrato, empresa ou responsável..." oninput="buildImrTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-new" id="btn-novo-imr" onclick="openNewImrModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
+        </div>
+      </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="imr-f-contrato" onchange="buildImrTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
+          <select class="sel" id="imr-f-resp" onchange="buildImrTable()"><option value="">Todos</option></select>
         </div>
       </div>
       <div id="imr-table"></div>
@@ -4247,12 +4255,26 @@ function saveImrToStorage() {
 
 var imrFiltered = [], imrPage = 1, imrPer = 50;
 
+function populateImrFilters() {
+  fillSelectFilter('imr-f-contrato', distinctSorted(IMR, function(r){ return r.contrato; }), 'Todos');
+  var resps = {};
+  IMR.forEach(function(r){ var x = retRespDoContrato(r.contrato); if (x) resps[x] = 1; });
+  var lista = Object.keys(resps).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); });
+  fillSelectFilter('imr-f-resp', lista, 'Todos');
+}
+
 function buildImrTable() {
+  populateImrFilters();
   var q = (document.getElementById('imr-q') ? document.getElementById('imr-q').value : '').toLowerCase();
+  var fContrato = fVal('imr-f-contrato'), fResp = fVal('imr-f-resp');
   imrFiltered = IMR.filter(function(r) {
+    var resp = retRespDoContrato(r.contrato);
+    if (fContrato && String(r.contrato||'').trim() !== fContrato) return false;
+    if (fResp && String(resp||'').trim() !== fResp) return false;
     if (!q) return true;
     return (r.contrato||'').toLowerCase().indexOf(q) !== -1
-        || (r.empresa||'').toLowerCase().indexOf(q) !== -1;
+        || (r.empresa||'').toLowerCase().indexOf(q) !== -1
+        || (resp||'').toLowerCase().indexOf(q) !== -1;
   });
   imrPage = 1;
   renderImrTable();
