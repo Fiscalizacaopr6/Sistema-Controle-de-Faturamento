@@ -5667,6 +5667,7 @@ function clearReajusteFilters() {
 
 function buildReajustesTable() {
   populateReajusteFilters();
+  aplicarRespPadrao('reajustes', 'rj-f-resp');
   var q = (document.getElementById('reajuste-q') ? document.getElementById('reajuste-q').value : '').toLowerCase();
   var fContrato = fVal('rj-f-contrato'), fEmpresa = fVal('rj-f-empresa'), fResp = fVal('rj-f-resp');
   var fMemoria = fVal('rj-f-memoria'), fSitNf = fVal('rj-f-sitnf');
