@@ -2080,6 +2080,7 @@ function populateContratoFilters() {
 
 function applyFilters() {
   populateContratoFilters();
+  aplicarRespPadrao('contratos', 'f-re');
   var q = (document.getElementById('f-q').value || '').toLowerCase();
   var st = document.getElementById('f-st').value;
   var ti = document.getElementById('f-ti').value;
@@ -4265,6 +4266,7 @@ function populateImrFilters() {
 
 function buildImrTable() {
   populateImrFilters();
+  aplicarRespPadrao('imr', 'imr-f-resp');
   var q = (document.getElementById('imr-q') ? document.getElementById('imr-q').value : '').toLowerCase();
   var fContrato = fVal('imr-f-contrato'), fResp = fVal('imr-f-resp');
   imrFiltered = IMR.filter(function(r) {
@@ -4458,6 +4460,7 @@ function populateRetFiltroResp() {
 
 function buildRetencaoTable() {
   populateRetFiltroResp();
+  aplicarRespPadrao('retencao', 'ret-f-resp');
   var q = (document.getElementById('ret-q') ? document.getElementById('ret-q').value : '').toLowerCase();
   var fResp = (document.getElementById('ret-f-resp') ? document.getElementById('ret-f-resp').value : '');
   retFiltered = RETENCAO.filter(function(r) {
@@ -5055,6 +5058,7 @@ function clearContaFilters() {
 
 function buildContasTable() {
   populateContaFilters();
+  aplicarRespPadrao('contas', 'ct-f-resp');
   var q = (document.getElementById('conta-q') ? document.getElementById('conta-q').value : '').toLowerCase();
   var fContrato = fVal('ct-f-contrato'), fEmpresa = fVal('ct-f-empresa'), fResp = fVal('ct-f-resp'), fSit = fVal('ct-f-sit');
   cvFiltered = CONTAS.filter(function(c) {
@@ -5114,6 +5118,47 @@ function chaveResponsavel(s) {
   // aqui removemos tudo que não é letra/dígito para "renanmedeiros" casar com
   // "RENAN MEDEIROS".
   return unidadeChave(s).replace(/[^A-Z0-9]/g, '');
+}
+
+// ── Filtro "Responsável" padrão por login ──────────────────────────────────
+// Ao entrar, as telas Contratos, Solicitação Empresa, Retenção e IMR já vêm
+// filtradas pelo responsável correspondente ao usuário logado. O usuário pode
+// trocar o filtro à vontade depois (o padrão só é aplicado uma vez por sessão,
+// por tela). BRUNA é exceção: permanece em "Todos" em todas as telas.
+var _respPadraoAplicado = {};
+var LOGINS_SEM_FILTRO_PADRAO = ['bruna'];
+
+// Chaves de comparação (login + nome cadastrado) do usuário logado.
+function respChavesUsuario() {
+  var info = USERS_DB[currentUserLogin] || {};
+  var ks = [chaveResponsavel(currentUserLogin)];
+  if (info.nome) ks.push(chaveResponsavel(info.nome));
+  return ks.filter(function(k, i, a) { return k && a.indexOf(k) === i; });
+}
+
+function usuarioSemFiltroPadrao() {
+  return LOGINS_SEM_FILTRO_PADRAO.indexOf(String(currentUserLogin || '').toLowerCase()) !== -1;
+}
+
+// Seleciona, uma única vez por tela/sessão, a opção do <select> cujo nome casa
+// com o responsável do usuário. Se as opções ainda não carregaram (dados vindo
+// do Firebase), não marca como aplicado e tenta de novo no próximo build.
+function aplicarRespPadrao(tela, selectId) {
+  if (_respPadraoAplicado[tela]) return;
+  if (usuarioSemFiltroPadrao()) { _respPadraoAplicado[tela] = true; return; }
+  var chaves = respChavesUsuario();
+  if (!chaves.length) { _respPadraoAplicado[tela] = true; return; }
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  for (var i = 0; i < sel.options.length; i++) {
+    var v = sel.options[i].value;
+    if (v && chaves.indexOf(chaveResponsavel(v)) !== -1) {
+      sel.value = v;
+      _respPadraoAplicado[tela] = true;
+      return;
+    }
+  }
+  // sem correspondência ainda → deixa para uma próxima chamada (após carregar).
 }
 
 // Lista de <li> "contrato — empresa" reutilizada pelos dois alertas de login.
