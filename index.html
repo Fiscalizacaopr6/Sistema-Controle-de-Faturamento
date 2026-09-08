@@ -41,6 +41,7 @@ html.light .role-editor{background:rgba(37,99,235,.1);color:#2563eb;border-color
 html.light .role-viewer{background:rgba(100,116,139,.1);color:#64748b;border-color:rgba(100,116,139,.2)}
 html.light .role-n1{background:rgba(100,116,139,.1);color:#64748b;border-color:rgba(100,116,139,.2)}
 html.light .role-n2{background:rgba(13,148,136,.12);color:#0d9488;border-color:rgba(13,148,136,.25)}
+html.light .role-n2v{background:rgba(13,148,136,.06);color:#0f766e;border-color:rgba(13,148,136,.35);border-style:dashed}
 html.light .role-n3{background:rgba(37,99,235,.1);color:#2563eb;border-color:rgba(37,99,235,.25)}
 html.light .role-n4{background:rgba(79,70,229,.1);color:#4f46e5;border-color:rgba(79,70,229,.25)}
 html.light .role-n5{background:rgba(124,58,237,.1);color:#7c3aed;border-color:rgba(124,58,237,.25)}
@@ -309,6 +310,7 @@ tr:last-child td{border-bottom:none}
 .role-viewer{background:rgba(100,116,139,.2);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
 .role-n1{background:rgba(100,116,139,.2);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
 .role-n2{background:rgba(20,184,166,.2);color:#5eead4;border:1px solid rgba(20,184,166,.3)}
+.role-n2v{background:rgba(20,184,166,.1);color:#99f6e4;border:1px dashed rgba(20,184,166,.45)}
 .role-n3{background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
 .role-n4{background:rgba(99,102,241,.2);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)}
 .role-n5{background:rgba(139,92,246,.2);color:#c4b5fd;border:1px solid rgba(139,92,246,.3)}
@@ -1139,11 +1141,12 @@ var currentUserLogin = '';
 // telas novas). Telas NÃO listadas em PUBLIC_VIEWS são "Área 51":
 // só quem tem nível area51 as enxerga por padrão.
 // ─────────────────────────────────────────────────────────────
-var LEVEL_LABEL = {n1:'Nível 1', n2:'Nível 2', n3:'Nível 3', n4:'Nível 4', n5:'Nível 5', area51:'Área 51'};
+var LEVEL_LABEL = {n1:'Nível 1', n2:'Nível 2', n2v:'Nível 2 Visualizador', n3:'Nível 3', n4:'Nível 4', n5:'Nível 5', area51:'Área 51'};
 // Ordem de exibição no seletor de permissão
 var ROLES = [
   {v:'n1', l:'Nível 1 — só Dashboard'},
   {v:'n2', l:'Nível 2 — edita Fiscais e Empresas'},
+  {v:'n2v', l:'Nível 2 Visualizador — vê as telas do Nível 2, sem editar'},
   {v:'n3', l:'Nível 3 — edita Fiscais, Empresas e Contratos'},
   {v:'n4', l:'Nível 4 — edita quase tudo (sem IMR)'},
   {v:'n5', l:'Nível 5 — edita tudo (com IMR)'},
@@ -1166,6 +1169,8 @@ var VIEW_EDIT_KEY = {
 var EDIT_PERMS = {
   n1: [],
   n2: ['fiscais','empresas'],
+  n2v: [],
+
   n3: ['fiscais','empresas','contratos'],
   n4: ['contratos','documentos','fiscais','reajustes','contavinculada','empresas','unidades','usuarios'],
   n5: ['contratos','documentos','fiscais','reajustes','contavinculada','empresas','unidades','usuarios','imr'],
