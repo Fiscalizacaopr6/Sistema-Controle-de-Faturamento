@@ -3391,9 +3391,14 @@ function fiscalFormHtml(f) {
     + SITUACOES.map(function(s){ return '<option value="'+s+'"'+(s===(f.situacao||'')?' selected':'')+'>'+s+'</option>'; }).join('');
   var contratoOpts = '<option value="">— Selecione —</option>'
     + fiscalContratosOrdenados().map(function(c){ return '<option value="'+esc(c)+'"'+(c===f.contrato?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
+  var nomesCadastrados = Array.from(new Set(FISCAIS.map(function(x){ return (x.nome||'').trim().toUpperCase(); }).filter(Boolean))).sort();
+  var nomeSelOpts = '<option value="">— Selecione —</option>'
+    + nomesCadastrados.map(function(n){ return '<option value="'+esc(n)+'"'+(n===(f.nome||'').trim().toUpperCase()?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
   return '<div class="eform">'
     +'<div class="ef full"><label>Nome *</label>'
-      + '<input id="ff-nome" value="'+esc((f.nome||'').toUpperCase())+'" autocapitalize="characters" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>'
+      + '<select id="ff-nome-sel" onchange="fiscalNomeSelChange()">'+nomeSelOpts+'</select></div>'
+    +'<div class="ef full"><label>Ou digite um novo nome (caso não esteja na lista)</label>'
+      + '<input id="ff-nome" value="" autocapitalize="characters" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();if(this.value)document.getElementById(\'ff-nome-sel\').value=\'\'" placeholder="Nome do novo fiscal"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="ff-empresa" list="ff-empresa-list" value="'+esc(f.empresa||'')+'">'
@@ -3408,6 +3413,13 @@ function fiscalFormHtml(f) {
     +'<div class="ef"><label>Endereço SEI</label><input id="ff-sei" value="'+esc(f.enderecoSei||'')+'"></div>'
     +'<div class="ef"><label>Portaria</label><input id="ff-portaria" value="'+esc(f.portaria||'')+'"></div>'
     +'</div>';
+}
+
+// Ao escolher um nome já cadastrado na lista, limpa o campo de digitação
+// (as duas fontes são mutuamente exclusivas; digitar limpa a lista e vice-versa).
+function fiscalNomeSelChange() {
+  var sel = document.getElementById('ff-nome-sel');
+  if (sel && sel.value) document.getElementById('ff-nome').value = '';
 }
 
 // Escolher o contrato preenche a empresa, mas o campo continua editável: dá
@@ -3460,8 +3472,10 @@ function readFiscalForm() {
   var statusContrato = dadoContrato
     ? (dadoContrato._st === 'VIGENTE' ? 'Contrato Vigente' : dadoContrato._st === 'A INICIAR' ? 'Contrato A Iniciar' : 'Contrato Encerrado')
     : '';
+  var nomeDigitado = v('ff-nome').toUpperCase();
+  var nomeSelecionado = (document.getElementById('ff-nome-sel') || {}).value || '';
   return {
-    nome:          v('ff-nome').toUpperCase(),
+    nome:          nomeDigitado || nomeSelecionado.trim().toUpperCase(),
     situacao:      v('ff-sit'),
     contrato:      contrato,
     empresa:       v('ff-empresa'),
