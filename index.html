@@ -1184,6 +1184,13 @@ function userExtraEditKeys(login) {
   return USER_EXTRA_EDIT[String(login || '').toLowerCase()] || [];
 }
 
+// Usuários "somente leitura": mesmo com nível que permitiria editar, não editam
+// nada — apenas visualizam. Sobrepõe o nível e o USER_EXTRA_EDIT.
+var USER_VIEW_ONLY = ['danieledelgado', 'flaviofernandes', 'renatariffan', 'johnnykovalcik'];
+function userViewOnly(login) {
+  return USER_VIEW_ONLY.indexOf(String(login || '').toLowerCase()) !== -1;
+}
+
 // Compatibilidade com dados antigos (admin/editor/viewer)
 function normalizeRole(r) {
   if (EDIT_PERMS[r] !== undefined) return r;
@@ -1209,6 +1216,8 @@ function canViewView(view, role) {
 // Pode o nível 'role' EDITAR a chave de permissão 'key'?
 function canEditKey(key, role) {
   role = normalizeRole(role || currentRole);
+  // "Somente leitura" por usuário: só ao avaliar o próprio usuário logado
+  if (role === normalizeRole(currentRole) && userViewOnly(currentUserLogin)) return false;
   var p = EDIT_PERMS[role];
   if (p === '*') return true;
   if (p && p.indexOf(key) !== -1) return true;
