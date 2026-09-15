@@ -4456,16 +4456,21 @@ function saveRetencaoToStorage() {
 var retFiltered = [], retPage = 1, retPer = 50;
 
 // Responsável (no faturamento) do contrato, lido de /dados. Um contrato pode
-// ter vários termos; usa o primeiro termo que tenha o responsável preenchido.
+// ter tido responsáveis diferentes ao longo do tempo; vale o do TERMO ATUAL =
+// o de MAIOR TÉRMINO DA VIGÊNCIA (desempate pelo maior INÍCIO), mesmo critério
+// usado em unVigentePorContrato/dashboard.
 function retRespDoContrato(contrato) {
   var c = (contrato || '').trim();
   if (!c) return '';
   var linhas = DADOS.filter(function(d){ return (d['CONTRATO']||'').trim() === c; });
-  for (var i = 0; i < linhas.length; i++) {
-    var r = (linhas[i]['RESPONSÁVEL NO FATURAMENTO'] || '').trim();
-    if (r) return r;
+  if (!linhas.length) return '';
+  var atual = linhas[0];
+  for (var i = 1; i < linhas.length; i++) {
+    var d = linhas[i];
+    var _at = String(d['TÉRMINO DA VIGÊNCIA'] || ''), _dt = String(atual['TÉRMINO DA VIGÊNCIA'] || '');
+    if (_at > _dt || (_at === _dt && String(d['INÍCIO DO CONTRATO'] || '') > String(atual['INÍCIO DO CONTRATO'] || ''))) atual = d;
   }
-  return '';
+  return (atual['RESPONSÁVEL NO FATURAMENTO'] || '').trim();
 }
 
 // Preenche o filtro Responsável com os nomes presentes nos contratos de retenção.
