@@ -1031,6 +1031,19 @@ select.doc-inp{cursor:pointer}
   </div>
 </div>
 
+    <!-- ALERTA: notas prontas para autorizar (IMR de todas as unidades do mês recebido) -->
+<div class="mo" id="autnota-mo" onclick="if(event.target===this)fecharAutNotaModal()">
+  <div class="modal" style="max-width:520px">
+    <div class="mh"><div><div class="mt">🧾 Notas para Autorizar</div><div class="ms" id="autnota-sub">—</div></div>
+      <button class="mc" onclick="fecharAutNotaModal()">✕</button></div>
+    <div class="mb" id="autnota-body"></div>
+    <div class="mo-actions">
+      <button class="btn-cancel-e" onclick="fecharAutNotaModal()">Fechar</button>
+      <button class="btn-save" onclick="verDocumentosAutNota()">Ver Documentos</button>
+    </div>
+  </div>
+</div>
+
     <!-- ALERTA: contratos aguardando designação de responsável (só p/ certos usuários) -->
 <div class="mo" id="desig-mo" onclick="if(event.target===this)fecharDesigModal()">
   <div class="modal" style="max-width:480px">
@@ -5212,6 +5225,8 @@ function _proximoAlertaLogin() {
 
 function checarAlertasLogin() {
   _loginAlertQueue = [];
+  var an = _notasParaAutorizar();
+  if (an.length) _loginAlertQueue.push(function(){ _mostrarModalAutNota(an); });
   var cv = _pendenciasCV();
   if (cv.length) _loginAlertQueue.push(function(){ _mostrarModalCV(cv); });
   // Alerta de designação: apenas para os logins abaixo.
@@ -5301,6 +5316,105 @@ function _mostrarModalDesig(lista) {
     '<div style="padding:2px 2px 14px;font-size:14px;color:var(--text);line-height:1.5">' + msg + '</div>'
     + '<ul style="list-style:none;margin:0;padding:0;max-height:320px;overflow:auto">' + itens + '</ul>';
   document.getElementById('desig-mo').classList.add('open');
+}
+
+// ── Alerta 3: notas prontas para autorizar ────────────────────────────────
+// Situação "AUTORIZAR NOTA" (docSituacao) = IMR recebido, nota ainda não
+// autorizada. Mas a nota é por CONTRATO+MÊS: contratos com mais de uma unidade
+// só entram quando TODAS as unidades daquele mês já enviaram o IMR. Por isso
+// agrupamos por contrato+ano+mês e só liberamos o grupo quando nenhuma linha
+// dele está "AGUARDANDO IMR"/vazia (todas as unidades do mês entregaram) e ao
+// menos uma ainda está em "AUTORIZAR NOTA". As unidades do mês são as próprias
+// linhas existentes daquele contrato+mês (variam de mês para mês). O alerta é
+// filtrado pelo responsável do usuário logado (BRUNA e afins veem todos).
+function _notasParaAutorizar() {
+  if (!DOCUMENTOS.length) docRebuild();
+  // Uma unidade "entregou o IMR" quando sua situação não é vazia nem
+  // "AGUARDANDO IMR" (inclui NÃO HOUVE SERVIÇO, que não precisa de IMR).
+  function imrOk(sit) { return sit && sit !== 'AGUARDANDO IMR'; }
+  var grupos = {};
+  DOCUMENTOS.forEach(function(r) {
+    var contrato = String(r.contrato || '').trim();
+    if (!contrato) return;
+    var ano = String(r.ano || '').trim(), mes = String(r.mes || '').trim();
+    var chave = contrato + '||' + ano + '||' + mes;
+    var g = grupos[chave] || (grupos[chave] = {
+      contrato: contrato, ano: ano, mes: mes,
+      empresa: '', responsavel: '', todasImr: true, temAutorizar: false
+    });
+    var sit = docSituacao(r);
+    if (!imrOk(sit)) g.todasImr = false;
+    if (sit === 'AUTORIZAR NOTA') g.temAutorizar = true;
+    if (!g.empresa && r.empresa) g.empresa = String(r.empresa).trim();
+    if (!g.responsavel) g.responsavel = docResponsavel(r);
+  });
+  var lista = Object.keys(grupos).map(function(k){ return grupos[k]; })
+    .filter(function(g){ return g.todasImr && g.temAutorizar; });
+  // Filtro por responsável do usuário logado (mesma regra dos outros alertas).
+  if (!usuarioSemFiltroPadrao()) {
+    var chaves = respChavesUsuario();
+    if (chaves.length) {
+      lista = lista.filter(function(g){
+        return chaves.indexOf(chaveResponsavel(g.responsavel)) !== -1;
+      });
+    }
+  }
+  // Ordena por contrato, depois ano e mês (ordem cronológica do calendário).
+  lista.sort(function(a, b) {
+    if (a.contrato !== b.contrato) return a.contrato.localeCompare(b.contrato, 'pt-BR', {numeric:true});
+    if (a.ano !== b.ano) return String(a.ano).localeCompare(String(b.ano), 'pt-BR', {numeric:true});
+    return MESES_ORDEM.indexOf(a.mes.toUpperCase()) - MESES_ORDEM.indexOf(b.mes.toUpperCase());
+  });
+  return lista;
+}
+
+function fecharAutNotaModal() {
+  var el = document.getElementById('autnota-mo');
+  if (el) el.classList.remove('open');
+  _proximoAlertaLogin();
+}
+
+function _mostrarModalAutNota(lista) {
+  var n = lista.length;
+  var msg = n === 1
+    ? 'Existe <b>1</b> nota pronta para autorizar.'
+    : 'Existem <b>' + n + '</b> notas prontas para autorizar.';
+  var itens = lista.map(function(g) {
+    var per = _mesAnoTitle(g.mes) + (g.ano ? '/' + g.ano : '');
+    return '<li style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;'
+      + 'margin-bottom:8px;background:var(--surface2);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
+      + '<b style="color:var(--accent);white-space:nowrap;font-size:13px">' + esc(g.contrato || '—') + '</b>'
+      + '<span style="color:var(--text);font-size:13px;flex:1;min-width:120px">' + esc(g.empresa || '—') + '</span>'
+      + '<span style="color:var(--muted);font-size:12px;white-space:nowrap">' + esc(per) + '</span></li>';
+  }).join('');
+  document.getElementById('autnota-sub').textContent = 'IMR de todas as unidades recebido';
+  document.getElementById('autnota-body').innerHTML =
+    '<div style="padding:2px 2px 14px;font-size:14px;color:var(--text);line-height:1.5">' + msg + '</div>'
+    + '<ul style="list-style:none;margin:0;padding:0;max-height:320px;overflow:auto">' + itens + '</ul>';
+  document.getElementById('autnota-mo').classList.add('open');
+}
+
+// Mês com apenas a inicial maiúscula (JANEIRO → Janeiro); mantém como veio se não for um mês conhecido.
+function _mesAnoTitle(mes) {
+  var m = String(mes || '').trim();
+  if (!m) return '';
+  return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
+}
+
+// "Ver Documentos" do alerta: abre a tela Documentos já filtrada por
+// situação "AUTORIZAR NOTA".
+function verDocumentosAutNota() {
+  fecharAutNotaModal();
+  showView('documentos');
+  if (typeof buildDocumentosTable === 'function') buildDocumentosTable();
+  var sel = document.getElementById('doc-f-sit');
+  if (sel) {
+    var alvo = 'AUTORIZAR NOTA', existe = false;
+    for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === alvo) { existe = true; break; } }
+    if (!existe) sel.add(new Option(alvo, alvo));
+    sel.value = alvo;
+    buildDocumentosTable();
+  }
 }
 
 function contaInlineSalvar(id, campo, valor) {
