@@ -5402,19 +5402,32 @@ function _mesAnoTitle(mes) {
 }
 
 // "Ver Documentos" do alerta: abre a tela Documentos já filtrada por
-// situação "AUTORIZAR NOTA".
+// situação "AUTORIZAR NOTA" e pelo Responsável do usuário logado (o mesmo
+// critério do alerta). BRUNA e afins não têm filtro padrão → deixa "Todos".
 function verDocumentosAutNota() {
   fecharAutNotaModal();
   showView('documentos');
-  if (typeof buildDocumentosTable === 'function') buildDocumentosTable();
+  // Garante os <select> de filtro preenchidos (opções de Situação e Responsável)
+  // antes de casar os valores abaixo.
+  if (typeof initDocumentos === 'function') initDocumentos();
   var sel = document.getElementById('doc-f-sit');
   if (sel) {
     var alvo = 'AUTORIZAR NOTA', existe = false;
     for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === alvo) { existe = true; break; } }
     if (!existe) sel.add(new Option(alvo, alvo));
     sel.value = alvo;
-    buildDocumentosTable();
   }
+  // Filtro Responsável = nome do usuário logado (casa a opção do <select> por
+  // chaveResponsavel, tolerando acentos/caixa). BRUNA fica em "Todos".
+  var selResp = document.getElementById('doc-f-resp');
+  if (selResp && !usuarioSemFiltroPadrao()) {
+    var chaves = respChavesUsuario();
+    for (var j = 0; j < selResp.options.length; j++) {
+      var v = selResp.options[j].value;
+      if (v && chaves.indexOf(chaveResponsavel(v)) !== -1) { selResp.value = v; break; }
+    }
+  }
+  buildDocumentosTable();
 }
 
 function contaInlineSalvar(id, campo, valor) {
