@@ -200,6 +200,12 @@ tr:last-child td{border-bottom:none}
 /* Contratos: azul bem suave uniforme em todas as linhas (claro e escuro) */
 #tbl-body tr td{background:rgba(59,130,246,.05)}
 #main-tbl tbody tr:hover td{background:rgba(59,130,246,.12)}
+/* Linha selecionada: ao clicar em qualquer linha de tabela, ela mantem o
+   destaque ate que outra seja clicada. Vale para todas as telas. */
+tbody tr.row-selected td{background:rgba(59,130,246,.24)!important}
+tbody tr.row-selected:hover td{background:rgba(59,130,246,.3)!important}
+html.light tbody tr.row-selected td{background:rgba(59,130,246,.16)!important}
+html.light tbody tr.row-selected:hover td{background:rgba(59,130,246,.22)!important}
 .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .bg{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
 .br{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
@@ -9506,6 +9512,27 @@ document.addEventListener('DOMContentLoaded', function() {
       +'</tr>';
     host.innerHTML=head+body+'</tbody><tfoot>'+foot+'</tfoot></table>';
   };
+})();
+</script>
+<script>
+/* Selecao de linha por clique — global, vale para todas as telas.
+   Ao clicar em qualquer linha (tr dentro de um tbody) ela ganha a classe
+   .row-selected e mantem o destaque; a selecao anterior daquela mesma tabela
+   e desfeita. Clicar de novo na linha ja selecionada remove o destaque. */
+(function(){
+  document.addEventListener('click', function(e){
+    var tr = e.target.closest && e.target.closest('tbody tr');
+    if(!tr) return;
+    var tbody = tr.parentElement;
+    if(!tbody || tbody.tagName !== 'TBODY') return;
+    var jaSelecionada = tr.classList.contains('row-selected');
+    // Limpa a selecao das outras linhas da mesma tabela
+    tbody.querySelectorAll('tr.row-selected').forEach(function(l){
+      l.classList.remove('row-selected');
+    });
+    // Alterna: se ja estava selecionada, apenas desmarca
+    if(!jaSelecionada) tr.classList.add('row-selected');
+  });
 })();
 </script>
 </body>
