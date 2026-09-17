@@ -192,18 +192,34 @@ function parsePeriodo(str){
   if(mm){ const mi=(+mm[1])-1; let y=+mm[2]; if(y<100) y+=2000; if(mi>=0&&mi<12) return {m:mi,y}; }
   return null;
 }
-const DEFAULT_SUBTITLE='Serviço de alimentação e nutrição — Restaurantes Universitários (Central, CT, Letras, Centro e Praia Vermelha)';
+const DEFAULT_SUBTITLE='Serviço de alimentação e nutrição — refeições individuais (café da manhã, almoço, jantar, colação e lanches) — Restaurantes Universitários e Estudantis';
 
-// Unidades (linhas do faturamento = colunas do IMR). Lista dinâmica: {nome (faturamento), curto (cabeçalho IMR)}.
+// Linhas do faturamento = ITENS do contrato {curto (sigla/unidade → coluna IMR), nome (unidade), item (refeição)}.
+// As colunas do IMR são as SIGLAS distintas (7 unidades); várias linhas/itens podem compartilhar a mesma sigla.
 const RU_DEFAULT=[
-  {nome:'RESTAURANTE UNIVERSITÁRIO - CENTRAL',            curto:'CENTRAL'},
-  {nome:'RESTAURANTE UNIVERSITÁRIO - CT',                 curto:'CT'},
-  {nome:'RESTAURANTE UNIVERSITÁRIO - LETRAS',             curto:'LETRAS'},
-  {nome:'RESTAURANTE UNIVERSITÁRIO - CENTRO (IFCS/FND)',  curto:'CENTRO'},
-  {nome:'RESTAURANTE UNIVERSITÁRIO - PRAIA VERMELHA',     curto:'PV'}
+  {curto:'CENTRAL', nome:'RU Central',                      item:'Café da manhã'},
+  {curto:'CENTRAL', nome:'RU Central',                      item:'Almoço'},
+  {curto:'CENTRAL', nome:'RU Central',                      item:'Jantar'},
+  {curto:'CT',      nome:'RU Centro Tecnológico (CT)',      item:'Café da manhã'},
+  {curto:'CT',      nome:'RU Centro Tecnológico (CT)',      item:'Almoço'},
+  {curto:'CT',      nome:'RU Centro Tecnológico (CT)',      item:'Jantar'},
+  {curto:'LETRAS',  nome:'RU Letras',                       item:'Café da manhã'},
+  {curto:'LETRAS',  nome:'RU Letras',                       item:'Almoço'},
+  {curto:'LETRAS',  nome:'RU Letras',                       item:'Jantar'},
+  {curto:'CT2',     nome:'RU 2 CT',                         item:'Café da manhã'},
+  {curto:'CT2',     nome:'RU 2 CT',                         item:'Almoço'},
+  {curto:'CT2',     nome:'RU 2 CT',                         item:'Jantar'},
+  {curto:'CApEI',   nome:'RE Educação Infantil (CApEI)',    item:'Colação CApEI'},
+  {curto:'CApEI',   nome:'RE Educação Infantil (CApEI)',    item:'Lanche CApEI'},
+  {curto:'CApEI',   nome:'RE Educação Infantil (CApEI)',    item:'Almoço'},
+  {curto:'CAp',     nome:'RE Colégio de Aplicação (CAp)',   item:'Lanche CAp'},
+  {curto:'CAp',     nome:'RE Colégio de Aplicação (CAp)',   item:'Almoço'},
+  {curto:'CAXIAS',  nome:'RU Duque de Caxias',              item:'Café da manhã'},
+  {curto:'CAXIAS',  nome:'RU Duque de Caxias',              item:'Almoço'}
 ];
-const DEFAULT_UNIT=[]; // valor unitário base (subsídio integral) por unidade
-const DEFAULT_SUBDESC=2; // desconto do estudante (F7) — valor unit. estudante = base − desconto; editável por período
+// valor unitário (R$) por item, alinhado ao RU_DEFAULT (anexo do TC 31/2026)
+const DEFAULT_UNIT=[7.49,17.15,17.15, 7.49,17.15,17.15, 7.49,17.15,17.15, 7.49,17.15,17.15, 5.57,13.00,17.15, 13.04,17.15, 7.49,17.15];
+const DEFAULT_SUBDESC=0; // desconto do estudante — editável por período (não se aplica neste contrato → 0)
 
 // Indicadores de qualidade agrupados (réplica da planilha)
 const GROUPS=[
@@ -270,34 +286,44 @@ const GROUPS=[
 const SUBMAP={}; GROUPS.forEach(G=>G.subs.forEach(s=>SUBMAP[s.key]=s));
 const GROUP_KEYS=[['g1a','g1b'],['g2a','g2b'],['g3a','g3b']];
 
-const STORAGE_KEY='IMR_HORTO_3126_RU';
+const STORAGE_KEY='IMR_HORTO_3126_RU_v2';
 let state=null;
 let currentTab=0; // 0..NUM_MONTHS-1 = mês ; 'ref' = referência
 
+// unidades distintas (colunas do IMR) = siglas distintas das linhas, na ordem de 1ª aparição
+function unitList(){
+  const seen={}, out=[];
+  state.faturRows.forEach(r=>{ const c=(r.curto||'').trim(); if(!(c in seen)){ seen[c]=1; out.push({curto:c, nome:r.nome||''}); } });
+  return out;
+}
 /* ── período em branco ── */
-function newScores(nRows){
+// scores por subgrupo → array por indicador; cada indicador é um MAPA sigla→nota (padrão 3 quando ausente)
+function newScores(){
   const scores={};
-  GROUPS.forEach(G=>G.subs.forEach(s=>{ scores[s.key]=s.items.map(()=>{ const a=[]; for(let k=0;k<nRows;k++) a.push(3); return a; }); }));
+  GROUPS.forEach(G=>G.subs.forEach(s=>{ scores[s.key]=s.items.map(()=>({})); }));
   return scores;
 }
 function blankPeriod(idx, nRows){
   nRows = nRows || RU_DEFAULT.length;
-  const qtd=[]; for(let i=0;i<nRows;i++) qtd.push(['','','']);        // [bolsistas, estudantes, servidores] por unidade
-  const unit=[]; for(let i=0;i<nRows;i++) unit.push(DEFAULT_UNIT[i]!=null?DEFAULT_UNIT[i]:''); // valor unitário base por unidade
-  return {periodo:defaultPeriodo(idx), subtitle:DEFAULT_SUBTITLE, subDesc:DEFAULT_SUBDESC, qtd, unit, scores:newScores(nRows), ocorr:''};
+  const qtd=[]; for(let i=0;i<nRows;i++) qtd.push(['','','']);        // [bolsistas, estudantes, servidores] por item
+  const unit=[]; for(let i=0;i<nRows;i++) unit.push(DEFAULT_UNIT[i]!=null?DEFAULT_UNIT[i]:''); // valor unitário por item
+  return {periodo:defaultPeriodo(idx), subtitle:DEFAULT_SUBTITLE, subDesc:DEFAULT_SUBDESC, qtd, unit, scores:newScores(), ocorr:''};
 }
 function defaultState(){
-  const faturRows=RU_DEFAULT.map(o=>({nome:o.nome, curto:o.curto})); // unidades (compartilhadas entre os meses)
+  const faturRows=RU_DEFAULT.map(o=>({curto:o.curto, nome:o.nome, item:o.item||''})); // itens (compartilhados entre os meses)
   const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankPeriod(i, faturRows.length));
   return {fiscal:'', locked:false, pwd:'', faturRows, months};
 }
-// garante que cada período tenha exatamente n unidades em qtd/unit E nas colunas de notas
+// garante que cada período tenha exatamente n linhas de qtd/unit (scores são mapas por sigla, não precisam de resize)
 function resizePeriodRows(m, n){
   while(m.qtd.length<n) m.qtd.push(['','','']);
   while(m.unit.length<n) m.unit.push('');
   m.qtd.length=n; m.unit.length=n;
-  GROUPS.forEach(G=>G.subs.forEach(s=>{ (m.scores[s.key]||[]).forEach(row=>{ while(row.length<n) row.push(3); row.length=n; }); }));
+  GROUPS.forEach(G=>G.subs.forEach(s=>{ if(!Array.isArray(m.scores[s.key])) m.scores[s.key]=s.items.map(()=>({})); }));
 }
+// leitura/escrita de nota por sigla (padrão 3)
+function scoreVal(period,key,indIdx,sigla){ const m=period.scores[key][indIdx]; const v=m&&m[sigla]; return (v==null)?3:Number(v); }
+function setScoreVal(period,key,indIdx,sigla,v){ const m=period.scores[key][indIdx]||(period.scores[key][indIdx]={}); m[sigla]=Number(v); }
 
 /* ═══════════════════ PARSE / FORMATO ═══════════════════ */
 function parseInt0(s){ if(s===''||s==null) return ''; const n=Number(String(s).replace(/\./g,'').replace(',','.')); return isNaN(n)?'':n; }
@@ -310,17 +336,18 @@ function fmtNota(n){ return Number(n).toLocaleString('pt-BR',{minimumFractionDig
 function round2(n){ return Math.round(n*100)/100; }
 
 /* ═══════════════════ CÁLCULO ═══════════════════ */
-// total de um subgrupo, por unidade: ROUND(média dos itens da unidade × peso, 2)
-function subUnitTotal(period, key, ui){
-  const s=SUBMAP[key]; const grid=period.scores[key];
-  let sum=0; for(let it=0;it<s.items.length;it++){ sum+=num(grid[it][ui]); }
+// total de um subgrupo, por unidade (sigla): ROUND(média dos indicadores × peso, 2)
+function subUnitTotal(period, key, sigla){
+  const s=SUBMAP[key];
+  let sum=0; for(let it=0;it<s.items.length;it++){ sum+=scoreVal(period,key,it,sigla); }
   const avg=sum/s.items.length;
   return round2(avg*s.peso);
 }
 function groupScore(period, gi){
   const [ka,kb]=GROUP_KEYS[gi];
-  const N=state.faturRows.length;
-  const a=[], b=[]; for(let ui=0;ui<N;ui++){ a.push(subUnitTotal(period,ka,ui)); b.push(subUnitTotal(period,kb,ui)); }
+  const units=unitList();
+  const a=units.map(u=>subUnitTotal(period,ka,u.curto));
+  const b=units.map(u=>subUnitTotal(period,kb,u.curto));
   const avgA=a.reduce((x,y)=>x+y,0)/(a.length||1);
   const avgB=b.reduce((x,y)=>x+y,0)/(b.length||1);
   return avgA+avgB;
@@ -393,16 +420,17 @@ function periodHTML(mi){
 
   /* ── 1) FATURAMENTO ── */
   h+='<div class="sec-title"><span>TABELA DE COMPOSIÇÃO DE VALORES PARA FATURAMENTO — '+esc(p.periodo)+'</span></div>';
-  h+='<div class="instrucao"><b>Quantitativo de refeições entregues</b> (células amarelas): informe, por RU, o nº de refeições de <b>bolsistas</b>, <b>estudantes</b> e <b>servidores</b>. '+
-     'O valor unitário base é o subsídio integral por refeição (o valor do estudante é o base menos o desconto informado abaixo). '+
+  h+='<div class="instrucao"><b>Cada linha é um item do contrato</b> (uma refeição de uma unidade). Preencha (células amarelas) o nº de refeições de <b>bolsistas</b>, <b>estudantes</b> e <b>servidores</b> e o <b>valor unitário</b> do item. '+
+     'A <b>Sigla</b> agrupa os itens por unidade — as unidades distintas viram as colunas do IMR. '+
      'Editar um valor unitário ou o desconto replica-o para os meses seguintes. O valor liberado usa o percentual apurado no IMR (abaixo).</div>';
   h+='<div class="subdesc-line"><b>Desconto do estudante:</b> valor unit. do estudante = base − R$ '+
      '<input class="mini-inp" id="subDescInp" '+lk+' value="'+esc(fmtUnit(p.subDesc))+'" oninput="setSubDesc('+mi+',this.value)" onblur="fmtSubDescBlur('+mi+')"> '+
      '<span style="color:#777">(replicado para os meses seguintes)</span></div>';
   const unlocked=!state.locked;
   h+='<div class="tscroll"><table class="grid"><thead>';
-  h+='<tr><th rowspan="2" style="width:70px">Sigla<small>(coluna IMR)</small></th>'+
-     '<th rowspan="2" style="min-width:210px;text-align:left">Restaurante / linha</th>'+
+  h+='<tr><th rowspan="2" style="width:66px">Sigla<small>(unidade/IMR)</small></th>'+
+     '<th rowspan="2" style="min-width:150px;text-align:left">Itens</th>'+
+     '<th rowspan="2" style="min-width:180px;text-align:left">Unidade</th>'+
      '<th colspan="3">Quantitativo de refeições entregues</th>'+
      '<th rowspan="2">Valor unit.<small>base (R$)</small></th>'+
      '<th rowspan="2">Valor unit.<small>estud. (R$)</small></th>'+
@@ -414,10 +442,12 @@ function periodHTML(mi){
   state.faturRows.forEach((ru,i)=>{
     h+='<tr>';
     if(unlocked){
-      h+='<td><input class="ci" style="text-align:center;font-weight:bold;color:#5c4033" value="'+esc(ru.curto||'')+'" oninput="setRowCurto('+i+',this.value)" onchange="render()" title="Sigla usada como coluna do IMR"></td>';
-      h+='<td class="lbl"><input class="ci lbl-inp" value="'+esc(ru.nome||'')+'" oninput="setRowNome('+i+',this.value)"></td>';
+      h+='<td><input class="ci" style="text-align:center;font-weight:bold;color:#5c4033" value="'+esc(ru.curto||'')+'" oninput="setRowCurto('+i+',this.value)" onchange="render()" title="Sigla da unidade (coluna do IMR)"></td>';
+      h+='<td class="lbl"><input class="ci lbl-inp" value="'+esc(ru.item||'')+'" oninput="setRowItem('+i+',this.value)"></td>';
+      h+='<td class="lbl"><input class="ci lbl-inp" value="'+esc(ru.nome||'')+'" oninput="setRowNome('+i+',this.value)" onchange="render()"></td>';
     } else {
       h+='<td style="text-align:center;font-weight:bold;color:#5c4033">'+esc(ru.curto||'')+'</td>';
+      h+='<td class="lbl">'+esc(ru.item||'')+'</td>';
       h+='<td class="lbl">'+esc(ru.nome||'')+'</td>';
     }
     for(let c=0;c<3;c++){ h+='<td><input class="ci" value="'+esc((p.qtd[i]||['','',''])[c])+'" oninput="setQtd('+mi+','+i+','+c+',this.value)"></td>'; }
@@ -425,9 +455,9 @@ function periodHTML(mi){
     h+='<td class="calc money" data-eu="'+i+'">—</td>';
     h+='<td class="calc money" data-bru="'+i+'">—</td>';
     h+='<td class="calc money" data-lib="'+i+'">—</td>';
-    h+='<td class="rm">'+(unlocked?'<button class="rm-btn" onclick="delRow('+i+')" title="Remover unidade (faturamento + IMR)">×</button>':'')+'</td></tr>';
+    h+='<td class="rm">'+(unlocked?'<button class="rm-btn" onclick="delRow('+i+')" title="Remover item">×</button>':'')+'</td></tr>';
   });
-  h+='<tr class="totrow"><td colspan="2" style="text-align:right">QTD. DE REFEIÇÕES / TOTAIS</td>'+
+  h+='<tr class="totrow"><td colspan="3" style="text-align:right">QTD. DE REFEIÇÕES / TOTAIS</td>'+
      '<td data-tb>0</td><td data-te>0</td><td data-ts>0</td>'+
      '<td colspan="2" style="text-align:right">Total de refeições:&nbsp;<span data-tref>0</span></td>'+
      '<td class="money" data-tbru>—</td><td class="money" data-tlib>—</td><td class="rm"></td></tr>';
@@ -443,28 +473,29 @@ function periodHTML(mi){
 
   /* ── 2) IMR — INDICADORES ── */
   h+='<div class="sec-title"><span>FORMULÁRIO DE INSTRUMENTO DE MEDIÇÃO E RESULTADO (IMR) — por unidade (colunas = siglas da tabela de faturamento)</span></div>';
-  h+='<div class="instrucao">Pontuação por indicador e por unidade: <b>3</b> = realizado &nbsp;·&nbsp; <b>1</b> = parcialmente realizado &nbsp;·&nbsp; <b>0</b> = não realizado. '+
-     'As colunas acompanham as linhas da tabela de faturamento (adicionar/remover/renomear lá reflete aqui). '+
+  h+='<div class="instrucao">Pontuação por indicador e por <b>unidade</b> (colunas = siglas distintas da tabela de faturamento): <b>3</b> = realizado &nbsp;·&nbsp; <b>1</b> = parcialmente realizado &nbsp;·&nbsp; <b>0</b> = não realizado. '+
+     'Vários itens da mesma sigla formam uma única coluna de unidade aqui. '+
      'Os totais por subgrupo, a pontuação por grupo e a nota final são calculados automaticamente.</div>';
+  const units=unitList();
   GROUPS.forEach((G,gi)=>{
     h+='<div class="grp-title">'+esc(G.g)+'</div>';
     G.subs.forEach(s=>{
       h+='<div class="tscroll"><table class="score"><thead><tr>'+
          '<th style="text-align:left;min-width:340px">'+esc(s.title)+'</th>'+
          '<th style="width:44px">PESO</th>';
-      state.faturRows.forEach(r=>h+='<th class="unit">'+esc(r.curto||'')+'</th>');
+      units.forEach(u=>h+='<th class="unit" title="'+esc(u.nome||'')+'">'+esc(u.curto||'')+'</th>');
       h+='</tr></thead><tbody>';
       s.items.forEach((it,ir)=>{
         h+='<tr><td class="lbl">'+esc(it)+'</td>';
         h+='<td class="peso">'+(ir===0?s.peso.toLocaleString('pt-BR',{minimumFractionDigits:1}):'')+'</td>';
-        state.faturRows.forEach((r,ui)=>{
-          const v=(p.scores[s.key][ir]||[])[ui];
-          h+='<td>'+scoreSelect(mi,s.key,ir,ui,(v==null?3:v),'')+'</td>';
+        units.forEach(u=>{
+          const v=scoreVal(p,s.key,ir,u.curto);
+          h+='<td>'+scoreSelect(mi,s.key,ir,u.curto,v,'')+'</td>';
         });
         h+='</tr>';
       });
       h+='<tr class="subtot"><td style="text-align:right">TOTAL — '+esc(s.title.split('–')[0].trim())+' (média × peso)</td><td></td>';
-      state.faturRows.forEach((r,ui)=>h+='<td class="calc" data-sub="'+s.key+'" data-ui="'+ui+'">—</td>');
+      units.forEach(u=>h+='<td class="calc" data-sub="'+s.key+'" data-sigla="'+esc(u.curto)+'">—</td>');
       h+='</tr></tbody></table></div>';
     });
     h+='<div style="text-align:right;font-weight:bold;color:#5c4033;padding:4px 2px">PONTUAÇÃO '+(gi===0?'GRUPO 1':gi===1?'GRUPO 2':'GRUPO 3')+': <span data-grp="'+gi+'">—</span></div>';
@@ -493,9 +524,10 @@ function periodHTML(mi){
 
   return h;
 }
-function scoreSelect(mi,key,ir,ui,v,lk){
+function scoreSelect(mi,key,ir,sigla,v,lk){
+  v=Number(v);
   const cls=v===3?'s3':v===1?'s1':'s0';
-  let h='<select class="'+cls+'" '+lk+' onchange="setScore('+mi+',\''+key+'\','+ir+','+ui+',this.value)">';
+  let h='<select class="'+cls+'" '+lk+' data-k="'+key+'" data-i="'+ir+'" data-sg="'+esc(sigla)+'" onchange="setScore('+mi+',this)">';
   [3,1,0].forEach(o=>{ h+='<option value="'+o+'"'+(v===o?' selected':'')+'>'+o+'</option>'; });
   h+='</select>';
   return h;
@@ -517,10 +549,10 @@ function recalc(){
   setTxt('[data-tbru]', fmtMoney(f.bruto)); setTxt('[data-tlib]', fmtMoney(f.liberado));
   setTxt('[data-c-bru]', fmtMoney(f.bruto)); setTxt('[data-c-dir]', fmtMoney(f.direto));
   setTxt('[data-c-pct]', Math.round(f.pct*100)+'%'); setTxt('[data-c-lib]', fmtMoney(f.liberado));
-  // subtotais IMR
+  // subtotais IMR (por sigla)
   document.querySelectorAll('[data-sub]').forEach(td=>{
-    const key=td.dataset.sub, ui=+td.dataset.ui;
-    td.textContent=subUnitTotal(p,key,ui).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const key=td.dataset.sub, sigla=td.dataset.sigla;
+    td.textContent=subUnitTotal(p,key,sigla).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   });
   document.querySelectorAll('[data-grp]').forEach(sp=>{ sp.textContent=fmtNota(groupScore(p,+sp.dataset.grp)); });
   const nota=notaFinal(p), pct=payPct(nota);
@@ -537,32 +569,34 @@ function setUnit(mi,i,v){ // replica p/ os meses seguintes (cascata)
   persist(); recalc();
 }
 function fmtUnitBlur(mi,i){ const val=state.months[mi].unit[i]; const inp=document.querySelector('table.grid tbody tr:nth-child('+(i+1)+') input.val'); if(inp&&val!=='') inp.value=fmtUnit(val); recalc(); }
-function setScore(mi,key,ir,ui,v){ const n=Number(v); state.months[mi].scores[key][ir][ui]=n;
-  const sel=event&&event.target; if(sel){ sel.className=n===3?'s3':n===1?'s1':'s0'; }
-  persist(); recalc(); }
+function setScore(mi, sel){
+  const key=sel.dataset.k, ir=+sel.dataset.i, sigla=sel.dataset.sg, n=Number(sel.value);
+  setScoreVal(state.months[mi], key, ir, sigla, n);
+  sel.className=n===3?'s3':n===1?'s1':'s0';
+  persist(); recalc();
+}
 function setOcorr(mi,v){ state.months[mi].ocorr=v; persist(); }
 function onFiscal(v){ state.fiscal=v; persist(); }
 
-/* unidades (linhas do faturamento = colunas do IMR) — só destravado */
-function setRowNome(i,v){ if(state.faturRows[i]) state.faturRows[i].nome=v; persist(); }
-function setRowCurto(i,v){ if(state.faturRows[i]) state.faturRows[i].curto=v; persist(); } // render() é chamado no onchange p/ atualizar o IMR
+/* itens/unidades da tabela de faturamento — só destravado */
+function setRowItem(i,v){ if(state.faturRows[i]) state.faturRows[i].item=v; persist(); }
+function setRowNome(i,v){ if(state.faturRows[i]) state.faturRows[i].nome=v; persist(); } // render() no onchange atualiza o tooltip do IMR
+function setRowCurto(i,v){ if(state.faturRows[i]) state.faturRows[i].curto=v; persist(); } // render() no onchange re-monta as colunas do IMR
 function addRow(){
   if(state.locked) return;
-  state.faturRows.push({nome:'Nova unidade', curto:'NOVA'});
+  state.faturRows.push({curto:'NOVA', nome:'Nova unidade', item:''});
   const n=state.faturRows.length;
   state.months.forEach(m=>resizePeriodRows(m,n));
   persist(); render();
 }
 function delRow(i){
   if(state.locked) return;
-  if(state.faturRows.length<=1){ alert('É necessário manter ao menos uma unidade.'); return; }
-  const nome=(state.faturRows[i]&&state.faturRows[i].nome)||('linha '+(i+1));
-  if(!confirm('Remover a unidade "'+nome+'" da tabela de faturamento E a coluna correspondente do IMR, em TODOS os meses?')) return;
+  if(state.faturRows.length<=1){ alert('É necessário manter ao menos uma linha.'); return; }
+  const r=state.faturRows[i]||{};
+  const desc=((r.nome||'')+(r.item?' — '+r.item:''))||('linha '+(i+1));
+  if(!confirm('Remover o item "'+desc+'" da tabela de faturamento? (Se for o último item da sigla, a coluna dessa unidade sai do IMR.)')) return;
   state.faturRows.splice(i,1);
-  state.months.forEach(m=>{
-    m.qtd.splice(i,1); m.unit.splice(i,1);
-    GROUPS.forEach(G=>G.subs.forEach(s=>{ (m.scores[s.key]||[]).forEach(row=>row.splice(i,1)); }));
-  });
+  state.months.forEach(m=>{ m.qtd.splice(i,1); m.unit.splice(i,1); }); // notas são mapas por sigla; não precisam de splice
   persist(); render();
 }
 
@@ -582,9 +616,9 @@ function fmtSubDescBlur(mi){ const val=state.months[mi].subDesc; const inp=docum
 /* limpar: zera o quantitativo de refeições e volta todas as notas para 3 (no período atual) */
 function limparPeriodo(mi){
   if(!confirm('Limpar o quantitativo de refeições e redefinir TODAS as notas para 3 no período '+state.months[mi].periodo+'?')) return;
-  const p=state.months[mi]; const n=state.faturRows.length;
+  const p=state.months[mi];
   p.qtd=state.faturRows.map(()=>['','','']);
-  p.scores=newScores(n);
+  p.scores=newScores();
   persist(); render();
 }
 
@@ -616,9 +650,9 @@ function applyData(pd){
   if(!pd) return;
   state.fiscal=pd.fiscal||'';
   state.locked=!!pd.locked; state.pwd=pd.pwd||'';
-  // unidades (compatível com formato antigo sem faturRows)
+  // itens/unidades (aceita objeto {curto,nome,item}); só substitui o padrão se vier lista válida
   if(Array.isArray(pd.faturRows) && pd.faturRows.length){
-    state.faturRows=pd.faturRows.map(o=> (o&&typeof o==='object') ? {nome:o.nome||'', curto:o.curto||''} : {nome:String(o||''), curto:''});
+    state.faturRows=pd.faturRows.map(o=> (o&&typeof o==='object') ? {curto:o.curto||'', nome:o.nome||'', item:o.item||''} : {curto:'', nome:String(o||''), item:''});
   }
   const N=state.faturRows.length;
   state.months.forEach(m=>resizePeriodRows(m,N));
@@ -631,7 +665,8 @@ function applyData(pd){
       if(src.subDesc!=null && src.subDesc!=='') dst.subDesc=src.subDesc;
       if(Array.isArray(src.qtd)) src.qtd.forEach((row,ri)=>{ if(dst.qtd[ri]&&Array.isArray(row)) for(let c=0;c<3;c++) dst.qtd[ri][c]=(row[c]==null?'':row[c]); });
       if(Array.isArray(src.unit)) src.unit.forEach((u,ri)=>{ if(ri<dst.unit.length) dst.unit[ri]=(u==null?'':u); });
-      if(src.scores) Object.keys(dst.scores).forEach(key=>{ if(Array.isArray(src.scores[key])) src.scores[key].forEach((row,ir)=>{ if(dst.scores[key][ir]&&Array.isArray(row)) row.forEach((val,ui)=>{ if(ui<state.faturRows.length) dst.scores[key][ir][ui]=(val==null?3:Number(val)); }); }); });
+      // notas: mapa sigla→nota por indicador (formato novo). Formato antigo (array por coluna) é ignorado.
+      if(src.scores) Object.keys(dst.scores).forEach(key=>{ if(Array.isArray(src.scores[key])) src.scores[key].forEach((cell,ir)=>{ if(dst.scores[key][ir]!=null && cell && typeof cell==='object' && !Array.isArray(cell)) dst.scores[key][ir]=Object.assign({}, cell); }); });
       dst.ocorr=src.ocorr||'';
     }
   }
