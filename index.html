@@ -8776,7 +8776,7 @@ function cvExportarPDF() {
   var empresa  = reg.empresa || '';
   var objeto   = CV_ATUAL.objeto || '';
 
-  var doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  var doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   var W = doc.internal.pageSize.getWidth();
   var H = doc.internal.pageSize.getHeight();
   var margin = 24, footerH = 24;
@@ -8852,12 +8852,16 @@ function cvExportarPDF() {
     doc.setFillColor(239,246,255); doc.setDrawColor(37,99,235); doc.setLineWidth(0.8);
     doc.roundedRect(x, cardY, cardW, cardH, 5, 5, 'FD');
     doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(100,116,139);
-    var tl = doc.splitTextToSize('VALOR DEPOSITADO NA CONTA VINCULADA', cardW - 16).slice(0,2);
+    var tl = doc.splitTextToSize('SALDO CONTA VINCULADA', cardW - 16).slice(0,2);
     doc.text(tl, x + cardW/2, cardY+11, {align:'center'});
-    // saldo grande, centralizado no espaço abaixo do título
-    doc.setFont('helvetica','bold'); doc.setFontSize(19); doc.setTextColor(37,99,235);
+    // saldo grande, centralizado; a fonte cresce o máximo que couber no card
+    var valor = m0(t.r - t.w);
+    doc.setFont('helvetica','bold'); doc.setTextColor(37,99,235);
+    var fs = 24, maxW = cardW - 12;
+    doc.setFontSize(fs);
+    while (fs > 10 && doc.getTextWidth(valor) > maxW) { fs -= 1; doc.setFontSize(fs); }
     var meioY = cardY + 11 + tl.length*7 + (cardH - (11 + tl.length*7)) / 2 + 6;
-    doc.text(m0(t.r - t.w), x + cardW/2, meioY, {align:'center'});
+    doc.text(valor, x + cardW/2, meioY, {align:'center'});
   }
 
   var somaPerc = CV_PERC.n + CV_PERC.o + CV_PERC.p + perc;
