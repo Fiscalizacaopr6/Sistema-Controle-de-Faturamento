@@ -8887,8 +8887,12 @@ function cvExportarPDF() {
   doc.setTextColor(30, 41, 59);
   y = cardY + cardH + 12;
 
-  // Tabela — no PDF não entram as colunas do "Registro de retiradas" (grupo 2)
-  var pdfCols = CV_COLS.filter(function(c){ return c.grupo !== 2; });
+  // Tabela — no PDF só entram estas colunas, nesta ordem:
+  // Tipo, CPF, Nome do funcionário, Situação, Competência (mês) e (ano).
+  var PDF_KEYS = ['tipo','cpf','nome','situacao','mes','ano'];
+  var pdfCols = PDF_KEYS.map(function(k){
+    return CV_COLS.find(function(c){ return c.k === k; });
+  }).filter(Boolean);
   var head = ['#'].concat(pdfCols.map(function(c){ return c.label; }));
   var body = cvFiltradas.map(function(l, i) {
     var c = cvCalc(l, perc);
