@@ -914,6 +914,7 @@ select.doc-inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:640px">
           <select id="ret-f-resp" onchange="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 10px;outline:none;max-width:210px"><option value="">Responsável: todos</option></select>
           <input id="ret-q" type="text" placeholder="Buscar por contrato, empresa ou responsável..." oninput="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-export" onclick="baixarManualInstrucoes()" title="Baixar o manual de instruções da Conta Vinculada Mensal para enviar à empresa" style="white-space:nowrap">📄 Instruções</button>
           <button class="btn-new" id="btn-novo-retencao" onclick="openNewRetencaoModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
         </div>
       </div>
@@ -4467,6 +4468,18 @@ function fallbackCopy(text) {
 //  RETENÇÃO CONTA VINCULADA — formulários por empresa
 // ══════════════════════════════════════════════
 var RETENCAO = [];
+
+// Manual de instruções da Conta Vinculada Mensal (PDF na raiz do projeto).
+// O servidor da PR6 baixa e envia à empresa junto com o link do formulário.
+var MANUAL_INSTRUCOES_CV = 'Conta-Vinculada-Mensal-Instrucoes.pdf';
+function baixarManualInstrucoes() {
+  var a = document.createElement('a');
+  a.href = MANUAL_INSTRUCOES_CV;
+  a.download = MANUAL_INSTRUCOES_CV;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 function saveRetencaoToStorage() {
   fbdb.ref('retencao').set(fbSanitizeKeys(RETENCAO)).catch(function(e){ console.error('saveRetencao:', e); });
