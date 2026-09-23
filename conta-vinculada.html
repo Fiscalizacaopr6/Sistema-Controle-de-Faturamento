@@ -691,10 +691,8 @@ function montar() {
 // empresa e o mês/ano do primeiro período.
 function baixarExcelContaVinculada() {
   if (!DADOS) return;
-  var m0 = (DADOS.meses && DADOS.meses[0]) || null;
   var contrato = DADOS.contrato || '';
   var empresa  = DADOS.empresa || '';
-  var periodo  = m0 ? mesRotulo(m0) : '';
   var ncols = COLS.length;
 
   var rows = [];
@@ -714,9 +712,9 @@ function baixarExcelContaVinculada() {
     return 'cCell';
   }
 
+  // O modelo serve para qualquer mês, então não traz a competência no cabeçalho.
   row(cellTxt('CONTA VINCULADA MENSAL', 'title', ncols - 1));
-  row(cellTxt('Contrato: ' + contrato + '   |   Empresa: ' + empresa
-      + (periodo ? '   |   Competência: ' + periodo : ''), 'sub', ncols - 1));
+  row(cellTxt('Contrato: ' + contrato + '   |   Empresa: ' + empresa, 'sub', ncols - 1));
   row('');
   // Cabeçalho da tabela = rótulos das colunas do formulário
   row(COLS.map(function(c) { return cellTxt(c.label, 'hdr'); }).join(''));
@@ -755,12 +753,11 @@ function baixarExcelContaVinculada() {
     + '</Worksheet></Workbook>';
 
   var slug = (contrato || 'contrato').replace(/[\/\\]/g, '-').replace(/\s+/g, '');
-  var perSlug = periodo ? '_' + periodo.replace(/\//g, '-') : '';
   var blob = new Blob(['﻿' + xml], {type: 'application/vnd.ms-excel'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'conta_vinculada_mensal_' + slug + perSlug + '.xls';
+  a.download = 'conta_vinculada_mensal_' + slug + '.xls';
   document.body.appendChild(a);
   a.click();
   a.remove();
