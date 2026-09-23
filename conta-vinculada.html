@@ -273,9 +273,9 @@ function renderTabela() {
   // "Copiar do mês anterior" só faz sentido a partir do 2º mês e com o formulário aberto
   var btnCopiar = document.getElementById('btn-copiar-ant');
   if (btnCopiar) btnCopiar.style.display = (m && MES_ATUAL > 0 && !_bloqueado) ? '' : 'none';
-  // "EXCEL" (planilha de conta vinculada mensal em branco) só aparece no primeiro mês
+  // "EXCEL" (planilha de conta vinculada mensal em branco) fica disponível em qualquer mês
   var btnExcel = document.getElementById('btn-excel');
-  if (btnExcel) btnExcel.style.display = (m && MES_ATUAL === 0) ? '' : 'none';
+  if (btnExcel) btnExcel.style.display = m ? '' : 'none';
   // "IMPORTAR" fica disponível em qualquer mês, desde que o formulário esteja aberto
   var btnImport = document.getElementById('btn-import');
   if (btnImport) btnImport.style.display = (m && !_bloqueado) ? '' : 'none';
