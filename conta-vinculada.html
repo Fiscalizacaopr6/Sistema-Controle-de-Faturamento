@@ -131,7 +131,8 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
      está abaixo da dobra (lista grande). -->
 <div id="hbar" style="display:none;position:fixed;bottom:0;height:16px;overflow-x:auto;overflow-y:hidden;z-index:60;background:rgba(255,255,255,.95);box-shadow:0 -1px 5px rgba(0,0,0,.18)"><div id="hbar-inner" style="height:1px"></div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- xlsx-js-style: fork da SheetJS (mesmo objeto XLSX) com suporte a estilos no .xlsx -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -718,6 +719,32 @@ function baixarExcelContaVinculada() {
     var px = parseInt(c.w, 10) || 90;
     return { wch: Math.max(10, Math.round(px / 7)) };
   });
+
+  // ── Estilos (xlsx-js-style) — reproduzem a aparência do formulário ──
+  var bCinza = { style: 'thin', color: { rgb: 'C9C9C9' } };
+  var bVerde = { style: 'thin', color: { rgb: '064E3B' } };
+  var borderCinza = { top: bCinza, bottom: bCinza, left: bCinza, right: bCinza };
+  var stTitulo = { font: { bold: true, sz: 14, color: { rgb: '047857' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+  var stSub    = { font: { bold: true, sz: 10, color: { rgb: '555555' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+  var stHdr    = { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '047857' } },
+                   alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                   border: { top: bVerde, bottom: bVerde, left: bVerde, right: bVerde } };
+  function estilo(addr, s) { if (!ws[addr]) ws[addr] = { t: 's', v: '' }; ws[addr].s = s; }
+  estilo('A1', stTitulo);
+  estilo('A2', stSub);
+  var enc = XLSX.utils.encode_cell;
+  COLS.forEach(function(col, c) {
+    estilo(enc({ r: 3, c: c }), stHdr);               // linha 4 = rótulos das colunas
+    var fmt = col.tipo === 'dinheiro' ? '"R$"\\ #,##0.00' : (col.tipo === 'dias' ? '0' : null);
+    var alinha = (col.tipo === 'dias') ? { horizontal: 'center', vertical: 'center' } : { vertical: 'center' };
+    for (var r = 4; r < 4 + 30; r++) {                // 30 linhas em branco
+      var st = { border: borderCinza, alignment: alinha };
+      if (fmt) st.numFmt = fmt;
+      estilo(enc({ r: r, c: c }), st);
+    }
+  });
+  // Altura maior para o cabeçalho de colunas (texto que quebra em 2 linhas)
+  ws['!rows'] = [{ hpt: 22 }, { hpt: 16 }, {}, { hpt: 28 }];
 
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Conta Vinculada');
