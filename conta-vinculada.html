@@ -605,7 +605,10 @@ function enviarMes() {
     var d = new Date();
     var hojeISO = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
     var envKey = m.ano + '-' + ('0' + (MESES.indexOf(m.mes) + 1)).slice(-2);
-    fbdb.ref('retencao_empresa/' + TOKEN + '/envios/' + envKey).set(hojeISO).catch(function(e) { console.error(e); });
+    // "em" é único por envio: um reenvio (após reexibir) gera carimbo novo e faz
+    // o sistema reinserir a data em Documentos, mesmo que seja no mesmo dia.
+    fbdb.ref('retencao_empresa/' + TOKEN + '/envios/' + envKey)
+      .set({ data: hojeISO, em: d.toISOString() }).catch(function(e) { console.error(e); });
     fbdb.ref('retencao_empresa/' + TOKEN).update({
       enviadoAte: DADOS.enviadoAte, atualizadoEm: new Date().toISOString()
     }).catch(function(e) { console.error(e); });

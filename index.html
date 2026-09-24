@@ -6578,8 +6578,13 @@ function cvProcessarEnvios() {
     var aplicado = _cvAplicado[token] || (_cvAplicado[token] = {});
     var alvoContrato = cvNormContrato(reg.contrato);
     Object.keys(envios).forEach(function(k) {
-      var data = envios[k];
-      if (!data || aplicado[k] === data) return;
+      // Cada envio pode ser {data, em} (formato novo) ou uma string de data
+      // (formato antigo). "sig" identifica o envio: muda a cada (re)envio, então
+      // reenviar o mesmo período — mesmo no mesmo dia — reinsere a data.
+      var ev = envios[k];
+      var data = (ev && typeof ev === 'object') ? ev.data : ev;
+      var sig  = (ev && typeof ev === 'object') ? (ev.em || ev.data) : ev;
+      if (!data || aplicado[k] === sig) return;
       var mm = parseInt(k.slice(5, 7), 10);
       if (!(mm >= 1 && mm <= 12)) return;
       var ano = k.slice(0, 4), mesExt = cvNormMes(MESES_ORDEM[mm - 1]);
@@ -6587,15 +6592,14 @@ function cvProcessarEnvios() {
         if (cvNormContrato(r.contrato) !== alvoContrato) return;
         if (String(r.ano || '') !== ano) return;
         if (cvNormMes(r.mes) !== mesExt) return;
-        if (r.contaVinculada === data) return;
         var rec = docMutable(r.id);
         if (!rec) return;
-        rec.contaVinculada = data;
+        rec.contaVinculada = data;   // (re)envio sempre reinsere a data
         docPersist(rec);
         mudou = true;
       });
-      aplicado[k] = data;
-      fbdb.ref('conta_vinculada_doc_aplicado/' + token + '/' + k).set(data).catch(function(e) { console.error(e); });
+      aplicado[k] = sig;
+      fbdb.ref('conta_vinculada_doc_aplicado/' + token + '/' + k).set(sig).catch(function(e) { console.error(e); });
     });
   });
   if (mudou) {
