@@ -684,84 +684,46 @@ function montar() {
   requestAnimationFrame(syncHBar);
 }
 
-// ── Planilha de conta vinculada mensal em branco (botão "EXCEL", 1º mês) ──
-// Gera um arquivo Excel (SpreadsheetML 2003, sem bibliotecas externas) com as
-// mesmas colunas do formulário (CPF … Remuneração) e várias linhas vazias
-// para a empresa preencher fora do sistema. O cabeçalho traz contrato,
-// empresa e o mês/ano do primeiro período.
+// ── Planilha de conta vinculada mensal em branco (botão "EXCEL") ──
+// Gera um arquivo .xlsx (via SheetJS) com as mesmas colunas do formulário
+// (CPF … Remuneração) e várias linhas vazias para a empresa preencher fora do
+// sistema. O cabeçalho traz contrato e empresa. Serve para qualquer mês.
 function baixarExcelContaVinculada() {
   if (!DADOS) return;
+  if (typeof XLSX === 'undefined') {
+    alert('A biblioteca de Excel ainda não carregou. Verifique a conexão e tente de novo.');
+    return;
+  }
   var contrato = DADOS.contrato || '';
   var empresa  = DADOS.empresa || '';
   var ncols = COLS.length;
 
-  var rows = [];
-  function row(cellsXml) { rows.push('<Row>' + cellsXml + '</Row>'); }
-  function cellTxt(txt, style, mergeAcross) {
-    return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '')
-      + (mergeAcross ? ' ss:MergeAcross="' + mergeAcross + '"' : '')
-      + '><Data ss:Type="String">' + esc(txt) + '</Data></Cell>';
-  }
-  function cellEmpty(style) {
-    return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '') + '/>';
-  }
-  // Estilo de célula vazia por tipo de coluna (para o formato acompanhar quando preenchida)
-  function estiloCol(col) {
-    if (col.tipo === 'dinheiro') return 'cMoney';
-    if (col.tipo === 'dias')     return 'cInt';
-    return 'cCell';
-  }
+  // Linhas: título, cabeçalho de identificação, linha em branco, rótulos das
+  // colunas e 30 linhas vazias para preenchimento.
+  var aoa = [];
+  aoa.push(['CONTA VINCULADA MENSAL']);
+  aoa.push(['Contrato: ' + contrato + '   |   Empresa: ' + empresa]);
+  aoa.push([]);
+  aoa.push(COLS.map(function(c) { return c.label; }));
+  for (var i = 0; i < 30; i++) aoa.push(new Array(ncols).fill(''));
 
-  // O modelo serve para qualquer mês, então não traz a competência no cabeçalho.
-  row(cellTxt('CONTA VINCULADA MENSAL', 'title', ncols - 1));
-  row(cellTxt('Contrato: ' + contrato + '   |   Empresa: ' + empresa, 'sub', ncols - 1));
-  row('');
-  // Cabeçalho da tabela = rótulos das colunas do formulário
-  row(COLS.map(function(c) { return cellTxt(c.label, 'hdr'); }).join(''));
-  // Linhas em branco para preenchimento
-  for (var i = 0; i < 30; i++) {
-    row(COLS.map(function(c) { return cellEmpty(estiloCol(c)); }).join(''));
-  }
-
-  // Larguras das colunas (px do formulário → pontos do Excel)
-  var colsXml = COLS.map(function(c) {
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  // Título e identificação mesclados ao longo de todas as colunas
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: ncols - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: ncols - 1 } }
+  ];
+  // Larguras das colunas (px do formulário → caracteres do Excel)
+  ws['!cols'] = COLS.map(function(c) {
     var px = parseInt(c.w, 10) || 90;
-    return '<Column ss:Width="' + Math.round(px * 0.78) + '"/>';
-  }).join('');
+    return { wch: Math.max(10, Math.round(px / 7)) };
+  });
 
-  var xml =
-    '<?xml version="1.0" encoding="UTF-8"?>\n'
-    + '<?mso-application progid="Excel.Sheet"?>\n'
-    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"'
-    + ' xmlns:o="urn:schemas-microsoft-com:office:office"'
-    + ' xmlns:x="urn:schemas-microsoft-com:office:excel"'
-    + ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
-    + '<Styles>'
-    + '<Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial" ss:Size="10"/></Style>'
-    + '<Style ss:ID="title"><Font ss:Bold="1" ss:Size="14" ss:Color="#047857"/><Alignment ss:Horizontal="Center"/></Style>'
-    + '<Style ss:ID="sub"><Font ss:Bold="1" ss:Size="10" ss:Color="#555555"/><Alignment ss:Horizontal="Center"/></Style>'
-    + '<Style ss:ID="hdr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#047857" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:WrapText="1"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>'
-    + '<Style ss:ID="cCell"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
-    + '<Style ss:ID="cInt"><NumberFormat ss:Format="0"/><Alignment ss:Horizontal="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
-    + '<Style ss:ID="cMoney"><NumberFormat ss:Format="&quot;R$&quot;\\ #,##0.00"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#c9c9c9"/></Borders></Style>'
-    + '</Styles>'
-    + '<Worksheet ss:Name="Conta Vinculada"><Table>'
-    + colsXml
-    + rows.join('')
-    + '</Table>'
-    + '<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><PageSetup><Layout x:Orientation="Landscape"/></PageSetup><FitToPage/><Print><FitWidth>1</FitWidth><FitHeight>0</FitHeight></Print></WorksheetOptions>'
-    + '</Worksheet></Workbook>';
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Conta Vinculada');
 
   var slug = (contrato || 'contrato').replace(/[\/\\]/g, '-').replace(/\s+/g, '');
-  var blob = new Blob(['﻿' + xml], {type: 'application/vnd.ms-excel'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'conta_vinculada_mensal_' + slug + '.xls';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
+  XLSX.writeFile(wb, 'conta_vinculada_mensal_' + slug + '.xlsx');
   status('✔ Planilha de conta vinculada mensal baixada.', 'ok');
 }
 
