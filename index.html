@@ -1120,6 +1120,13 @@ function unVigentePorContrato(termos) {
   return Object.keys(porContrato).map(function(k){ return porContrato[k]; }).concat(semChave);
 }
 
+// N° IMR de um termo (fonte única; o antigo 'Nº DE  IMR' foi consolidado nele).
+function imrDoTermo(d){ var n = parseFloat(d && d['N° IMR']); return isFinite(n) ? n : 0; }
+// N° IMR de um contrato: é um valor por-contrato gravado em UM único termo e que,
+// após um reajuste, pode ficar preso num termo já encerrado — então pegamos o maior
+// N° IMR entre todos os termos do contrato.
+function imrDeTermos(termos){ var m = 0; (termos || []).forEach(function(d){ var n = imrDoTermo(d); if (n > m) m = n; }); return m; }
+
 function updateLoginStats() {
   var vig = DADOS.filter(function(d){ return d._st==='VIGENTE'; });
   var vigContratos = unVigentePorContrato(vig);
@@ -2029,11 +2036,28 @@ function buildDashboard() {
   var byCR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byCR[r]=(byCR[r]||0)+1; });
   var byFR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byFR[r]=(byFR[r]||0)+funcDoTermo(d); });
   var byDE = {}; vig.filter(function(d){ return (d['SUBTIPO']||'').toUpperCase() === 'COM DEDICAÇÃO EXCLUSIVA'; }).forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byDE[r]=(byDE[r]||0)+1; });
-  var byIMR = {}; vig.forEach(function(d){
-    var r = d['RESPONSÁVEL NO FATURAMENTO'] || '?';
-    var n = parseFloat(d['Nº DE  IMR']);
-    if (!isFinite(n)) n = 0;
-    byIMR[r] = (byIMR[r] || 0) + n;
+  // N° IMR é um valor por CONTRATO gravado em um único termo. Após um reajuste,
+  // cria-se um novo termo vigente e o termo que carrega o N° IMR passa a ENCERRADO,
+  // ficando "preso" nele. Por isso agregamos por contrato (não somando linhas vigentes):
+  // para cada contrato vigente, pegamos o N° IMR de qualquer um de seus termos.
+  var vigConts = {};
+  vig.forEach(function(d){ var c = (d['CONTRATO'] || '').trim(); if (c) vigConts[c] = true; });
+  var imrPorConta = {}; // contrato -> N° IMR (maior valor entre os termos; só um termo o carrega)
+  base.forEach(function(d){
+    var c = (d['CONTRATO'] || '').trim();
+    if (!c || !vigConts[c]) return;
+    var n = imrDoTermo(d);
+    if (!(c in imrPorConta) || n > imrPorConta[c]) imrPorConta[c] = n;
+  });
+  var respPorConta = {}; // contrato -> responsável do termo representante (maior término vigente)
+  unVigentePorContrato(vig).forEach(function(d){
+    var c = (d['CONTRATO'] || '').trim();
+    if (c) respPorConta[c] = d['RESPONSÁVEL NO FATURAMENTO'] || '?';
+  });
+  var byIMR = {};
+  Object.keys(imrPorConta).forEach(function(c){
+    var r = respPorConta[c] || '?';
+    byIMR[r] = (byIMR[r] || 0) + imrPorConta[c];
   });
   CHART_DATA = {
     'resp':      { title:'Valor mensal por responsável (vigentes)',  html:barHtml(byR, fmtM) },
@@ -2476,8 +2500,7 @@ function openContratoModal(num) {
   var st = d._st || '—';
   var empresaNome = (d['EMPRESA'] || '').trim();
   var isDedExcl = (d['SUBTIPO'] || '').indexOf('DEDICAÇÃO EXCLUSIVA') !== -1;
-  var nImr = d['Nº DE  IMR'];
-  if (nImr == null || nImr === '') nImr = d['N° IMR'];
+  var nImr = imrDeTermos(termos);
 
   // ── Fontes relacionadas ──
   var fiscais = FISCAIS.filter(function(f) { return (f.contrato || '') === numContrato; });
@@ -2662,7 +2685,7 @@ function exportContratoPDF(numContrato) {
     return (r.contrato||'') === numContrato;
   });
   var isDedExcl = (d['SUBTIPO']||'').indexOf('DEDICAÇÃO EXCLUSIVA') !== -1;
-  var nImr = d['Nº DE  IMR']; if (nImr == null || nImr === '') nImr = d['N° IMR'];
+  var nImr = imrDeTermos(termos);
 
   var doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   var W = doc.internal.pageSize.getWidth();
