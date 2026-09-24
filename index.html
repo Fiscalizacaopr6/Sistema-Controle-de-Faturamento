@@ -1562,6 +1562,7 @@ function setupRealtimeListeners() {
     var arr = Array.isArray(val) ? val : Object.values(val);
     RETENCAO.length = 0; arr.forEach(function(d){ if(d) RETENCAO.push(d); });
     if (document.getElementById('view-retencao') && document.getElementById('view-retencao').classList.contains('active')) buildRetencaoTable();
+    if (typeof cvSyncEnviosDocumentos === 'function') cvSyncEnviosDocumentos();
   });
   fbdb.ref('imr').on('value', function(snap) {
     if (_suppressRefresh) return;
@@ -1579,6 +1580,8 @@ function setupRealtimeListeners() {
     if (el && el.classList.contains('active') && !docHasOpenEditor() && !ecoDaPropriaEdicao) {
       buildDocumentosTable(true);
     }
+    // Base de Documentos pronta: aplica envios de Conta Vinculada pendentes.
+    if (typeof cvSyncEnviosDocumentos === 'function') cvSyncEnviosDocumentos();
   });
   fbdb.ref('users').on('value', function(snap) {
     var val = snap.val(); if (!val) return;
@@ -6536,6 +6539,75 @@ function docRemove(id) {
     console.error('deleteDocumento:', e);
     docToast('❌ Não foi possível excluir no servidor: ' + e.message, true);
   });
+}
+
+// ══ Conta Vinculada: "Enviar" da empresa → coluna "Conta Vinculada" em Documentos ══
+// Quando a empresa clica "Enviar" no formulário mensal, a data do envio fica em
+// retencao_empresa/<token>/envios/<ANO-MM>. Aqui essa data é gravada na coluna
+// Conta Vinculada de TODAS as unidades do contrato, no mês/ano correspondente.
+// O marcador conta_vinculada_doc_aplicado/<token>/<ANO-MM> garante que a data só
+// é aplicada quando muda (envio novo ou reenvio), sem sobrescrever ajustes manuais
+// feitos depois. Reenvio grava uma data diferente → a coluna é atualizada.
+var _cvEnvios = {};       // token -> { 'ANO-MM': 'YYYY-MM-DD' }
+var _cvAplicado = {};     // token -> { 'ANO-MM': 'YYYY-MM-DD' } já refletido em Documentos
+var _cvAttached = {};     // token -> true (listener já ligado)
+
+function cvNormMes(s) { return String(s == null ? '' : s).trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function cvNormContrato(s) { return String(s == null ? '' : s).trim().toUpperCase(); }
+
+function cvAttachEnvios(reg) {
+  if (!reg || !reg.token || _cvAttached[reg.token]) return;
+  var token = reg.token;
+  _cvAttached[token] = true;
+  fbdb.ref('conta_vinculada_doc_aplicado/' + token).once('value').then(function(s) {
+    _cvAplicado[token] = s.val() || {};
+    fbdb.ref('retencao_empresa/' + token + '/envios').on('value', function(snap) {
+      _cvEnvios[token] = snap.val() || {};
+      cvProcessarEnvios();
+    });
+  }).catch(function(e) { console.error('cvAttachEnvios:', e); });
+}
+
+function cvProcessarEnvios() {
+  if (!DOCUMENTOS || !DOCUMENTOS.length) return;   // espera a base de Documentos carregar
+  var mudou = false;
+  Object.keys(_cvEnvios).forEach(function(token) {
+    var reg = RETENCAO.filter(function(r) { return r && r.token === token; })[0];
+    if (!reg || !reg.contrato) return;
+    var envios = _cvEnvios[token] || {};
+    var aplicado = _cvAplicado[token] || (_cvAplicado[token] = {});
+    var alvoContrato = cvNormContrato(reg.contrato);
+    Object.keys(envios).forEach(function(k) {
+      var data = envios[k];
+      if (!data || aplicado[k] === data) return;
+      var mm = parseInt(k.slice(5, 7), 10);
+      if (!(mm >= 1 && mm <= 12)) return;
+      var ano = k.slice(0, 4), mesExt = cvNormMes(MESES_ORDEM[mm - 1]);
+      DOCUMENTOS.forEach(function(r) {
+        if (cvNormContrato(r.contrato) !== alvoContrato) return;
+        if (String(r.ano || '') !== ano) return;
+        if (cvNormMes(r.mes) !== mesExt) return;
+        if (r.contaVinculada === data) return;
+        var rec = docMutable(r.id);
+        if (!rec) return;
+        rec.contaVinculada = data;
+        docPersist(rec);
+        mudou = true;
+      });
+      aplicado[k] = data;
+      fbdb.ref('conta_vinculada_doc_aplicado/' + token + '/' + k).set(data).catch(function(e) { console.error(e); });
+    });
+  });
+  if (mudou) {
+    docRebuild();
+    var el = document.getElementById('view-documentos');
+    if (el && el.classList.contains('active')) buildDocumentosTable();
+  }
+}
+
+function cvSyncEnviosDocumentos() {
+  if (RETENCAO && RETENCAO.length) RETENCAO.forEach(cvAttachEnvios);
+  cvProcessarEnvios();
 }
 
 // ── Conversões ──
