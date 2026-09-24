@@ -915,6 +915,7 @@ select.doc-inp{cursor:pointer}
           <select id="ret-f-resp" onchange="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 10px;outline:none;max-width:210px"><option value="">Responsável: todos</option></select>
           <input id="ret-q" type="text" placeholder="Buscar por contrato, empresa ou responsável..." oninput="buildRetencaoTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-export" onclick="baixarManualInstrucoes()" title="Baixar o manual de instruções da Conta Vinculada Mensal para enviar à empresa" style="white-space:nowrap">📄 Instruções</button>
+          <button class="btn-export" onclick="baixarGuiaServidores()" title="Baixar o guia dos servidores da PR6 (botões PR6, Reexibir período, Baixar PDF e preenchimento automático em Documentos)" style="white-space:nowrap">📘 Guia (servidores)</button>
           <button class="btn-new" id="btn-novo-retencao" onclick="openNewRetencaoModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
         </div>
       </div>
@@ -4479,6 +4480,18 @@ function baixarManualInstrucoes() {
   var a = document.createElement('a');
   a.href = MANUAL_INSTRUCOES_CV;
   a.download = MANUAL_INSTRUCOES_CV;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// Guia dos servidores da PR6 (botões PR6, Reexibir período, Baixar PDF e o
+// preenchimento automático da coluna Conta Vinculada em Documentos).
+var GUIA_SERVIDORES_CV = 'Conta-Vinculada-Guia-Servidores.pdf';
+function baixarGuiaServidores() {
+  var a = document.createElement('a');
+  a.href = GUIA_SERVIDORES_CV;
+  a.download = GUIA_SERVIDORES_CV;
   document.body.appendChild(a);
   a.click();
   a.remove();
