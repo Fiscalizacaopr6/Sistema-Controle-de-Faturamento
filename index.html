@@ -1994,6 +1994,20 @@ function buildDashboard() {
   function valGlobal(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
   var totalG = vig.reduce(function(s,d){ return s + valGlobal(d); }, 0);
   var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
+  // Total de IMR em contratos vigentes. N° IMR é um valor por CONTRATO gravado em
+  // um único termo (às vezes já encerrado após reajuste), então agregamos por
+  // contrato pegando o maior N° IMR entre seus termos — nunca somando linhas `vig`.
+  var vigConts = {};
+  vig.forEach(function(d){ var c = (d['CONTRATO'] || '').trim(); if (c) vigConts[c] = true; });
+  var imrPorConta = {}; // contrato -> N° IMR (maior valor entre os termos; só um termo o carrega)
+  base.forEach(function(d){
+    var c = (d['CONTRATO'] || '').trim();
+    if (!c || !vigConts[c]) return;
+    var n = imrDoTermo(d);
+    if (!(c in imrPorConta) || n > imrPorConta[c]) imrPorConta[c] = n;
+  });
+  var imrTotal = 0;
+  Object.keys(imrPorConta).forEach(function(c){ imrTotal += imrPorConta[c]; });
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
     {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
@@ -2003,6 +2017,7 @@ function buildDashboard() {
     {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
     {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', small:true, btnGlobal:true},
     {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', btnEmp:true},
+    {l:'Total de IMR', v:imrTotal, s:'em contratos vigentes'+labelAno, c:'amber', btnImr:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
     var clickFn = k.btn ? 'showKpiLista(\'vigentes\')'
@@ -2012,6 +2027,7 @@ function buildDashboard() {
                 : k.btnValor ? 'showKpiLista(\'valorMensal\')'
                 : k.btnGlobal ? 'showKpiLista(\'valorGlobal\')'
                 : k.btnFunc ? 'showKpiLista(\'funcVig\')'
+                : k.btnImr ? 'showKpiLista(\'imrVig\')'
                 : '';
     var clickable = !!clickFn;
     return '<div class="kpi '+k.c+'"'
@@ -2036,19 +2052,7 @@ function buildDashboard() {
   var byCR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byCR[r]=(byCR[r]||0)+1; });
   var byFR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byFR[r]=(byFR[r]||0)+funcDoTermo(d); });
   var byDE = {}; vig.filter(function(d){ return (d['SUBTIPO']||'').toUpperCase() === 'COM DEDICAÇÃO EXCLUSIVA'; }).forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byDE[r]=(byDE[r]||0)+1; });
-  // N° IMR é um valor por CONTRATO gravado em um único termo. Após um reajuste,
-  // cria-se um novo termo vigente e o termo que carrega o N° IMR passa a ENCERRADO,
-  // ficando "preso" nele. Por isso agregamos por contrato (não somando linhas vigentes):
-  // para cada contrato vigente, pegamos o N° IMR de qualquer um de seus termos.
-  var vigConts = {};
-  vig.forEach(function(d){ var c = (d['CONTRATO'] || '').trim(); if (c) vigConts[c] = true; });
-  var imrPorConta = {}; // contrato -> N° IMR (maior valor entre os termos; só um termo o carrega)
-  base.forEach(function(d){
-    var c = (d['CONTRATO'] || '').trim();
-    if (!c || !vigConts[c]) return;
-    var n = imrDoTermo(d);
-    if (!(c in imrPorConta) || n > imrPorConta[c]) imrPorConta[c] = n;
-  });
+  // byIMR usa o imrPorConta já calculado acima (N° IMR agregado por contrato vigente).
   var respPorConta = {}; // contrato -> responsável do termo representante (maior término vigente)
   unVigentePorContrato(vig).forEach(function(d){
     var c = (d['CONTRATO'] || '').trim();
@@ -3137,6 +3141,43 @@ function showKpiLista(tipo) {
       return '<div style="display:flex;align-items:center;gap:16px;padding:10px 6px;border-bottom:1px solid var(--border)">'
         + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:#10b981;min-width:28px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
         + '<span style="font-size:13px;color:var(--text)">'+nome+'</span>'
+        + '</div>';
+    }).join('');
+
+  } else if (tipo === 'imrVig') {
+    // Total de IMR por contrato vigente. N° IMR é por-contrato (gravado em 1 termo),
+    // então agregamos por contrato com imrDeTermos (maior N° IMR entre os termos).
+    var vigCtsI = {};
+    base.filter(function(d){ return d._st === 'VIGENTE'; }).forEach(function(d){
+      var c = (d['CONTRATO']||'').trim(); if (c) vigCtsI[c] = true;
+    });
+    var grpI = {};
+    base.forEach(function(d){
+      var k = (d['CONTRATO']||'').trim();
+      if (!k || !vigCtsI[k]) return;
+      if (!grpI[k]) grpI[k] = [];
+      grpI[k].push(d);
+    });
+    var lista = Object.keys(grpI).map(function(k){
+      var terms = grpI[k];
+      var rep = terms.find(function(d){ return /^CONTRATO/i.test(d['TERMO ATUAL']||''); }) || terms[0];
+      return { d: rep, qtd: imrDeTermos(terms) };
+    });
+    lista.sort(function(a,b){ return b.qtd - a.qtd; });
+    var totI = lista.reduce(function(s,x){ return s + x.qtd; }, 0);
+    titulo = currentYearFilter ? 'IMR — Contratos Vigentes em ' + currentYearFilter + ' (' + lista.length + ' contratos)'
+                               : 'IMR — Contratos Vigentes (' + lista.length + ' contratos)';
+    subtitulo = 'Ordenado do maior para o menor · Total: ' + totI + ' IMR';
+    rows = lista.map(function(x, i){
+      var d = x.d;
+      var idx = DADOS.indexOf(d);
+      var contrato = (d['CONTRATO']||'—');
+      var empresa  = (d['EMPRESA']||'').trim() || '—';
+      return '<div onclick="openModal('+idx+')" style="display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:filter .12s" onmouseenter="this.style.filter=\'brightness(1.08)\'" onmouseleave="this.style.filter=\'\'">'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;color:#f59e0b;min-width:28px;font-size:11px;text-align:right">'+(i+1)+'.</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:700;font-size:13px;color:#f59e0b;min-width:80px">'+esc(contrato)+'</span>'
+        + '<span style="font-size:13px;color:var(--text);flex:1;min-width:0">'+esc(empresa)+'</span>'
+        + '<span style="font-family:\'DM Mono\',monospace;font-weight:600;font-size:13px;color:var(--text);white-space:nowrap">'+x.qtd+' IMR</span>'
         + '</div>';
     }).join('');
   }
