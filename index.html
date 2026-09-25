@@ -3346,18 +3346,20 @@ function renderFiscaisTable() {
   // O input inline tem width:100%, então a largura da coluna vem do tamanho
   // "natural" do input (size). Ajustamos size ao conteúdo para a coluna crescer
   // e mostrar o valor inteiro (a barra de rolagem horizontal cuida do excesso).
-  function fcSize(val) { return Math.max(String(val || '').length + 1, 8); }
+  // width:auto anula o width:100% de inpBase para que o atributo size (ciente da
+  // fonte) governe a largura do input, fazendo a coluna crescer até caber o valor.
+  function fcSize(val) { return Math.max(String(val || '').length + 2, 8); }
   function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
     if (!canEdit) return esc(upper ? String(val || '').toUpperCase() : (val || ''));
     var oninput = upper ? ' oninput="this.value=this.value.toUpperCase()"' : '';
     return '<input value="'+esc(val||'')+'" size="'+fcSize(val)+'" '+(extraAttrs||'')+oninput
-      +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +' style="'+inpBase+(extraStyle||'')+';width:auto" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';fiscalInlineSalvar(\''+id+'\',\''+campo+'\',this.value'+(upper?'.toUpperCase()':'')+'.trim())">';
   }
   function edTel(id, campo, val) {
     if (!canEdit) return esc(val || '');
     return '<input value="'+esc(val||'')+'" size="'+fcSize(val)+'" oninput="maskPhone(this)" maxlength="15"'
-      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px;width:auto" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';fiscalInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
   }
   function edSit(f) {
