@@ -1020,6 +1020,19 @@ select.doc-inp{cursor:pointer}
   </div>
 </div>
 
+    <!-- ALERTA: planilhas de Conta Vinculada recebidas (data + situação elegível) -->
+<div class="mo" id="contavinc-mo" onclick="if(event.target===this)fecharContaVincModal()">
+  <div class="modal" style="max-width:560px">
+    <div class="mh"><div><div class="mt">💰 Conta Vinculada Recebida</div><div class="ms" id="contavinc-sub">—</div></div>
+      <button class="mc" onclick="fecharContaVincModal()">✕</button></div>
+    <div class="mb" id="contavinc-body"></div>
+    <div class="mo-actions">
+      <button class="btn-cancel-e" onclick="fecharContaVincModal()">Fechar</button>
+      <button class="btn-save" onclick="verDocumentosContaVinc()">Ver Documentos</button>
+    </div>
+  </div>
+</div>
+
     <!-- ALERTA: solicitações de retirada (Conta Vinculada) pendentes do usuário -->
 <div class="mo" id="pend-mo" onclick="if(event.target===this)fecharPendModal()">
   <div class="modal" style="max-width:480px">
@@ -5320,6 +5333,8 @@ function checarAlertasLogin() {
   _loginAlertQueue = [];
   var an = _notasParaAutorizar();
   if (an.length) _loginAlertQueue.push(function(){ _mostrarModalAutNota(an); });
+  var cvr = _contasVinculadasRecebidas();
+  if (cvr.length) _loginAlertQueue.push(function(){ _mostrarModalContaVinc(cvr); });
   var cv = _pendenciasCV();
   if (cv.length) _loginAlertQueue.push(function(){ _mostrarModalCV(cv); });
   // Alerta de designação: apenas para os logins abaixo.
@@ -5512,6 +5527,89 @@ function verDocumentosAutNota() {
   }
   // Filtro Responsável = nome do usuário logado (casa a opção do <select> por
   // chaveResponsavel, tolerando acentos/caixa). BRUNA fica em "Todos".
+  var selResp = document.getElementById('doc-f-resp');
+  if (selResp && !usuarioSemFiltroPadrao()) {
+    var chaves = respChavesUsuario();
+    for (var j = 0; j < selResp.options.length; j++) {
+      var v = selResp.options[j].value;
+      if (v && chaves.indexOf(chaveResponsavel(v)) !== -1) { selResp.value = v; break; }
+    }
+  }
+  buildDocumentosTable();
+}
+
+// ── Alerta 4: planilhas de Conta Vinculada recebidas ──────────────────────
+// Lista os registros de Documentos que já têm DATA na coluna "Conta Vinculada"
+// (contaVinculada) E cuja Situação (calculada) é uma das elegíveis abaixo.
+// Mostra contrato, empresa e período (mês/ano) com a data de recebimento,
+// ordenado da data mais recente para a mais antiga. Filtrado pelo responsável
+// do usuário logado (BRUNA e afins veem todos), como os demais alertas.
+var CONTAVINC_SITUACOES = ['AGUARDANDO IMR', 'AUTORIZAR NOTA', 'DENTRO DO PRAZO', 'EM ATRASO', 'NOTA AUTORIZADA'];
+
+function _contasVinculadasRecebidas() {
+  if (!DOCUMENTOS.length) docRebuild();
+  var vistos = {}, lista = [];
+  DOCUMENTOS.forEach(function(r) {
+    var contrato = String(r.contrato || '').trim();
+    if (!contrato) return;
+    var iso = docParseDate(r.contaVinculada);   // precisa ser uma data válida
+    if (!iso) return;
+    if (CONTAVINC_SITUACOES.indexOf(docSituacao(r)) === -1) return;
+    var ano = String(r.ano || '').trim(), mes = String(r.mes || '').trim();
+    // Deduplica linhas idênticas (mesmo contrato+mês+ano com a mesma data).
+    var chave = contrato + '||' + ano + '||' + mes + '||' + iso;
+    if (vistos[chave]) return;
+    vistos[chave] = true;
+    var emp = String(r.empresa || '').trim();
+    if (!emp) { var d = docDadosDoContrato(contrato); if (d && d.empresa) emp = d.empresa; }
+    lista.push({ contrato: contrato, empresa: emp, mes: mes, ano: ano,
+                 dataIso: iso, responsavel: docResponsavel(r) });
+  });
+  // Filtro por responsável do usuário logado (mesma regra dos outros alertas).
+  if (!usuarioSemFiltroPadrao()) {
+    var chaves = respChavesUsuario();
+    if (chaves.length) {
+      lista = lista.filter(function(x){ return chaves.indexOf(chaveResponsavel(x.responsavel)) !== -1; });
+    }
+  }
+  // Data mais recente primeiro (ISO ordena lexicograficamente = cronológico).
+  lista.sort(function(a, b) { return a.dataIso < b.dataIso ? 1 : (a.dataIso > b.dataIso ? -1 : 0); });
+  return lista;
+}
+
+function fecharContaVincModal() {
+  var el = document.getElementById('contavinc-mo');
+  if (el) el.classList.remove('open');
+  _proximoAlertaLogin();
+}
+
+function _mostrarModalContaVinc(lista) {
+  var n = lista.length;
+  var msg = n === 1
+    ? 'Existe <b>1</b> planilha de Conta Vinculada recebida.'
+    : 'Existem <b>' + n + '</b> planilhas de Conta Vinculada recebidas.';
+  var itens = lista.map(function(x) {
+    var per = _mesAnoTitle(x.mes) + (x.ano ? '/' + x.ano : '');
+    return '<li style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;'
+      + 'margin-bottom:8px;background:var(--surface2);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
+      + '<b style="color:var(--accent);white-space:nowrap;font-size:13px">' + esc(x.contrato || '—') + '</b>'
+      + '<span style="color:var(--text);font-size:13px;flex:1;min-width:120px">' + esc(x.empresa || '—') + '</span>'
+      + '<span style="color:var(--muted);font-size:12px;white-space:nowrap">' + esc(per) + '</span>'
+      + '<span style="color:var(--green);font-size:12px;white-space:nowrap;font-weight:600">📅 ' + esc(docFmtDate(x.dataIso)) + '</span></li>';
+  }).join('');
+  document.getElementById('contavinc-sub').textContent = 'Recebidas (mais recentes primeiro)';
+  document.getElementById('contavinc-body').innerHTML =
+    '<div style="padding:2px 2px 14px;font-size:14px;color:var(--text);line-height:1.5">' + msg + '</div>'
+    + '<ul style="list-style:none;margin:0;padding:0;max-height:340px;overflow:auto">' + itens + '</ul>';
+  document.getElementById('contavinc-mo').classList.add('open');
+}
+
+// "Ver Documentos" do alerta: abre a tela Documentos filtrada pelo Responsável
+// do usuário logado (a Situação é um conjunto, então não filtra por Situação).
+function verDocumentosContaVinc() {
+  fecharContaVincModal();
+  showView('documentos');
+  if (typeof initDocumentos === 'function') initDocumentos();
   var selResp = document.getElementById('doc-f-resp');
   if (selResp && !usuarioSemFiltroPadrao()) {
     var chaves = respChavesUsuario();
