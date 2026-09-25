@@ -5675,6 +5675,20 @@ function renderContasTable() {
       +' style="'+inpBase+(extraStyle||'')+'" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';contaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
   }
+  // Link SEI editável inline (Folha Info. / Comprov. Resgate): input + ícone ↗ que
+  // abre o documento no SEI quando há número. Mesmo padrão da tela de Reajuste.
+  function edSei(id, campo, val) {
+    if (!canEdit) return esc(val || '');
+    var v = String(val || '').trim();
+    var abrir = docSeiNumeros(v).length
+      ? '<span title="Abrir no SEI" style="cursor:pointer;color:var(--accent);margin-left:4px" onclick="event.stopPropagation();docAbrirSei(\''+esc(docSeiNumeros(v)[0])+'\')">↗</span>'
+      : '';
+    var _sz = Math.max(8, Math.min(70, v.length + 3));
+    return '<span style="display:inline-flex;align-items:center;gap:2px;min-width:0;width:100%;justify-content:center">'
+      +'<input value="'+esc(v)+'" size="'+_sz+'" style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';contaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">'
+      +abrir+'</span>';
+  }
   function edData(id, val) {
     if (!canEdit) return esc(contaDataParaBR(val));
     return '<input type="date" value="'+esc(contaDataParaISO(val))+'"'
@@ -5707,8 +5721,8 @@ function renderContasTable() {
       +'<td style="white-space:nowrap;color:var(--muted)" title="Auto do contrato">'+esc(c.empresa)+'</td>'
       +'<td style="font-size:12px;min-width:250px">'+ed(c.id,'pedido',c.pedido,'data-nocaps="1"')+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;white-space:nowrap;min-width:160px">'+ed(c.id,'valor',c.valor)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap;text-align:center">'+ed(c.id,'folhaInfo',c.folhaInfo,'',';text-align:center')+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap;text-align:center">'+ed(c.id,'comprovanteResgate',c.comprovanteResgate,'',';text-align:center')+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap;text-align:center">'+edSei(c.id,'folhaInfo',c.folhaInfo)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap;text-align:center">'+edSei(c.id,'comprovanteResgate',c.comprovanteResgate)+'</td>'
       +'<td style="text-align:center;white-space:nowrap">'+edPR3(c.id, c.envioPR3)+'</td>'
       +'<td style="white-space:nowrap">'+edSit(c)+'</td>'
       +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
