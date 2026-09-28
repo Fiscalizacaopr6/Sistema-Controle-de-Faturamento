@@ -3517,7 +3517,7 @@ function fiscalFormHtml(f) {
       + '<select id="ff-nome-sel" onchange="fiscalNomeSelChange()">'+nomeSelOpts+'</select></div>'
     +'<div class="ef full"><label>Ou digite um novo nome (caso não esteja na lista)</label>'
       + '<input id="ff-nome" value="" autocapitalize="characters" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();if(this.value)document.getElementById(\'ff-nome-sel\').value=\'\'" placeholder="Nome do novo fiscal"></div>'
-    +'<div class="ef"><label>SIAPE</label><input id="ff-siape" value="'+esc(f.siape||'')+'" inputmode="numeric"></div>'
+    +'<div class="ef"><label>SIAPE</label><input id="ff-siape" value="'+esc(f.siape||'')+'" inputmode="numeric" oninput="fiscalAutoFillBySiape()" placeholder="Digite o SIAPE p/ preencher"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="ff-empresa" list="ff-empresa-list" value="'+esc(f.empresa||'')+'">'
@@ -3548,6 +3548,40 @@ function fiscalAutoFillEmpresa() {
   var d = DADOS.find(function(x){ return x['CONTRATO'] === contratoNum; });
   var nome = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
   if (nome) document.getElementById('ff-empresa').value = nome;
+}
+
+// Ao digitar o SIAPE, procura um fiscal já cadastrado com esse SIAPE e
+// preenche os demais campos — MENOS Contrato e Situação, que variam por
+// designação. Como a mesma pessoa aparece em vários contratos, cada campo
+// pega o primeiro valor não vazio entre os registros com aquele SIAPE.
+function fiscalAutoFillBySiape() {
+  var siape = (document.getElementById('ff-siape').value || '').trim();
+  if (!siape) return;
+  var recs = FISCAIS.filter(function(x){ return String(x.siape || '').trim() === siape; });
+  if (!recs.length) return;
+  function pick(campo) {
+    for (var i = 0; i < recs.length; i++) {
+      var v = String(recs[i][campo] || '').trim();
+      if (v) return v;
+    }
+    return '';
+  }
+  // Nome: usa o select se o nome estiver na lista; senão, o campo de digitação.
+  var nomeUp = pick('nome').toUpperCase();
+  var sel = document.getElementById('ff-nome-sel');
+  var txt = document.getElementById('ff-nome');
+  var temOpt = sel && Array.prototype.some.call(sel.options, function(o){ return o.value === nomeUp; });
+  if (temOpt) { sel.value = nomeUp; if (txt) txt.value = ''; }
+  else if (txt) { txt.value = nomeUp; if (sel) sel.value = ''; }
+  function setv(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; }
+  setv('ff-empresa',  pick('empresa'));
+  setv('ff-unidade',  pick('unidade'));
+  setv('ff-email',    pick('email'));
+  setv('ff-email2',   pick('email2'));
+  setv('ff-tel',      pick('telefone'));
+  setv('ff-sei',      pick('enderecoSei'));
+  setv('ff-portaria', pick('portaria'));
+  // Contrato e Situação NÃO são preenchidos de propósito.
 }
 
 function normalizeResp(val) {
