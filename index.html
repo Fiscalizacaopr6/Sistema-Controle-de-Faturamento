@@ -2369,13 +2369,13 @@ function genericExportExcel(sheetName, headers, rows, filename) {
 
 // Fiscais
 function exportFiscaisPDF() {
-  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','E-mail 2','Telefone'];
-  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.email2||'',f.telefone||'']; });
+  var h = ['Nome','SIAPE','Contrato','Empresa','Unidade','E-mail','E-mail 2','Telefone'];
+  var r = fcFiltered.map(function(f){ return [f.nome||'',f.siape||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.email2||'',f.telefone||'']; });
   genericExportPDF('Fiscais de Contrato', h, r, 'fiscais');
 }
 function exportFiscaisExcel() {
-  var h = ['Nome','Contrato','Empresa','Unidade','E-mail','E-mail 2','Telefone'];
-  var r = fcFiltered.map(function(f){ return [f.nome||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.email2||'',f.telefone||'']; });
+  var h = ['Nome','SIAPE','Contrato','Empresa','Unidade','E-mail','E-mail 2','Telefone'];
+  var r = fcFiltered.map(function(f){ return [f.nome||'',f.siape||'',f.contrato||'',f.empresa||'',f.unidade||'',f.email||'',f.email2||'',f.telefone||'']; });
   genericExportExcel('Fiscais', h, r, 'fiscais');
 }
 
@@ -3260,6 +3260,7 @@ function buildFiscaisCards() {
     if (fStatus && fiscalStatus(f) !== fStatus) return false;
     if (!q) return true;
     return (f.nome||'').toLowerCase().indexOf(q) !== -1
+        || (f.siape||'').toLowerCase().indexOf(q) !== -1
         || (f.contrato||'').toLowerCase().indexOf(q) !== -1
         || (f.empresa||'').toLowerCase().indexOf(q) !== -1
         || (f.unidade||'').toLowerCase().indexOf(q) !== -1
@@ -3397,6 +3398,7 @@ function renderFiscaisTable() {
       : '';
     return '<tr style="'+rowStyle+'">'
       +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+edInp(f.id,'nome',(f.nome||'').toUpperCase(),'',';font-weight:600',true)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edInp(f.id,'siape',f.siape,'',';font-family:\'DM Mono\',monospace;font-size:11px')+'</td>'
       +'<td>'+edSit(f)+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+edContrato(f)+'</td>'
       +'<td>'+stBadge+'</td>'
@@ -3422,7 +3424,7 @@ function renderFiscaisTable() {
     +'<div class="table-info"><span>'+fcFiltered.length+' fiscal(is)</span><span>Página '+fcPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
-    +'<th>Nome</th><th>Situação</th><th>Contrato</th><th>Status</th><th>Empresa</th><th>Unidade</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th><th>End. SEI</th><th>Portaria</th>'
+    +'<th>Nome</th><th>SIAPE</th><th>Situação</th><th>Contrato</th><th>Status</th><th>Empresa</th><th>Unidade</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th><th>End. SEI</th><th>Portaria</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
@@ -3515,6 +3517,7 @@ function fiscalFormHtml(f) {
       + '<select id="ff-nome-sel" onchange="fiscalNomeSelChange()">'+nomeSelOpts+'</select></div>'
     +'<div class="ef full"><label>Ou digite um novo nome (caso não esteja na lista)</label>'
       + '<input id="ff-nome" value="" autocapitalize="characters" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();if(this.value)document.getElementById(\'ff-nome-sel\').value=\'\'" placeholder="Nome do novo fiscal"></div>'
+    +'<div class="ef"><label>SIAPE</label><input id="ff-siape" value="'+esc(f.siape||'')+'" inputmode="numeric"></div>'
     +'<div class="ef"><label>Situação</label><select id="ff-sit">'+sitOpts+'</select></div>'
     +'<div class="ef"><label>Contrato</label><select id="ff-contrato" onchange="fiscalAutoFillEmpresa()">'+contratoOpts+'</select></div>'
     +'<div class="ef"><label>Empresa</label><input id="ff-empresa" list="ff-empresa-list" value="'+esc(f.empresa||'')+'">'
@@ -3592,6 +3595,7 @@ function readFiscalForm() {
   var nomeSelecionado = (document.getElementById('ff-nome-sel') || {}).value || '';
   return {
     nome:          nomeDigitado || nomeSelecionado.trim().toUpperCase(),
+    siape:         v('ff-siape'),
     situacao:      v('ff-sit'),
     contrato:      contrato,
     empresa:       v('ff-empresa'),
