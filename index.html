@@ -5629,7 +5629,8 @@ function _contasVinculadasRecebidas() {
                  dataIso: iso, responsavel: docResponsavel(r) });
   });
   // Filtro por responsável do usuário logado (mesma regra dos outros alertas).
-  if (!usuarioSemFiltroPadrao()) {
+  // Exceção: Área 51 recebe TODOS os alertas de Conta Vinculada Recebida.
+  if (!usuarioSemFiltroPadrao() && currentRole !== 'area51') {
     var chaves = respChavesUsuario();
     if (chaves.length) {
       lista = lista.filter(function(x){ return chaves.indexOf(chaveResponsavel(x.responsavel)) !== -1; });
@@ -5674,7 +5675,7 @@ function verDocumentosContaVinc() {
   showView('documentos');
   if (typeof initDocumentos === 'function') initDocumentos();
   var selResp = document.getElementById('doc-f-resp');
-  if (selResp && !usuarioSemFiltroPadrao()) {
+  if (selResp && !usuarioSemFiltroPadrao() && currentRole !== 'area51') {
     var chaves = respChavesUsuario();
     for (var j = 0; j < selResp.options.length; j++) {
       var v = selResp.options[j].value;
