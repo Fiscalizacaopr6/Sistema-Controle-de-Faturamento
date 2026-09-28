@@ -3282,7 +3282,7 @@ function fiscalInlineSalvar(id, campo, valor) {
   set(campo, valor);
   // Escolher o contrato preenche a empresa e o status, como no cadastro novo.
   if (campo === 'contrato') {
-    var d = DADOS.find(function(x){ return x['CONTRATO'] === valor; });
+    var d = termoAtualDoContrato(valor);
     var nome = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : '';
     if (nome) set('empresa', nome);
     set('statusContrato', d ? (d._st === 'VIGENTE' ? 'Contrato Vigente' : d._st === 'A INICIAR' ? 'Contrato A Iniciar' : 'Contrato Encerrado') : '');
@@ -3297,6 +3297,22 @@ function fiscalInlineSalvar(id, campo, valor) {
     fcPage = Math.min(_p, _tp);
     renderFiscaisTable();
   }
+}
+
+// Termo ATUAL de um contrato = a linha de DADOS com o maior TÉRMINO DA VIGÊNCIA
+// (desempate pelo maior INÍCIO), mesmo critério de unVigentePorContrato. Usado
+// para o Status refletir o último termo, não um termo antigo já encerrado.
+function termoAtualDoContrato(contrato) {
+  var k = (contrato || '').trim();
+  if (!k) return null;
+  var best = null;
+  DADOS.forEach(function(d){
+    if ((d['CONTRATO'] || '').trim() !== k) return;
+    if (!best) { best = d; return; }
+    var _at = String(d['TÉRMINO DA VIGÊNCIA'] || ''), _dt = String(best['TÉRMINO DA VIGÊNCIA'] || '');
+    if (_at > _dt || (_at === _dt && String(d['INÍCIO DO CONTRATO'] || '') > String(best['INÍCIO DO CONTRATO'] || ''))) best = d;
+  });
+  return best;
 }
 
 // Contratos em ordem (ano mais recente primeiro), compartilhado pelo cadastro
@@ -3383,7 +3399,10 @@ function renderFiscaisTable() {
       +'</select>';
   }
   var rows = slice.map(function(f) {
-    var dado = DADOS.find(function(d){ return (d['CONTRATO']||'').trim() === (f.contrato||'').trim(); });
+    // Status vem sempre do ÚLTIMO termo do contrato (maior TÉRMINO DA VIGÊNCIA),
+    // e não do primeiro que aparecer: um termo antigo encerrado não pode mascarar
+    // um termo novo vigente. Só assim dá pra saber se o contrato está mesmo encerrado.
+    var dado = termoAtualDoContrato(f.contrato);
     var st = dado ? (dado._st || '') : '';
     var rowStyle = st === 'VIGENTE' ? 'border-left:3px solid var(--green)' : st === 'ENCERRADO' ? 'border-left:3px solid var(--red)' : st === 'A INICIAR' ? 'border-left:3px solid var(--blue)' : '';
     var stBadge = st === 'VIGENTE'
@@ -3621,7 +3640,7 @@ function maskPhone(input) {
 function readFiscalForm() {
   function v(id){ return document.getElementById(id).value.trim(); }
   var contrato = v('ff-contrato');
-  var dadoContrato = DADOS.find(function(d){ return d['CONTRATO'] === contrato; });
+  var dadoContrato = termoAtualDoContrato(contrato);
   var statusContrato = dadoContrato
     ? (dadoContrato._st === 'VIGENTE' ? 'Contrato Vigente' : dadoContrato._st === 'A INICIAR' ? 'Contrato A Iniciar' : 'Contrato Encerrado')
     : '';
