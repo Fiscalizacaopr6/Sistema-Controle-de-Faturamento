@@ -5615,6 +5615,7 @@ function _contasVinculadasRecebidas() {
   DOCUMENTOS.forEach(function(r) {
     var contrato = String(r.contrato || '').trim();
     if (!contrato) return;
+    if (docStatusContrato(r) === 'ENCERRADO') return;   // não alerta contrato encerrado
     var iso = docParseDate(r.contaVinculada);   // precisa ser uma data válida
     if (!iso) return;
     if (CONTAVINC_SITUACOES.indexOf(docSituacao(r)) === -1) return;
