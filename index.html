@@ -9175,16 +9175,31 @@ function cvExportarPDF() {
     doc.setFont('helvetica','bold'); doc.setFontSize(6.3); doc.setTextColor(100,116,139);
     doc.text(doc.splitTextToSize(String(titulo).toUpperCase(), cardW - 16).slice(0,2), x+8, cardY+11);
     var ry = cardY + 34;
+    // Rótulo e valor dividem a largura do card. Quando o rótulo é longo (ex.:
+    // "Incidência sobre o submódulo 4.1") e encostaria no valor à direita,
+    // reduz apenas a fonte do rótulo até caber — preserva o texto inteiro e
+    // evita as letras sobrepostas.
     rows.forEach(function(r) {
+      var valFs = r.total ? 7 : 6.6;
+      var labFs = valFs;
+      var labFont = r.total ? 'bold' : 'normal';
+      doc.setFont('helvetica','bold'); doc.setFontSize(valFs);
+      var valW = doc.getTextWidth(String(r.value));
+      var avail = cardW - 16 - valW - 6;   // 6pt de folga mínima antes do valor
+      doc.setFont('helvetica', labFont); doc.setFontSize(labFs);
+      var labW = doc.getTextWidth(String(r.label));
+      if (labW > avail) labFs = Math.max(4.6, labFs * avail / labW);
       if (r.total) {
         doc.setDrawColor(226,232,240); doc.setLineWidth(0.5);
         doc.line(x+8, ry-7, x+cardW-8, ry-7);
-        doc.setFont('helvetica','bold'); doc.setFontSize(7);
+        doc.setFont('helvetica','bold'); doc.setFontSize(labFs);
         doc.setTextColor(30,41,59);  doc.text(String(r.label), x+8, ry);
+        doc.setFontSize(valFs);
         doc.setTextColor(37,99,235); doc.text(String(r.value), x+cardW-8, ry, {align:'right'});
       } else {
-        doc.setFont('helvetica','normal'); doc.setFontSize(6.6); doc.setTextColor(71,85,105);
+        doc.setFont('helvetica','normal'); doc.setFontSize(labFs); doc.setTextColor(71,85,105);
         doc.text(String(r.label), x+8, ry);
+        doc.setFontSize(valFs);
         doc.text(String(r.value), x+cardW-8, ry, {align:'right'});
       }
       ry += lineH;
