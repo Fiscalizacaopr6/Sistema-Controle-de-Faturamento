@@ -8868,14 +8868,16 @@ function cvLimparFiltros() {
 
 function cvPodeEditar() { return canEditKey('contavinculada'); }
 
-// Regra por célula: viewer pode editar TIPO sempre e as colunas de Retirada
-// (s/t/u/v) quando a linha estiver como Retirada. Linhas vindas da empresa
-// só permitem TIPO (para adotar como Retirada).
+// Regra por célula: viewer pode editar TIPO sempre e, quando a linha estiver
+// como Retirada, TODAS as colunas dessa linha (CPF, Nome, datas, s/t/u/v, etc.).
+// As linhas de Retenção não são editáveis pelo viewer; as vindas da empresa
+// só permitem TIPO (para adotar como Retirada). As colunas calculadas
+// (n/o/p/q/r/w/erro) nunca viram campo, então não são afetadas.
 function cvPodeEditarCelula(l, campo) {
   if (l && l._emp) return campo === 'tipo';
   if (cvPodeEditar()) return true;
   if (campo === 'tipo') return true;
-  if (l && l.tipo === 'Retirada' && (campo === 's' || campo === 't' || campo === 'u' || campo === 'v')) return true;
+  if (l && l.tipo === 'Retirada') return true;
   return false;
 }
 
