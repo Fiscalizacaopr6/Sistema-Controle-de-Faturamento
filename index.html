@@ -9262,7 +9262,8 @@ function cvExportarPDF() {
 
   // Cabeçalho em dois níveis: identificação (rowSpan 2) + "Registro de retiradas".
   var headTop = [{content:'#', rowSpan:2, styles:{halign:'center', valign:'middle'}}];
-  identCols.forEach(function(c){ headTop.push({content:c.label, rowSpan:2, styles:{valign:'middle'}}); });
+  var PDF_LABEL = {mes:'Mês', ano:'Ano'};   // no PDF a competência vira só Mês / Ano
+  identCols.forEach(function(c){ headTop.push({content:PDF_LABEL[c.k] || c.label, rowSpan:2, styles:{valign:'middle'}}); });
   headTop.push({content:'Registro de retiradas', colSpan:5, styles:{halign:'center'}});
   var headSub = [
     {content:'13º salário',           styles:{halign:'right'}},
