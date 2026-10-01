@@ -8566,6 +8566,9 @@ var CV_COLS = [
 var CV_ATUAL = null;      // {id, contrato, objeto, perc, linhas:[]}
 var CV_REG_ID = '';       // registro da tela de Retenção a que este formulário pertence
 var cvFiltradas = [], _cvSalvarTimer = null, _cvGravouEm = 0, _cvInit = false;
+// Paginação da totalizadora: formulários grandes (ex.: milhares de lançamentos
+// da empresa) travavam o navegador ao renderizar todas as linhas de uma vez.
+var cvFormPage = 1, cvFormPer = 150, _cvFormSig = null;
 
 // ── Números e datas ──
 function cvNum(v) {
@@ -8894,6 +8897,9 @@ function cvAddLinha() {
   });
   CV_PROPRIAS = cvLinhasProprias();
   cvSalvar();
+  // mostra a última página para que a linha recém-adicionada apareça
+  cvFiltrar();
+  cvFormPage = Math.max(1, Math.ceil(cvFiltradas.length / cvFormPer));
   cvRender();
   var linhas = document.querySelectorAll('#cv-tabela tbody tr');
   var ultima = linhas[linhas.length-1];
@@ -9023,7 +9029,25 @@ function cvRender() {
     + '</tr>';
   var mostraColAcoes = podeEditar || cvFiltradas.some(function(l){ return l._add; });
 
-  var linhas = cvFiltradas.map(function(l, i) {
+  // Paginação: só renderiza a página atual (evita travar com milhares de linhas).
+  // Reseta para a 1ª página quando os filtros mudam; os totais seguem somando
+  // TODAS as linhas filtradas (cvRenderTotais é independente da paginação).
+  var sig = [
+    (document.getElementById('cv-q')||{}).value||'',
+    (document.getElementById('cv-f-tipo')||{}).value||'',
+    (document.getElementById('cv-f-mes')||{}).value||'',
+    (document.getElementById('cv-f-ano')||{}).value||'',
+    (document.getElementById('cv-f-unidade')||{}).value||''
+  ].join('|');
+  if (sig !== _cvFormSig) { _cvFormSig = sig; cvFormPage = 1; }
+  var totalPages = Math.max(1, Math.ceil(cvFiltradas.length / cvFormPer));
+  if (cvFormPage > totalPages) cvFormPage = totalPages;
+  if (cvFormPage < 1) cvFormPage = 1;
+  var startIx = (cvFormPage - 1) * cvFormPer;
+  var pageRows = cvFiltradas.slice(startIx, startIx + cvFormPer);
+
+  var linhas = pageRows.map(function(l, j) {
+    var i = startIx + j;
     var c = cvCalc(l, cvPercSub());
     var tds = CV_COLS.map(function(col) {
       if (col.calc) return '<td data-k="'+col.k+'">'+cvCelulaCalc(col, c)+'</td>';
@@ -9052,14 +9076,39 @@ function cvRender() {
 
   wrap.innerHTML = '<div class="table-wrap">'
     + '<div class="table-info"><span>'+cvFiltradas.length+' lançamento(s)'
-    + (cvFiltradas.length !== CV_ATUAL.linhas.length ? ' de '+CV_ATUAL.linhas.length : '')+'</span>'
+    + (cvFiltradas.length !== CV_ATUAL.linhas.length ? ' de '+CV_ATUAL.linhas.length : '')
+    + (totalPages > 1 ? ' · Página '+cvFormPage+' de '+totalPages : '')+'</span>'
     + '<span style="color:var(--muted)">Os totais somam apenas os lançamentos filtrados</span></div>'
     + '<div class="doc-scroll" style="overflow-x:scroll"><table id="cv-tbl">'
-    + '<thead>'+th1+th2+'</thead><tbody>'+linhas+'</tbody></table></div></div>';
+    + '<thead>'+th1+th2+'</thead><tbody>'+linhas+'</tbody></table></div>'
+    + cvFormPaginationHtml(totalPages)
+    + '</div>';
 
   cvRenderTotais();
   // Barra de rolagem horizontal fixa (sempre visível) da totalizadora
   setTimeout(function(){ fcStickyScrollSyncFor('cvform'); }, 0);
+}
+
+function cvFormPaginationHtml(total) {
+  if (total <= 1) return '';
+  var h = '<div class="pagination">';
+  h += '<button class="pg" onclick="cvFormGoPage('+(cvFormPage-1)+')" '+(cvFormPage===1?'disabled':'')+'>&#8249;</button>';
+  var s = Math.max(1, cvFormPage-2), e = Math.min(total, cvFormPage+2);
+  if (s > 1) h += '<button class="pg" onclick="cvFormGoPage(1)">1</button>'+(s>2?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'');
+  for (var i=s; i<=e; i++) h += '<button class="pg'+(i===cvFormPage?' act':'')+'" onclick="cvFormGoPage('+i+')">'+i+'</button>';
+  if (e < total) h += (e<total-1?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'')+'<button class="pg" onclick="cvFormGoPage('+total+')">'+total+'</button>';
+  h += '<button class="pg" onclick="cvFormGoPage('+(cvFormPage+1)+')" '+(cvFormPage===total?'disabled':'')+'>&#8250;</button>';
+  h += '</div>';
+  return h;
+}
+
+function cvFormGoPage(p) {
+  var total = Math.max(1, Math.ceil(cvFiltradas.length / cvFormPer));
+  if (p < 1 || p > total) return;
+  cvFormPage = p;
+  cvRender();
+  var el = document.getElementById('cv-tabela');
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function cvRenderTotais() {
