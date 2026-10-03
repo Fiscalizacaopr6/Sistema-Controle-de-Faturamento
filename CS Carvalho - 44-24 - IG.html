@@ -512,17 +512,17 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
             <td class="val"><input type="number" class="ci" id="crecheAprovados" value="0" step="1" min="0" oninput="recalcAll()" style="width:100%;"></td>
           </tr>
           <tr>
-            <td class="lbl">Valor Reembolso + BDI (R$) <em>por colaborador</em></td>
+            <td class="lbl">Valor Estimado Unitário (R$)</td>
             <td class="val">
               <input type="number" class="ci" id="crechemBDI" value="0" step="0.01" min="0" oninput="recalcAll()" style="width:100%;text-align:right;">
             </td>
           </tr>
           <tr>
-            <td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Reembolso+BDI)</small></td>
+            <td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Valor estimado unitário)</small></td>
             <td class="res" id="crecheTotalReemb">R$ 0,00</td>
           </tr>
           <tr>
-            <td class="lbl">Saldo de Reembolso (R$)<br><small style="font-weight:normal">(Retido – Total Reembolsos)</small></td>
+            <td class="lbl">Saldo de Reembolso (R$)<br><small style="font-weight:normal">(acumulado: saldo anterior + Retido – Total)</small></td>
             <td class="res" id="crecheSaldo">R$ 0,00</td>
           </tr>
         </tbody>
@@ -966,11 +966,24 @@ function paintFin(d){
   const apEl=document.getElementById('vlrAprovado');
   if(apEl){ apEl.textContent=BRcur(Math.max(0,d.aprovado)); apEl.style.color=d.aprovado<0?'#b71c1c':'#1b5e20'; }
 }
+function crecheSaldoAcumulado(upto){
+  // Saldo cumulativo: soma (Retido - Total Reembolsos) de todos os períodos até 'upto'.
+  let acc=0;
+  for(let k=0;k<=upto;k++){
+    const p=periods[k]; if(!p) continue;
+    const retido=parseFloat(p.crecheRetido)||0;
+    const aprov=parseFloat(p.crecheAprovados)||0;
+    const bdi=parseFloat(p.crechemBDI)||0;
+    acc=floor2(acc + (retido - floor2(aprov*bdi)));
+  }
+  return acc;
+}
 function paintCreche(d){
   setTxt('crecheTotalReemb', BRcur(d.crecheTotal));
+  const saldo=crecheSaldoAcumulado(currentPeriod); // acumula dos meses anteriores
   const saldoEl=document.getElementById('crecheSaldo');
-  if(saldoEl){ saldoEl.textContent=BRcur(d.crecheSaldo); saldoEl.style.color=d.crecheSaldo<0?'#b71c1c':'#1b5e20'; }
-  const warnEl=document.getElementById('crecheWarn'); if(warnEl) warnEl.style.display=d.crecheSaldo<0?'block':'none';
+  if(saldoEl){ saldoEl.textContent=BRcur(saldo); saldoEl.style.color=saldo<0?'#b71c1c':'#1b5e20'; }
+  const warnEl=document.getElementById('crecheWarn'); if(warnEl) warnEl.style.display=saldo<0?'block':'none';
 }
 function renderIC(rows){
   const tbody=document.getElementById('icBody'); if(!tbody) return;
