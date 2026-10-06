@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reembolso Creche</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   *{box-sizing:border-box;}
   body{margin:0;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#1f3864;padding:16px;}
@@ -231,14 +232,37 @@ function toggleLock(){
   applyLock();
 }
 
-// ── Salvar em PDF (via impressão do navegador → "Salvar como PDF") ──
+// ── Salvar em PDF (baixa direto para os Downloads) ──
 function salvarPDF(){
   var ctr = (db.contrato||'').replace(/[\\/]/g,'-');
   var per = document.getElementById('periodSel').value || '';
-  var titulo = document.title;
-  document.title = ['Reembolso Creche', ctr, per].filter(Boolean).join(' - ');
-  window.print();
-  setTimeout(function(){ document.title = titulo; }, 500);
+  var nome = ['Reembolso Creche', ctr, per].filter(Boolean).join(' - ') + '.pdf';
+  var alvo = document.querySelector('.page');
+  var toolbar = document.querySelector('.toolbar');
+
+  // Sem a biblioteca (ex: offline) → cai para a impressão do navegador
+  if (typeof html2pdf === 'undefined'){
+    var titulo = document.title;
+    document.title = nome.replace(/\.pdf$/,'');
+    window.print();
+    setTimeout(function(){ document.title = titulo; }, 500);
+    return;
+  }
+
+  if (toolbar) toolbar.style.display = 'none';
+  html2pdf().set({
+    margin: 8,
+    filename: nome,
+    image: { type:'jpeg', quality:0.98 },
+    html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff' },
+    jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
+  }).from(alvo).save().then(function(){
+    if (toolbar) toolbar.style.display = '';
+  }).catch(function(e){
+    if (toolbar) toolbar.style.display = '';
+    console.error('Falha ao gerar PDF:', e);
+    alert('Não foi possível gerar o PDF. Verifique a conexão e tente novamente.');
+  });
 }
 
 // ── Persistência local ──
