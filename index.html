@@ -558,6 +558,7 @@ select.doc-inp{cursor:pointer}
       <div class="nav-item" id="nav-empresas" title="Empresas" onclick="showView('empresas')"><span class="sb-ic">🏭</span><span class="sb-tx">Empresas</span></div>
       <div class="nav-item" id="nav-unidades" title="Unidades" onclick="showView('unidades')"><span class="sb-ic">🏢</span><span class="sb-tx">Unidades</span></div>
       <div class="nav-item" id="nav-imr" title="INSTRUMENTO DE MEDIÇÃO DE RESULTADO" onclick="showView('imr')"><span class="sb-ic">📋</span><span class="sb-tx">IMR</span></div>
+      <div class="nav-item" id="nav-creche" title="Reembolso Creche" onclick="showView('creche')"><span class="sb-ic">🏠</span><span class="sb-tx">Reembolso Creche</span></div>
       <div class="nav-item" id="nav-ic" title="IC" onclick="showView('ic')" style="display:none"><span class="sb-ic">🛸</span><span class="sb-tx">IC</span></div>
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
     </nav>
@@ -900,6 +901,25 @@ select.doc-inp{cursor:pointer}
       </div>
       <div id="imr-table"></div>
     </div>
+<!-- REEMBOLSO CRECHE -->
+    <div class="view" id="view-creche">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <h2 style="font-size:15px;font-weight:600;white-space:nowrap">Reembolso Creche</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
+          <input id="creche-q" type="text" placeholder="Buscar por contrato, empresa ou responsável..." oninput="buildCrecheTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn-new" id="btn-novo-creche" onclick="openNewCrecheModal()" style="display:none;white-space:nowrap">+ Adicionar</button>
+        </div>
+      </div>
+      <div class="filters">
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
+          <select class="sel" id="creche-f-contrato" onchange="buildCrecheTable()"><option value="">Todos</option></select>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
+          <select class="sel" id="creche-f-resp" onchange="buildCrecheTable()"><option value="">Todos</option></select>
+        </div>
+      </div>
+      <div id="creche-table"></div>
+    </div>
 <!-- IC -->
     <div class="view" id="view-ic">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
@@ -1193,14 +1213,14 @@ var ROLES = [
 
 // Telas visíveis para os níveis 1–5. Qualquer tela fora desta lista é
 // considerada "Área 51" e só aparece para quem tem nível area51.
-var PUBLIC_VIEWS = ['dashboard','db-lista','contratos','documentos','fiscais','reajustes','contas','retencao','cvform','empresas','unidades','imr','usuarios'];
+var PUBLIC_VIEWS = ['dashboard','db-lista','contratos','documentos','fiscais','reajustes','contas','retencao','cvform','empresas','unidades','imr','creche','usuarios'];
 
 // Tela → chave de permissão de edição
 var VIEW_EDIT_KEY = {
   contratos:'contratos', documentos:'documentos', fiscais:'fiscais',
   reajustes:'reajustes', contas:'contavinculada', retencao:'contavinculada',
   cvform:'contavinculada', empresas:'empresas', unidades:'unidades',
-  imr:'imr', usuarios:'usuarios'
+  imr:'imr', creche:'imr', usuarios:'usuarios'
 };
 
 // O que cada nível pode EDITAR ('*' = tudo, inclusive telas futuras)
@@ -1244,7 +1264,7 @@ function roleClass(r) { return 'role-' + normalizeRole(r); }
 
 // Pode o nível 'role' VER a tela 'view'?
 // Telas que só aparecem a partir de certo nível (além da regra Área 51)
-var VIEW_MIN_LEVEL = { usuarios: 3, imr: 3 };  // Usuários e IMR: só n3+ (n1 e n2 não veem)
+var VIEW_MIN_LEVEL = { usuarios: 3, imr: 3, creche: 3 };  // Usuários, IMR e Reembolso Creche: só n3+ (n1 e n2 não veem)
 function levelNum(role) { role = normalizeRole(role); return role === 'area51' ? 99 : parseInt(role.slice(1), 10) || 0; }
 function canViewView(view, role) {
   role = normalizeRole(role || currentRole);
@@ -1478,7 +1498,7 @@ function applyPermissionsUI() {
     'nav-dashboard':'dashboard', 'nav-contratos':'contratos', 'nav-documentos':'documentos',
     'nav-fiscais':'fiscais', 'nav-reajustes':'reajustes', 'nav-contas':'contas',
     'nav-retencao':'retencao', 'nav-empresas':'empresas', 'nav-unidades':'unidades',
-    'nav-imr':'imr', 'nav-ic':'ic', 'nav-usuarios':'usuarios'
+    'nav-imr':'imr', 'nav-creche':'creche', 'nav-ic':'ic', 'nav-usuarios':'usuarios'
   };
   Object.keys(navMap).forEach(function(id) {
     var el = document.getElementById(id);
@@ -1492,7 +1512,7 @@ function applyPermissionsUI() {
   var btnMap = {
     'btn-novo-contrato':'contratos', 'btn-novo-fiscal':'fiscais', 'btn-novo-unidade':'unidades',
     'btn-novo-empresa':'empresas', 'btn-novo-conta':'contas', 'btn-novo-reajuste':'reajustes',
-    'btn-novo-imr':'imr', 'btn-novo-retencao':'retencao', 'btn-novo-documento':'documentos',
+    'btn-novo-imr':'imr', 'btn-novo-creche':'creche', 'btn-novo-retencao':'retencao', 'btn-novo-documento':'documentos',
     'btn-lote-documento':'documentos'
   };
   Object.keys(btnMap).forEach(function(id) {
@@ -1592,6 +1612,13 @@ function setupRealtimeListeners() {
     IMR.length = 0; arr.forEach(function(d){ if(d) IMR.push(d); });
     if (document.getElementById('view-imr') && document.getElementById('view-imr').classList.contains('active')) buildImrTable();
   });
+  fbdb.ref('creche').on('value', function(snap) {
+    if (_suppressRefresh) return;
+    var val = snap.val(); if (!val) { CRECHE.length = 0; return; }
+    var arr = Array.isArray(val) ? val : Object.values(val);
+    CRECHE.length = 0; arr.forEach(function(d){ if(d) CRECHE.push(d); });
+    if (document.getElementById('view-creche') && document.getElementById('view-creche').classList.contains('active')) buildCrecheTable();
+  });
   fbdb.ref('documentos_edits').on('value', function(snap) {
     if (_suppressRefresh) return;
     DOC_OVERRIDES = snap.val() || {};
@@ -1632,7 +1659,7 @@ function showView(v) {
   document.getElementById('view-' + v).classList.add('active');
   var navEl = document.getElementById('nav-' + v);
   if (navEl) navEl.classList.add('active');
-  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'INSTRUMENTO DE MEDIÇÃO DE RESULTADO', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', ic:'INSTRUMENTO DE COBRANÇA', usuarios:'Usuários'};
+  var titles = {dashboard:'Dashboard', contratos:'Contratos', documentos:'Documentos', fiscais:'Fiscais de Contrato', unidades:'Unidades', imr:'INSTRUMENTO DE MEDIÇÃO DE RESULTADO', creche:'Reembolso Creche', empresas:'Empresas', contas:'Solicitação Empresa', retencao:'Retenção e Retirada', cvform:'Conta Vinculada Mensal', reajustes:'Reajuste e Repactuação', ic:'INSTRUMENTO DE COBRANÇA', usuarios:'Usuários'};
   document.getElementById('view-title').textContent = titles[v] || v;
   // Conta Vinculada é um grupo: mantém o submenu aberto e o grupo destacado nas duas telas
   var ehConta = (v === 'contas' || v === 'retencao' || v === 'cvform');
@@ -1644,6 +1671,7 @@ function showView(v) {
   if (v === 'usuarios') buildUsersTable();
   if (v === 'unidades') buildUnidadesTable();
   if (v === 'imr') buildImrTable();
+  if (v === 'creche') buildCrecheTable();
   if (v === 'ic') buildIC();
   if (v === 'empresas') buildEmpresasTable();
   if (v === 'contas') buildContasTable();
@@ -5036,6 +5064,171 @@ function confirmDeleteImr(id) {
   buildImrTable();
 }
 
+// ══════════════════════════════════════════════
+//  REEMBOLSO CRECHE — registro de formulários
+//  (mesmo padrão do IMR: lista de registros que apontam
+//   para o formulário autônomo "Reembolso_Creche.html")
+// ══════════════════════════════════════════════
+var CRECHE = [];
+var CRECHE_FORM_PADRAO = 'Reembolso_Creche.html';
+
+function saveCrecheToStorage() {
+  fbdb.ref('creche').set(fbSanitizeKeys(CRECHE)).catch(function(e){ console.error('saveCreche:', e); });
+}
+
+var crecheFiltered = [], crechePage = 1, crechePer = 50;
+
+function populateCrecheFilters() {
+  fillSelectFilter('creche-f-contrato', distinctSorted(CRECHE, function(r){ return r.contrato; }), 'Todos');
+  var resps = {};
+  CRECHE.forEach(function(r){ var x = retRespDoContrato(r.contrato); if (x) resps[x] = 1; });
+  var lista = Object.keys(resps).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); });
+  fillSelectFilter('creche-f-resp', lista, 'Todos');
+}
+
+function buildCrecheTable() {
+  populateCrecheFilters();
+  aplicarRespPadrao('creche', 'creche-f-resp');
+  var q = (document.getElementById('creche-q') ? document.getElementById('creche-q').value : '').toLowerCase();
+  var fContrato = fVal('creche-f-contrato'), fResp = fVal('creche-f-resp');
+  crecheFiltered = CRECHE.filter(function(r) {
+    var resp = retRespDoContrato(r.contrato);
+    if (fContrato && String(r.contrato||'').trim() !== fContrato) return false;
+    if (fResp && String(resp||'').trim() !== fResp) return false;
+    if (!q) return true;
+    return (r.contrato||'').toLowerCase().indexOf(q) !== -1
+        || (r.empresa||'').toLowerCase().indexOf(q) !== -1
+        || (resp||'').toLowerCase().indexOf(q) !== -1;
+  });
+  crechePage = 1;
+  renderCrecheTable();
+}
+
+function renderCrecheTable() {
+  var canEdit = canEditView('creche');
+  var wrap = document.getElementById('creche-table');
+  if (!wrap) return;
+  if (!CRECHE.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum formulário de Reembolso Creche cadastrado.</div>'; return; }
+  if (!crecheFiltered.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum registro encontrado.</div>'; return; }
+  var totalPages = Math.ceil(crecheFiltered.length / crechePer);
+  var start = (crechePage - 1) * crechePer;
+  var slice = crecheFiltered.slice(start, start + crechePer);
+  var rows = slice.map(function(r) {
+    var hasLink = !!r.link;
+    var rowClick = hasLink ? 'onclick="window.open(\''+r.link+'\',\'_blank\')" style="cursor:pointer"' : '';
+    var actions = canEdit
+      ? '<button class="btn-usr-edit" onclick="event.stopPropagation();openEditCrecheModal(\''+r.id+'\')">Editar</button>'
+        +' <button class="btn-usr-del" onclick="event.stopPropagation();confirmDeleteCreche(\''+r.id+'\')">Excluir</button>'
+      : '';
+    var resp = retRespDoContrato(r.contrato);
+    return '<tr '+rowClick+'>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.contrato)+'</td>'
+      +'<td style="font-size:13px">'+esc(r.empresa)+'</td>'
+      +'<td style="font-size:12px">'+esc(r.unidade||'—')+'</td>'
+      +'<td style="font-size:12px">'+(resp?'<span class="tag">'+esc(resp)+'</span>':'—')+'</td>'
+      +'<td style="font-size:11px;white-space:nowrap">'+(hasLink?'<span style="color:var(--accent)">🔗 Abrir</span>&nbsp;<button onclick="event.stopPropagation();copyImrLink(this,\''+r.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:\'Sora\',sans-serif">Copiar</button>':'—')+'</td>'
+      +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
+      +'</tr>';
+  }).join('');
+  var pag = crechePaginationHtml(totalPages);
+  wrap.innerHTML = '<div class="table-wrap">'
+    +'<div class="table-info"><span>'+crecheFiltered.length+' registro(s)</span><span>Página '+crechePage+' de '+totalPages+'</span></div>'
+    +'<div style="overflow-x:auto"><table>'
+    +'<thead><tr><th>Contrato</th><th>Empresa</th><th>Unidade</th><th>Responsável</th><th>Link</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table></div>'
+    +pag+'</div>';
+}
+
+function crechePaginationHtml(total) {
+  if (total <= 1) return '';
+  var h = '<div class="pagination">';
+  h += '<button class="pg" onclick="crecheGoPage('+(crechePage-1)+')" '+(crechePage===1?'disabled':'')+'>&#8249;</button>';
+  var s = Math.max(1, crechePage-2), e = Math.min(total, crechePage+2);
+  if (s > 1) h += '<button class="pg" onclick="crecheGoPage(1)">1</button>'+(s>2?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'');
+  for (var i=s; i<=e; i++) h += '<button class="pg'+(i===crechePage?' act':'')+'" onclick="crecheGoPage('+i+')">'+i+'</button>';
+  if (e < total) h += (e<total-1?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'')+'<button class="pg" onclick="crecheGoPage('+total+')">'+total+'</button>';
+  h += '<button class="pg" onclick="crecheGoPage('+(crechePage+1)+')" '+(crechePage===total?'disabled':'')+'>&#8250;</button></div>';
+  return h;
+}
+
+function crecheGoPage(p) {
+  var total = Math.ceil(crecheFiltered.length / crechePer);
+  if (p < 1 || p > total) return;
+  crechePage = p; renderCrecheTable();
+}
+
+function crecheFormHtml(r) {
+  r = r || {};
+  var contratoOpts = Array.from(new Set(DADOS.map(function(d){ return d['CONTRATO']||''; }).filter(Boolean))).sort();
+  var linkVal = r.link || CRECHE_FORM_PADRAO;
+  return '<div class="eform">'
+    +'<div class="ef"><label>Contrato *</label><input id="ef-creche-contrato" list="creche-contrato-list" value="'+esc(r.contrato||'')+'" placeholder="Ex: 01/24">'
+    +'<datalist id="creche-contrato-list">'+contratoOpts.map(function(c){ return '<option value="'+esc(c)+'">'; }).join('')+'</datalist></div>'
+    +'<div class="ef full"><label>Empresa *</label><input id="ef-creche-empresa" value="'+esc(r.empresa||'')+'"></div>'
+    +'<div class="ef full"><label>Unidade</label><input id="ef-creche-unidade" value="'+esc(r.unidade||'')+'"></div>'
+    +'<div class="ef full"><label>Link do Formulário de Reembolso Creche</label><input id="ef-creche-link" type="url" style="text-transform:none" value="'+esc(linkVal)+'" placeholder="https://..."></div>'
+    +'</div>';
+}
+
+function readCrecheForm() {
+  function v(id){ return document.getElementById(id).value.trim(); }
+  return { contrato: v('ef-creche-contrato'), empresa: v('ef-creche-empresa'), unidade: v('ef-creche-unidade'), link: v('ef-creche-link') };
+}
+
+function openNewCrecheModal() {
+  document.getElementById('mo-t').textContent = 'Novo Formulário de Reembolso Creche';
+  document.getElementById('mo-s').textContent = 'Preencha os dados';
+  document.getElementById('mo-b').innerHTML = crecheFormHtml(null);
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    +'<button class="btn-save" onclick="saveNewCreche()">Salvar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+
+function saveNewCreche() {
+  var r = readCrecheForm();
+  if (!r.contrato || !r.empresa) { alert('Contrato e Empresa são obrigatórios.'); return; }
+  r.id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  CRECHE.push(r);
+  saveCrecheToStorage();
+  closeMo();
+  buildCrecheTable();
+}
+
+function openEditCrecheModal(id) {
+  var r = CRECHE.find(function(x){ return x.id === id; });
+  if (!r) return;
+  document.getElementById('mo-t').textContent = 'Editar Formulário de Reembolso Creche';
+  document.getElementById('mo-s').textContent = r.contrato;
+  document.getElementById('mo-b').innerHTML = crecheFormHtml(r);
+  document.getElementById('mo-actions').innerHTML =
+    '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    +'<button class="btn-save" onclick="saveEditCreche(\''+id+'\')">Salvar</button>';
+  document.getElementById('mo').classList.add('open');
+}
+
+function saveEditCreche(id) {
+  var idx = CRECHE.findIndex(function(x){ return x.id === id; });
+  if (idx === -1) return;
+  var r = readCrecheForm();
+  if (!r.contrato || !r.empresa) { alert('Contrato e Empresa são obrigatórios.'); return; }
+  r.id = id;
+  CRECHE[idx] = r;
+  saveCrecheToStorage();
+  closeMo();
+  buildCrecheTable();
+}
+
+function confirmDeleteCreche(id) {
+  var r = CRECHE.find(function(x){ return x.id === id; });
+  if (!r) return;
+  if (!confirm('Excluir formulário de Reembolso Creche do contrato ' + r.contrato + '?')) return;
+  CRECHE = CRECHE.filter(function(x){ return x.id !== id; });
+  saveCrecheToStorage();
+  buildCrecheTable();
+}
+
 var EMPRESAS = [];
 
 function saveEmpresasToStorage() {
@@ -5972,7 +6165,8 @@ function loadAllFromFirebase(callback) {
     safeRead(fbdb.ref('reajustes')),
     safeRead(fbdb.ref('imr')),
     safeRead(fbdb.ref('documentos_edits')),
-    safeRead(fbdb.ref('retencao'))
+    safeRead(fbdb.ref('retencao')),
+    safeRead(fbdb.ref('creche'))
   ]).then(function(snaps) {
     // dados
     var dadosVal = snaps[0].val();
@@ -6048,6 +6242,13 @@ function loadAllFromFirebase(callback) {
       IMR.length = 0;
     }
     seedImrDefaults();
+    // reembolso creche
+    var crecheVal = snaps[9].val();
+    CRECHE.length = 0;
+    if (crecheVal) {
+      var arrCr = Array.isArray(crecheVal) ? crecheVal : Object.values(crecheVal);
+      arrCr.forEach(function(x){ if(x) CRECHE.push(x); });
+    }
     // retenção de conta vinculada
     var retVal = snaps[8].val();
     RETENCAO.length = 0;
