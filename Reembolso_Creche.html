@@ -19,8 +19,15 @@
   .header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
   .header-title .main{font-size:14px;font-weight:bold;color:#000;margin-top:2px;}
   .header-badge{width:90px;border-left:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:11px;letter-spacing:.5px;flex-shrink:0;text-align:center;line-height:1.15;padding:0 4px;}
-  .header-update{background:#fffde7;font-size:10px;padding:3px 10px;border-top:1px solid #ddd;text-align:center;}
-  .header-update input{width:100%;border:none;background:transparent;font-size:10px;color:#c00;font-style:italic;text-align:center;font-family:Arial;outline:none;font-weight:bold;}
+
+  /* ── Barra de botões ── */
+  .toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap;}
+  .toolbar button{padding:7px 16px;border:none;border-radius:5px;font-size:12px;font-weight:bold;font-family:Arial;cursor:pointer;color:#fff;}
+  .btn-save{background:#2e7d32;}
+  .btn-save:hover{background:#256628;}
+  .btn-lock{background:#1f3864;}
+  .btn-lock:hover{background:#162a4d;}
+  .btn-lock.on{background:#c62828;}
 
   /* ── Dados do contrato ── */
   .info-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
@@ -40,11 +47,19 @@
   .val-tbl td:last-child{width:170px;text-align:right;}
   .val-tbl input{width:140px;text-align:right;border:none;border-bottom:1px solid #ccc;font-size:12px;outline:none;background:transparent;font-family:Arial;padding:2px 2px;}
   .val-tbl input.c{text-align:center;}
+  .val-tbl input:disabled{color:#333;border-bottom-color:transparent;}
   .calc-row td{background:#e8f5e9;font-weight:bold;}
   .neg td{background:#ffebee!important;color:#c62828!important;}
   .warn td{background:#ffebee;color:#c62828;font-size:10px;font-style:italic;padding:5px 9px;}
   .hint{font-size:10px;color:#888;margin:2px 0 10px;}
   small{font-weight:normal;color:#555;}
+
+  /* ── Impressão / PDF ── */
+  @media print{
+    body{background:#fff;padding:0;}
+    .page{border:none;box-shadow:none;max-width:none;padding:0;}
+    .no-print{display:none!important;}
+  }
 </style>
 </head>
 <body>
@@ -60,16 +75,18 @@
       </div>
       <div class="header-badge">REEMBOLSO<br>CRECHE</div>
     </div>
-    <div class="header-update">
-      <input id="headerUpdate" value="ATUALIZADO CONFORME TERMO INICIAL DE CONTRATO" oninput="autosave()">
-    </div>
+  </div>
+
+  <!-- BOTÕES -->
+  <div class="toolbar no-print">
+    <button class="btn-save" onclick="salvarPDF()">💾 Salvar (PDF)</button>
+    <button class="btn-lock" id="btnLock" onclick="toggleLock()">🔒 Travar formulário</button>
   </div>
 
   <!-- DADOS DO CONTRATO -->
   <div class="info-grid">
     <div class="info-cell"><label>CONTRATO Nº</label><input id="contrato" placeholder="Ex: 01/24" oninput="autosave()"></div>
     <div class="info-cell"><label>EMPRESA</label><input id="empresa" placeholder="Razão social" oninput="autosave()"></div>
-    <div class="info-cell"><label>UNIDADE</label><input id="unidade" placeholder="Unidade" oninput="autosave()"></div>
   </div>
 
   <!-- PERÍODO -->
@@ -80,7 +97,7 @@
     <label style="margin-left:12px">Período:</label>
     <select id="periodSel" onchange="renderCreche()"></select>
   </div>
-  <div class="hint">Valores de Retido / Valor Encarregado / Valor Servente valem do mês em que foram informados em diante (herdam do mês anterior quando em branco). Quantidades de reembolsos aprovados são do próprio mês.</div>
+  <div class="hint">Valores de Retido / Valor Reembolso valem do mês em que foram informados em diante (herdam do mês anterior quando em branco). A quantidade de reembolsos aprovados é do próprio mês.</div>
 
   <!-- TABELA -->
   <div class="creche-hdr">🏠 REEMBOLSO CRECHE</div>
@@ -98,10 +115,11 @@ var MES_NOMES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NO
 var MESES = [];
 
 var db = {
-  headerOrg:'', headerMain:'', headerUpdate:'',
-  contrato:'', empresa:'', unidade:'',
+  headerOrg:'', headerMain:'',
+  contrato:'', empresa:'',
   startMonth:0, startYear:(new Date()).getFullYear(),
-  creche:{}   // creche[period] = {retido, aprovEnc, aprovServ, valEnc, valServ}
+  locked:false,
+  creche:{}   // creche[period] = {retido, aprov, val}
 };
 
 function fl2(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
@@ -129,8 +147,8 @@ function crecheCarry(period, key){
 }
 function crecheTotalMes(period){
   var c = db.creche[period] || {};
-  var aprovEnc = fl2(c.aprovEnc), aprovServ = fl2(c.aprovServ);
-  return fl2(aprovEnc*crecheCarry(period,'valEnc') + aprovServ*crecheCarry(period,'valServ'));
+  var aprov = fl2(c.aprov);
+  return fl2(aprov * crecheCarry(period,'val'));
 }
 function crecheSaldoAcum(period){
   var idx = MESES.indexOf(period); if (idx < 0) return 0;
@@ -141,7 +159,7 @@ function crecheSaldoAcum(period){
 
 // ── Grava um campo e re-renderiza ──
 function setField(period, key, value){
-  if (!db.creche[period]) db.creche[period] = {retido:null,aprovEnc:0,aprovServ:0,valEnc:null,valServ:null};
+  if (!db.creche[period]) db.creche[period] = {retido:null,aprov:0,val:null};
   db.creche[period][key] = value;
   autosave();
   renderCreche();
@@ -152,35 +170,27 @@ function renderCreche(){
   var period = document.getElementById('periodSel').value;
   if (!period){ document.getElementById('crecheTable').innerHTML = ''; return; }
   var c = db.creche[period] || {};
-  var retido   = (c.retido   != null ? c.retido   : '');
-  var aprovEnc = (c.aprovEnc || '');
-  var aprovServ= (c.aprovServ|| '');
-  var valEnc   = (c.valEnc   != null ? c.valEnc   : '');
-  var valServ  = (c.valServ  != null ? c.valServ  : '');
+  var retido = (c.retido != null ? c.retido : '');
+  var aprov  = (c.aprov  || '');
+  var val    = (c.val    != null ? c.val : '');
   // Mostra o valor efetivo (herdado) como placeholder quando vazio
-  var hRetido  = crecheCarry(period,'retido');
-  var hValEnc  = crecheCarry(period,'valEnc');
-  var hValServ = crecheCarry(period,'valServ');
-  var total    = crecheTotalMes(period);
-  var saldo    = crecheSaldoAcum(period);
+  var hRetido = crecheCarry(period,'retido');
+  var hVal    = crecheCarry(period,'val');
+  var total   = crecheTotalMes(period);
+  var saldo   = crecheSaldoAcum(period);
+  var lk = db.locked ? ' disabled' : '';  // travado: Retido e Valor ficam bloqueados; Aprovados continua editável
 
   var h = '<table class="val-tbl" style="border-top:none">'
     + '<tr><td>Valor Reembolso Creche Retido (R$)</td>'
-    +   '<td><input type="number" step="0.01" value="'+retido+'" placeholder="'+(hRetido||'0')+'" '
+    +   '<td><input type="number" step="0.01" value="'+retido+'" placeholder="'+(hRetido||'0')+'"'+lk+' '
     +     'onchange="setField(\''+period+'\',\'retido\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
-    + '<tr><td>Reembolsos Aprovados Encarregado</td>'
-    +   '<td><input class="c" type="number" value="'+aprovEnc+'" placeholder="0" '
-    +     'onchange="setField(\''+period+'\',\'aprovEnc\',+this.value||0)"></td></tr>'
-    + '<tr><td>Reembolsos Aprovados Servente</td>'
-    +   '<td><input class="c" type="number" value="'+aprovServ+'" placeholder="0" '
-    +     'onchange="setField(\''+period+'\',\'aprovServ\',+this.value||0)"></td></tr>'
-    + '<tr><td>Valor Reembolso Encarregado (R$)</td>'
-    +   '<td><input type="number" step="0.01" value="'+valEnc+'" placeholder="'+(hValEnc||'0')+'" '
-    +     'onchange="setField(\''+period+'\',\'valEnc\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
-    + '<tr><td>Valor Reembolso Servente (R$)</td>'
-    +   '<td><input type="number" step="0.01" value="'+valServ+'" placeholder="'+(hValServ||'0')+'" '
-    +     'onchange="setField(\''+period+'\',\'valServ\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
-    + '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Enc.×Valor Enc. + Serv.×Valor Serv.)</small></td>'
+    + '<tr><td>Reembolsos Aprovados</td>'
+    +   '<td><input class="c" type="number" value="'+aprov+'" placeholder="0" '
+    +     'onchange="setField(\''+period+'\',\'aprov\',+this.value||0)"></td></tr>'
+    + '<tr><td>Valor Reembolso (R$)</td>'
+    +   '<td><input type="number" step="0.01" value="'+val+'" placeholder="'+(hVal||'0')+'"'+lk+' '
+    +     'onchange="setField(\''+period+'\',\'val\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
+    + '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
     +   '<td>'+BRL(total)+'</td></tr>'
     + '<tr class="calc-row'+(saldo<0?' neg':'')+'"><td>Saldo de Reembolso (R$) <small>(acumulado: saldo anterior + Retido – Total)</small></td>'
     +   '<td>'+BRL(saldo)+'</td></tr>'
@@ -202,14 +212,41 @@ function rebuildMeses(){
   renderCreche();
 }
 
+// ── Travar / destravar (só Período e Reembolsos Aprovados ficam editáveis) ──
+function applyLock(){
+  var locked = !!db.locked;
+  ['headerOrg','headerMain','contrato','empresa','startMonth','startYear'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.disabled = locked;
+  });
+  var btn = document.getElementById('btnLock');
+  if (btn){
+    btn.textContent = locked ? '🔓 Destravar formulário' : '🔒 Travar formulário';
+    btn.classList.toggle('on', locked);
+  }
+  renderCreche();
+}
+function toggleLock(){
+  db.locked = !db.locked;
+  autosave();
+  applyLock();
+}
+
+// ── Salvar em PDF (via impressão do navegador → "Salvar como PDF") ──
+function salvarPDF(){
+  var ctr = (db.contrato||'').replace(/[\\/]/g,'-');
+  var per = document.getElementById('periodSel').value || '';
+  var titulo = document.title;
+  document.title = ['Reembolso Creche', ctr, per].filter(Boolean).join(' - ');
+  window.print();
+  setTimeout(function(){ document.title = titulo; }, 500);
+}
+
 // ── Persistência local ──
 function coleta(){
-  db.headerOrg    = document.getElementById('headerOrg').value;
-  db.headerMain   = document.getElementById('headerMain').value;
-  db.headerUpdate = document.getElementById('headerUpdate').value;
+  db.headerOrg  = document.getElementById('headerOrg').value;
+  db.headerMain = document.getElementById('headerMain').value;
   db.contrato = document.getElementById('contrato').value;
   db.empresa  = document.getElementById('empresa').value;
-  db.unidade  = document.getElementById('unidade').value;
   db.startMonth = +document.getElementById('startMonth').value || 0;
   db.startYear  = +document.getElementById('startYear').value  || (new Date()).getFullYear();
 }
@@ -228,17 +265,15 @@ function carregar(){
     if (raw){ var saved = JSON.parse(raw); for (var k in saved) db[k] = saved[k]; }
   } catch(e){}
   if (!db.creche) db.creche = {};
-  document.getElementById('headerOrg').value    = db.headerOrg    || 'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6';
-  document.getElementById('headerMain').value   = db.headerMain   || 'REEMBOLSO CRECHE';
-  document.getElementById('headerUpdate').value = db.headerUpdate || 'ATUALIZADO CONFORME TERMO INICIAL DE CONTRATO';
+  document.getElementById('headerOrg').value  = db.headerOrg  || 'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6';
+  document.getElementById('headerMain').value = db.headerMain || 'REEMBOLSO CRECHE';
   document.getElementById('contrato').value = db.contrato || '';
   document.getElementById('empresa').value  = db.empresa  || '';
-  document.getElementById('unidade').value  = db.unidade  || '';
   initStartSelectors();
   MESES = gerarMeses(db.startMonth, db.startYear);
   var sel = document.getElementById('periodSel');
   sel.innerHTML = MESES.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
-  renderCreche();
+  applyLock();
 }
 
 carregar();
