@@ -153,7 +153,9 @@ body.sb-min .sb-ic{width:auto;font-size:15px}
 .view{display:none;padding:28px;box-sizing:border-box;width:100%}
 .view.active{display:block}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,border-color .16s ease;will-change:transform}
+.kpi:hover{transform:scale(1.045);z-index:2;filter:brightness(1.08);box-shadow:0 10px 26px rgba(0,0,0,.28);border-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.kpi{transition:none}.kpi:hover{transform:none}}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
 .kpi.blue::before{background:var(--blue)}.kpi.green::before{background:var(--green)}
 .kpi.amber::before{background:var(--amber)}.kpi.red::before{background:var(--red)}.kpi.purple::before{background:var(--purple)}
@@ -2071,9 +2073,10 @@ function buildDashboard() {
                 : k.btnImr ? 'showKpiLista(\'imrVig\')'
                 : '';
     var clickable = !!clickFn;
+    // O realce ao passar o mouse (escala/sombra/brilho) é feito em CSS (.kpi:hover).
     return '<div class="kpi '+k.c+'"'
-      +(clickable?' onclick="'+clickFn+'" style="cursor:pointer;transition:filter .15s" onmouseenter="this.style.filter=\'brightness(1.12)\'" onmouseleave="this.style.filter=\'\'"\n':'>')
-      +(clickable?'>':'')
+      +(clickable?' onclick="'+clickFn+'" style="cursor:pointer"':'')
+      +'>'
       +'<div class="kpi-label">'+k.l+'</div>'
       +'<div class="kpi-value" style="'+(k.small?'font-size:17px;line-height:1.25':'')+'">'+k.v+'</div>'
       +'<div class="kpi-sub">'+k.s+'</div>'
