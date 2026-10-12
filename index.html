@@ -187,22 +187,28 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 
 /* APP */
 #app{display:none}
-.sb{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
-.sb-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+/* O menu acompanha a cor da tela: degradê vertical do acento por cima de
+   var(--surface) (que é o fundo opaco), mais a borda direita tingida. O
+   degradê some descendo para o rodapé não ficar pesado. */
+.sb{position:fixed;left:0;top:0;bottom:0;width:220px;display:flex;flex-direction:column;z-index:100;
+  background:linear-gradient(180deg,rgba(var(--accent-rgb),.13) 0%,rgba(var(--accent-rgb),.05) 38%,transparent 72%),var(--surface);
+  border-right:1px solid rgba(var(--accent-rgb),.26);transition:background .25s,border-color .25s}
+.sb-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(var(--accent-rgb),.22)}
 .sb-lt{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--accent);text-transform:uppercase}
 .sb-ls{font-size:12px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
 .sb-nav{padding:16px 0;flex:1}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--muted);font-size:13px;border-left:3px solid transparent;transition:all .15s;transform-origin:left center;will-change:transform}
-.nav-item:hover{color:var(--text);background:rgba(var(--accent-rgb),.06);transform:translateX(5px) scale(1.03)}
+/* tons mais fortes que antes: agora precisam se destacar do próprio menu tingido */
+.nav-item:hover{color:var(--text);background:rgba(var(--accent-rgb),.11);transform:translateX(5px) scale(1.03)}
 @media (prefers-reduced-motion:reduce){.nav-item:hover{transform:none}}
-.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(var(--accent-rgb),.08)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(var(--accent-rgb),.18);font-weight:600}
 .nav-group{justify-content:space-between}
 .nav-caret{font-size:9px;margin-left:auto;transition:transform .2s}
 .nav-group.aberto .nav-caret{transform:rotate(90deg)}
 .nav-sub{display:none}
 .nav-sub.aberto{display:block}
 .nav-sub-item{padding-left:42px;font-size:12.5px}
-.sb-foot{padding:16px 20px;border-top:1px solid var(--border);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+.sb-foot{padding:16px 20px;border-top:1px solid rgba(var(--accent-rgb),.22);font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
 .sb-fv{color:var(--text);font-size:14px;font-weight:500;margin-bottom:4px}
 .main{margin-left:220px;height:100vh;overflow-y:auto;overflow-x:hidden;overflow-anchor:none}
 .sb,.main{transition:width .18s ease,margin-left .18s ease}
@@ -215,7 +221,7 @@ body.sb-min .sb{width:58px}
 body.sb-min .main{margin-left:58px}
 body.sb-min #doc-hbar{left:58px}
 body.sb-min .sb-tx,body.sb-min .nav-caret,body.sb-min .sb-lt,body.sb-min .sb-ls,body.sb-min .sb-foot{display:none}
-body.sb-min .sb-logo{padding:0;height:53px}          /* alinha com a altura da barra de título */
+body.sb-min .sb-logo{padding:0;height:61px}          /* alinha com a altura da barra de título */
 body.sb-min .nav-item{justify-content:center;padding:11px 0;gap:0;border-left-width:2px;transform-origin:center}
 body.sb-min .nav-item:hover{transform:scale(1.1)}
 body.sb-min .nav-sub-item{padding-left:0;font-size:13px}
