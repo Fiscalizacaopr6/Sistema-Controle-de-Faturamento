@@ -130,6 +130,15 @@ var db = {
 
 function fl2(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
 function BRL(v){ return (fl2(v)).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+// Lê um valor digitado em moeda ("R$ 1.825,35", "1825,35", "1825.35") → número
+function parseBRL(str){
+  if (str == null) return null;
+  var t = String(str).replace(/[^\d,.-]/g,'').trim();
+  if (!t) return null;
+  if (t.indexOf(',') > -1) t = t.replace(/\./g,'').replace(',', '.');
+  var n = parseFloat(t);
+  return isFinite(n) ? n : null;
+}
 
 // ── Gera a lista de 60 meses a partir do início dos efeitos ──
 function gerarMeses(mesInicio, ano){
@@ -206,14 +215,14 @@ function renderCreche(){
     var hVal    = crecheCarry(period,'val'+sfx);
     if (nome) h += '<tr class="grp-row"><td colspan="2">'+nome+'</td></tr>';
     h += '<tr><td>Valor Reembolso Creche Retido (R$)</td>'
-      +   '<td><input type="number" step="0.01" value="'+retido+'" placeholder="'+(hRetido||'0')+'"'+lk+' '
-      +     'onchange="setField(\'' + period + '\',\'retido' + sfx + '\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
+      +   '<td><input type="text" inputmode="decimal" value="'+(retido===''?'':BRL(retido))+'" placeholder="'+BRL(hRetido)+'"'+lk+' '
+      +     'onchange="setField(\'' + period + '\',\'retido' + sfx + '\',parseBRL(this.value))"></td></tr>'
       + '<tr><td>Reembolsos Aprovados</td>'
       +   '<td><input class="c" type="number" value="'+aprov+'" placeholder="0" '
       +     'onchange="setField(\'' + period + '\',\'aprov' + sfx + '\',+this.value||0)"></td></tr>'
       + '<tr><td>Valor Reembolso (R$)</td>'
-      +   '<td><input type="number" step="0.01" value="'+val+'" placeholder="'+(hVal||'0')+'"'+lk+' '
-      +     'onchange="setField(\'' + period + '\',\'val' + sfx + '\',this.value===\'\'?null:(+this.value||0))"></td></tr>';
+      +   '<td><input type="text" inputmode="decimal" value="'+(val===''?'':BRL(val))+'" placeholder="'+BRL(hVal)+'"'+lk+' '
+      +     'onchange="setField(\'' + period + '\',\'val' + sfx + '\',parseBRL(this.value))"></td></tr>';
   }
   h += '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
     +   '<td>'+BRL(total)+'</td></tr>'
