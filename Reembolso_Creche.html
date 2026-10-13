@@ -50,6 +50,7 @@
   .val-tbl input.c{text-align:center;}
   .val-tbl input:disabled{color:#333;border-bottom-color:transparent;}
   .calc-row td{background:#e8f5e9;font-weight:bold;}
+  .saldo-row td{font-weight:bold;}
   .neg td{background:#ffebee!important;color:#c62828!important;}
   .warn td{background:#ffebee;color:#c62828;font-size:10px;font-style:italic;padding:5px 9px;}
   .hint{font-size:10px;color:#888;margin:2px 0 10px;}
@@ -193,7 +194,7 @@ function renderCreche(){
     +     'onchange="setField(\''+period+'\',\'val\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
     + '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
     +   '<td>'+BRL(total)+'</td></tr>'
-    + '<tr class="calc-row'+(saldo<0?' neg':'')+'"><td>Saldo de Reembolso (R$) <small>(acumulado: saldo anterior + Retido – Total)</small></td>'
+    + '<tr class="saldo-row'+(saldo<0?' neg':'')+'"><td>Saldo de Reembolso (R$) <small>(acumulado: saldo anterior + Retido – Total)</small></td>'
     +   '<td>'+BRL(saldo)+'</td></tr>'
     + (saldo<0 ? '<tr class="warn"><td colspan="2">⚠ Atenção: será necessário aditivar o contrato para suportar a despesa.</td></tr>' : '')
     + '</table>';
