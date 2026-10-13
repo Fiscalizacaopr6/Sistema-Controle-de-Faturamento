@@ -49,6 +49,7 @@
   .val-tbl input{width:140px;text-align:right;border:none;border-bottom:1px solid #ccc;font-size:12px;outline:none;background:transparent;font-family:Arial;padding:2px 2px;}
   .val-tbl input.c{text-align:center;}
   .val-tbl input:disabled{color:#333;border-bottom-color:transparent;}
+  .grp-row td{background:#f0f4fa;font-weight:bold;font-size:11px;color:#1f3864;letter-spacing:.3px;}
   .calc-row td{background:#e8f5e9;font-weight:bold;}
   .saldo-row td{font-weight:bold;}
   .neg td{background:#ffebee!important;color:#c62828!important;}
@@ -115,13 +116,16 @@
 var STORAGE_KEY = 'reembolso_creche_34_25';
 var MES_NOMES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 var MESES = [];
+// Grupos de valores (lotes/itens com valor unitário distinto).
+// sfx = sufixo dos campos em db.creche[periodo]; '' mantém os campos originais.
+var GRUPOS = [{sfx:'', nome:''}];
 
 var db = {
   headerOrg:'', headerMain:'',
   contrato:'34/25', empresa:'ATLÂNTICA SERVIÇOS GERAIS LTDA',
   startMonth:7, startYear:2026,
   locked:false,
-  creche:{'AGO-26':{retido:4485.46, aprov:0, val:121.23}}   // creche[period] = {retido, aprov, val}
+  creche:{'AGO-26':{retido:4485.46, aprov:0, val:121.23}}   // creche[period] = {retido, aprov, val} (por grupo)
 };
 
 function fl2(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
@@ -148,20 +152,35 @@ function crecheCarry(period, key){
   return 0;
 }
 function crecheTotalMes(period){
-  var c = db.creche[period] || {};
-  var aprov = fl2(c.aprov);
-  return fl2(aprov * crecheCarry(period,'val'));
+  var c = db.creche[period] || {}, t = 0;
+  for (var i=0;i<GRUPOS.length;i++){
+    var sfx = GRUPOS[i].sfx;
+    t += fl2(c['aprov'+sfx]) * crecheCarry(period,'val'+sfx);
+  }
+  return fl2(t);
+}
+function crecheRetidoMes(period){
+  var t = 0;
+  for (var i=0;i<GRUPOS.length;i++) t += crecheCarry(period,'retido'+GRUPOS[i].sfx);
+  return fl2(t);
 }
 function crecheSaldoAcum(period){
   var idx = MESES.indexOf(period); if (idx < 0) return 0;
   var saldo = 0;
-  for (var i=0;i<=idx;i++) saldo += crecheCarry(MESES[i],'retido') - crecheTotalMes(MESES[i]);
+  for (var i=0;i<=idx;i++) saldo += crecheRetidoMes(MESES[i]) - crecheTotalMes(MESES[i]);
   return fl2(saldo);
 }
 
 // ── Grava um campo e re-renderiza ──
 function setField(period, key, value){
-  if (!db.creche[period]) db.creche[period] = {retido:null,aprov:0,val:null};
+  if (!db.creche[period]){
+    var novo = {};
+    for (var i=0;i<GRUPOS.length;i++){
+      var sfx = GRUPOS[i].sfx;
+      novo['retido'+sfx] = null; novo['aprov'+sfx] = 0; novo['val'+sfx] = null;
+    }
+    db.creche[period] = novo;
+  }
   db.creche[period][key] = value;
   autosave();
   renderCreche();
@@ -172,27 +191,31 @@ function renderCreche(){
   var period = document.getElementById('periodSel').value;
   if (!period){ document.getElementById('crecheTable').innerHTML = ''; return; }
   var c = db.creche[period] || {};
-  var retido = (c.retido != null ? c.retido : '');
-  var aprov  = (c.aprov  || '');
-  var val    = (c.val    != null ? c.val : '');
-  // Mostra o valor efetivo (herdado) como placeholder quando vazio
-  var hRetido = crecheCarry(period,'retido');
-  var hVal    = crecheCarry(period,'val');
   var total   = crecheTotalMes(period);
   var saldo   = crecheSaldoAcum(period);
   var lk = db.locked ? ' disabled' : '';  // travado: Retido e Valor ficam bloqueados; Aprovados continua editável
 
-  var h = '<table class="val-tbl" style="border-top:none">'
-    + '<tr><td>Valor Reembolso Creche Retido (R$)</td>'
-    +   '<td><input type="number" step="0.01" value="'+retido+'" placeholder="'+(hRetido||'0')+'"'+lk+' '
-    +     'onchange="setField(\''+period+'\',\'retido\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
-    + '<tr><td>Reembolsos Aprovados</td>'
-    +   '<td><input class="c" type="number" value="'+aprov+'" placeholder="0" '
-    +     'onchange="setField(\''+period+'\',\'aprov\',+this.value||0)"></td></tr>'
-    + '<tr><td>Valor Reembolso (R$)</td>'
-    +   '<td><input type="number" step="0.01" value="'+val+'" placeholder="'+(hVal||'0')+'"'+lk+' '
-    +     'onchange="setField(\''+period+'\',\'val\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
-    + '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
+  var h = '<table class="val-tbl" style="border-top:none">';
+  for (var gi=0; gi<GRUPOS.length; gi++){
+    var sfx = GRUPOS[gi].sfx, nome = GRUPOS[gi].nome;
+    var retido = (c['retido'+sfx] != null ? c['retido'+sfx] : '');
+    var aprov  = (c['aprov'+sfx]  || '');
+    var val    = (c['val'+sfx]    != null ? c['val'+sfx] : '');
+    // Mostra o valor efetivo (herdado) como placeholder quando vazio
+    var hRetido = crecheCarry(period,'retido'+sfx);
+    var hVal    = crecheCarry(period,'val'+sfx);
+    if (nome) h += '<tr class="grp-row"><td colspan="2">'+nome+'</td></tr>';
+    h += '<tr><td>Valor Reembolso Creche Retido (R$)</td>'
+      +   '<td><input type="number" step="0.01" value="'+retido+'" placeholder="'+(hRetido||'0')+'"'+lk+' '
+      +     'onchange="setField(\'' + period + '\',\'retido' + sfx + '\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
+      + '<tr><td>Reembolsos Aprovados</td>'
+      +   '<td><input class="c" type="number" value="'+aprov+'" placeholder="0" '
+      +     'onchange="setField(\'' + period + '\',\'aprov' + sfx + '\',+this.value||0)"></td></tr>'
+      + '<tr><td>Valor Reembolso (R$)</td>'
+      +   '<td><input type="number" step="0.01" value="'+val+'" placeholder="'+(hVal||'0')+'"'+lk+' '
+      +     'onchange="setField(\'' + period + '\',\'val' + sfx + '\',this.value===\'\'?null:(+this.value||0))"></td></tr>';
+  }
+  h += '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
     +   '<td>'+BRL(total)+'</td></tr>'
     + '<tr class="saldo-row'+(saldo<0?' neg':'')+'"><td>Saldo de Reembolso (R$) <small>(acumulado: saldo anterior + Retido – Total)</small></td>'
     +   '<td>'+BRL(saldo)+'</td></tr>'
