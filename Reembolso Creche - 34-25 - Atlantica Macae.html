@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reembolso Creche 34/25</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#eef2f7;font-family:Arial,Helvetica,sans-serif;color:#1f3864;padding:16px;}
+  .page{max-width:760px;margin:0 auto;background:#fff;border:1px solid #d0d8e8;border-radius:6px;padding:16px;box-shadow:0 2px 10px rgba(31,56,100,.08);}
+
+  /* ── Cabeçalho (padrão IMR) ── */
+  .header-wrap{border:2px solid #1f3864;margin-bottom:12px;}
+  .header-top{display:flex;align-items:stretch;}
+  .header-logo{width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;flex-shrink:0;}
+  .header-logo span{font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;}
+  .header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+  .header-title input{width:100%;border:none;background:transparent;text-align:center;outline:none;padding:0;font-family:Arial;}
+  .header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
+  .header-title .main{font-size:14px;font-weight:bold;color:#000;margin-top:2px;}
+  .header-badge{width:90px;border-left:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:11px;letter-spacing:.5px;flex-shrink:0;text-align:center;line-height:1.15;padding:0 4px;}
+
+  /* ── Barra de botões ── */
+  .toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap;}
+  .toolbar button{padding:7px 16px;border:none;border-radius:5px;font-size:12px;font-weight:bold;font-family:Arial;cursor:pointer;color:#fff;}
+  .btn-save{background:#2e7d32;}
+  .btn-save:hover{background:#256628;}
+  .btn-lock{background:#1f3864;}
+  .btn-lock:hover{background:#162a4d;}
+  .btn-lock.on{background:#c62828;}
+
+  /* ── Dados do contrato ── */
+  .info-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .info-cell{flex:1;min-width:180px;background:#f0f4fa;border:1px solid #d0d8e8;border-radius:4px;padding:6px 8px;}
+  .info-cell label{display:block;font-size:10px;font-weight:bold;color:#1f3864;margin-bottom:2px;}
+  .info-cell input{width:100%;border:none;border-bottom:1px solid #c8d4e8;background:transparent;font-size:12px;color:#000;outline:none;padding:2px 0;font-family:Arial;}
+
+  /* ── Barra de período ── */
+  .period-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;background:#f0f4fa;border:1px solid #d0d8e8;border-radius:4px;padding:8px 10px;}
+  .period-bar label{font-weight:bold;color:#1f3864;font-size:11px;white-space:nowrap;}
+  .period-bar select,.period-bar input{padding:4px 8px;border:1.5px solid #2e74b5;border-radius:4px;font-size:11px;font-family:Arial;color:#1f3864;background:#f0f7ff;outline:none;cursor:pointer;}
+
+  /* ── Tabela de Reembolso Creche (padrão IMR) ── */
+  .creche-hdr{background:#e65100;color:#fff;font-weight:bold;font-size:12px;padding:6px 10px;margin-top:4px;display:flex;align-items:center;gap:6px;border-radius:3px 3px 0 0;}
+  .val-tbl{border-collapse:collapse;font-size:12px;width:100%;margin-bottom:8px;}
+  .val-tbl td{border:1px solid #c8d4e8;padding:7px 9px;vertical-align:middle;}
+  .val-tbl td:last-child{width:170px;text-align:right;}
+  .val-tbl input{width:140px;text-align:right;border:none;border-bottom:1px solid #ccc;font-size:12px;outline:none;background:transparent;font-family:Arial;padding:2px 2px;}
+  .val-tbl input.c{text-align:center;}
+  .val-tbl input:disabled{color:#333;border-bottom-color:transparent;}
+  .calc-row td{background:#e8f5e9;font-weight:bold;}
+  .saldo-row td{font-weight:bold;}
+  .neg td{background:#ffebee!important;color:#c62828!important;}
+  .warn td{background:#ffebee;color:#c62828;font-size:10px;font-style:italic;padding:5px 9px;}
+  .hint{font-size:10px;color:#888;margin:2px 0 10px;}
+  small{font-weight:normal;color:#555;}
+
+  /* ── Impressão / PDF ── */
+  @media print{
+    body{background:#fff;padding:0;}
+    .page{border:none;box-shadow:none;max-width:none;padding:0;}
+    .no-print{display:none!important;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- CABEÇALHO -->
+  <div class="header-wrap">
+    <div class="header-top">
+      <div class="header-logo"><span>UFRJ</span></div>
+      <div class="header-title">
+        <input class="org" id="headerOrg" value="PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6" oninput="autosave()">
+        <input class="main" id="headerMain" value="REEMBOLSO CRECHE" oninput="autosave()">
+      </div>
+      <div class="header-badge">REEMBOLSO<br>CRECHE</div>
+    </div>
+  </div>
+
+  <!-- BOTÕES -->
+  <div class="toolbar no-print">
+    <button class="btn-save" onclick="salvarPDF()">💾 Salvar (PDF)</button>
+    <button class="btn-lock" id="btnLock" onclick="toggleLock()">🔒 Travar formulário</button>
+  </div>
+
+  <!-- DADOS DO CONTRATO -->
+  <div class="info-grid">
+    <div class="info-cell"><label>CONTRATO Nº</label><input id="contrato" placeholder="Ex: 01/24" oninput="autosave()"></div>
+    <div class="info-cell"><label>EMPRESA</label><input id="empresa" placeholder="Razão social" oninput="autosave()"></div>
+  </div>
+
+  <!-- PERÍODO -->
+  <div class="period-bar">
+    <label>Início dos efeitos:</label>
+    <select id="startMonth" onchange="rebuildMeses()"></select>
+    <input type="number" id="startYear" min="2020" max="2099" style="width:80px" onchange="rebuildMeses()">
+    <label style="margin-left:12px">Período:</label>
+    <select id="periodSel" onchange="renderCreche()"></select>
+  </div>
+  <div class="hint">Valores de Retido / Valor Reembolso valem do mês em que foram informados em diante (herdam do mês anterior quando em branco). A quantidade de reembolsos aprovados é do próprio mês.</div>
+
+  <!-- TABELA -->
+  <div class="creche-hdr">🏠 REEMBOLSO CRECHE</div>
+  <div id="crecheTable"></div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  Formulário autônomo de Reembolso Creche
+//  (mesma lógica de carry/saldo do IMR, sem Firebase)
+// ══════════════════════════════════════════════
+var STORAGE_KEY = 'reembolso_creche_34_25';
+var MES_NOMES = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+var MESES = [];
+
+var db = {
+  headerOrg:'', headerMain:'',
+  contrato:'34/25', empresa:'ATLÂNTICA SERVIÇOS GERAIS LTDA',
+  startMonth:7, startYear:2026,
+  locked:false,
+  creche:{'AGO-26':{retido:4485.46, aprov:0, val:121.23}}   // creche[period] = {retido, aprov, val}
+};
+
+function fl2(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+function BRL(v){ return (fl2(v)).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+// ── Gera a lista de 60 meses a partir do início dos efeitos ──
+function gerarMeses(mesInicio, ano){
+  var arr = [], m = mesInicio, y = ano;
+  for (var i=0;i<60;i++){
+    arr.push(MES_NOMES[m] + '-' + String(y).slice(-2));
+    m++; if (m>11){ m=0; y++; }
+  }
+  return arr;
+}
+
+// ── Carry: percorre de trás para frente e devolve o 1º valor truthy ──
+function crecheCarry(period, key){
+  var idx = MESES.indexOf(period); if (idx < 0) return 0;
+  for (var i=idx;i>=0;i--){
+    var c = db.creche[MESES[i]];
+    var v = c ? fl2(c[key]) : 0;
+    if (v) return v;
+  }
+  return 0;
+}
+function crecheTotalMes(period){
+  var c = db.creche[period] || {};
+  var aprov = fl2(c.aprov);
+  return fl2(aprov * crecheCarry(period,'val'));
+}
+function crecheSaldoAcum(period){
+  var idx = MESES.indexOf(period); if (idx < 0) return 0;
+  var saldo = 0;
+  for (var i=0;i<=idx;i++) saldo += crecheCarry(MESES[i],'retido') - crecheTotalMes(MESES[i]);
+  return fl2(saldo);
+}
+
+// ── Grava um campo e re-renderiza ──
+function setField(period, key, value){
+  if (!db.creche[period]) db.creche[period] = {retido:null,aprov:0,val:null};
+  db.creche[period][key] = value;
+  autosave();
+  renderCreche();
+}
+
+// ── Render da tabela do período selecionado ──
+function renderCreche(){
+  var period = document.getElementById('periodSel').value;
+  if (!period){ document.getElementById('crecheTable').innerHTML = ''; return; }
+  var c = db.creche[period] || {};
+  var retido = (c.retido != null ? c.retido : '');
+  var aprov  = (c.aprov  || '');
+  var val    = (c.val    != null ? c.val : '');
+  // Mostra o valor efetivo (herdado) como placeholder quando vazio
+  var hRetido = crecheCarry(period,'retido');
+  var hVal    = crecheCarry(period,'val');
+  var total   = crecheTotalMes(period);
+  var saldo   = crecheSaldoAcum(period);
+  var lk = db.locked ? ' disabled' : '';  // travado: Retido e Valor ficam bloqueados; Aprovados continua editável
+
+  var h = '<table class="val-tbl" style="border-top:none">'
+    + '<tr><td>Valor Reembolso Creche Retido (R$)</td>'
+    +   '<td><input type="number" step="0.01" value="'+retido+'" placeholder="'+(hRetido||'0')+'"'+lk+' '
+    +     'onchange="setField(\''+period+'\',\'retido\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
+    + '<tr><td>Reembolsos Aprovados</td>'
+    +   '<td><input class="c" type="number" value="'+aprov+'" placeholder="0" '
+    +     'onchange="setField(\''+period+'\',\'aprov\',+this.value||0)"></td></tr>'
+    + '<tr><td>Valor Reembolso (R$)</td>'
+    +   '<td><input type="number" step="0.01" value="'+val+'" placeholder="'+(hVal||'0')+'"'+lk+' '
+    +     'onchange="setField(\''+period+'\',\'val\',this.value===\'\'?null:(+this.value||0))"></td></tr>'
+    + '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
+    +   '<td>'+BRL(total)+'</td></tr>'
+    + '<tr class="saldo-row'+(saldo<0?' neg':'')+'"><td>Saldo de Reembolso (R$) <small>(acumulado: saldo anterior + Retido – Total)</small></td>'
+    +   '<td>'+BRL(saldo)+'</td></tr>'
+    + (saldo<0 ? '<tr class="warn"><td colspan="2">⚠ Atenção: será necessário aditivar o contrato para suportar a despesa.</td></tr>' : '')
+    + '</table>';
+  document.getElementById('crecheTable').innerHTML = h;
+}
+
+// ── Reconstrói a lista de meses e o seletor de período ──
+function rebuildMeses(){
+  db.startMonth = +document.getElementById('startMonth').value || 0;
+  db.startYear  = +document.getElementById('startYear').value  || (new Date()).getFullYear();
+  MESES = gerarMeses(db.startMonth, db.startYear);
+  var atual = document.getElementById('periodSel').value;
+  var sel = document.getElementById('periodSel');
+  sel.innerHTML = MESES.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+  if (MESES.indexOf(atual) !== -1) sel.value = atual;
+  autosave();
+  renderCreche();
+}
+
+// ── Travar / destravar (só Período e Reembolsos Aprovados ficam editáveis) ──
+function applyLock(){
+  var locked = !!db.locked;
+  ['headerOrg','headerMain','contrato','empresa','startMonth','startYear'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.disabled = locked;
+  });
+  var btn = document.getElementById('btnLock');
+  if (btn){
+    btn.textContent = locked ? '🔓 Destravar formulário' : '🔒 Travar formulário';
+    btn.classList.toggle('on', locked);
+  }
+  renderCreche();
+}
+function toggleLock(){
+  db.locked = !db.locked;
+  autosave();
+  applyLock();
+}
+
+// ── Salvar em PDF (baixa direto para os Downloads) ──
+function salvarPDF(){
+  var ctr = (db.contrato||'').replace(/[\\/]/g,'-');
+  var per = document.getElementById('periodSel').value || '';
+  var nome = ['Reembolso Creche', ctr, per].filter(Boolean).join(' - ') + '.pdf';
+  var alvo = document.querySelector('.page');
+  var toolbar = document.querySelector('.toolbar');
+
+  // Sem a biblioteca (ex: offline) → cai para a impressão do navegador
+  if (typeof html2pdf === 'undefined'){
+    var titulo = document.title;
+    document.title = nome.replace(/\.pdf$/,'');
+    window.print();
+    setTimeout(function(){ document.title = titulo; }, 500);
+    return;
+  }
+
+  if (toolbar) toolbar.style.display = 'none';
+  html2pdf().set({
+    margin: 8,
+    filename: nome,
+    image: { type:'jpeg', quality:0.98 },
+    html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff' },
+    jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
+  }).from(alvo).save().then(function(){
+    if (toolbar) toolbar.style.display = '';
+  }).catch(function(e){
+    if (toolbar) toolbar.style.display = '';
+    console.error('Falha ao gerar PDF:', e);
+    alert('Não foi possível gerar o PDF. Verifique a conexão e tente novamente.');
+  });
+}
+
+// ── Persistência local ──
+function coleta(){
+  db.headerOrg  = document.getElementById('headerOrg').value;
+  db.headerMain = document.getElementById('headerMain').value;
+  db.contrato = document.getElementById('contrato').value;
+  db.empresa  = document.getElementById('empresa').value;
+  db.startMonth = +document.getElementById('startMonth').value || 0;
+  db.startYear  = +document.getElementById('startYear').value  || (new Date()).getFullYear();
+}
+function autosave(){ coleta(); localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+
+function initStartSelectors(){
+  var sm = document.getElementById('startMonth');
+  sm.innerHTML = MES_NOMES.map(function(n,i){ return '<option value="'+i+'">'+n+'</option>'; }).join('');
+  sm.value = db.startMonth;
+  document.getElementById('startYear').value = db.startYear;
+}
+
+function carregar(){
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw){ var saved = JSON.parse(raw); for (var k in saved) db[k] = saved[k]; }
+  } catch(e){}
+  if (!db.creche) db.creche = {};
+  document.getElementById('headerOrg').value  = db.headerOrg  || 'PRÓ-REITORIA DE GESTÃO E GOVERNANÇA – PR6';
+  document.getElementById('headerMain').value = db.headerMain || 'REEMBOLSO CRECHE';
+  document.getElementById('contrato').value = db.contrato || '';
+  document.getElementById('empresa').value  = db.empresa  || '';
+  initStartSelectors();
+  MESES = gerarMeses(db.startMonth, db.startYear);
+  var sel = document.getElementById('periodSel');
+  sel.innerHTML = MESES.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+  applyLock();
+}
+
+carregar();
+</script>
+</body>
+</html>

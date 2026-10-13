@@ -93,7 +93,7 @@
 
   <!-- PERÍODO -->
   <div class="period-bar">
-    <label>Início da vigência:</label>
+    <label>Início dos efeitos:</label>
     <select id="startMonth" onchange="rebuildMeses()"></select>
     <input type="number" id="startYear" min="2020" max="2099" style="width:80px" onchange="rebuildMeses()">
     <label style="margin-left:12px">Período:</label>
@@ -127,7 +127,7 @@ var db = {
 function fl2(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
 function BRL(v){ return (fl2(v)).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
 
-// ── Gera a lista de 60 meses a partir do início da vigência ──
+// ── Gera a lista de 60 meses a partir do início dos efeitos ──
 function gerarMeses(mesInicio, ano){
   var arr = [], m = mesInicio, y = ano;
   for (var i=0;i<60;i++){
