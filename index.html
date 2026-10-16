@@ -591,6 +591,15 @@ select.doc-inp{cursor:pointer}
   border-radius:4px;font-size:11px;font-weight:700;padding:2px 6px;line-height:1.4;font-family:'Sora',sans-serif}
 .fc-sei-btn:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.12)}
 .fc-sei-btn:disabled{color:var(--muted);cursor:not-allowed;opacity:.4}
+/* Fiscais — edição direto na célula (modelo da aba Documentos) */
+#fiscal-cards td.fc-cell{cursor:cell}
+#fiscal-cards td.fc-cell:hover{box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35)}
+#fiscal-cards td.fc-calc{cursor:default}
+#fiscal-cards td.fc-editing{padding:3px 5px;background:rgba(var(--accent-rgb),.10)}
+#fiscal-cards td.fc-sel{box-shadow:inset 0 0 0 2px var(--accent);background:rgba(var(--accent-rgb),.12)}
+.fc-hint{font-size:11px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+.fc-hint b{color:var(--text);font-weight:600}
+.fc-hint kbd{font-family:'DM Mono',monospace;font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -3486,36 +3495,239 @@ function termoAtualDoContrato(contrato) {
   return best;
 }
 
-// Replica o End. SEI de uma linha em TODAS as linhas do filtro atual
-// (fcFiltered), igual ao "colar em várias linhas" da aba Documentos: colar só
-// no que está filtrado. Pede confirmação e avisa quantas serão substituídas.
-function fcReplicarSei(id) {
-  if (!canEditView('fiscais')) { alert('Seu perfil é somente leitura — edição não permitida.'); return; }
-  var origem = FISCAIS.find(function(x){ return x.id === id; });
-  if (!origem) return;
-  var valor = String(origem.enderecoSei || '').trim();
+// ══════════════════════════════════════════════════════════════
+//  Fiscais — edição direto na célula + Copiar/Colar em várias linhas,
+//  no mesmo modelo da aba Documentos:
+//   • 1 clique seleciona a célula  • duplo clique edita
+//   • Ctrl+C copia o valor  • Ctrl+V replica em TODAS as linhas do filtro
+//     (fcFiltered) nas colunas liberadas (FC_REPLICAVEIS).
+// ══════════════════════════════════════════════════════════════
+var FC_SIT_COLOR = {'Titular':'var(--blue)','Substituto':'var(--amber)','Presidente':'var(--purple)','Presidente substituto':'var(--purple)','Membro de comissão':'var(--green)'};
+var FC_COLS = [
+  {k:'nome',        label:'Nome',      upper:true},
+  {k:'siape',       label:'SIAPE',     mono:true},
+  {k:'situacao',    label:'Situação',  type:'select', options:SITUACOES, replicavel:true},
+  {k:'contrato',    label:'Contrato',  type:'contrato', mono:true},
+  {k:'_status',     label:'Status',    calc:true},
+  {k:'empresa',     label:'Empresa',   list:'fc-dl-empresas', replicavel:true},
+  {k:'unidade',     label:'Unidade',   muted:true, replicavel:true},
+  {k:'email',       label:'E-mail'},
+  {k:'email2',      label:'E-mail 2'},
+  {k:'telefone',    label:'Telefone',  mask:'phone', mono:true},
+  {k:'enderecoSei', label:'End. SEI',  muted:true, replicavel:true},
+  {k:'portaria',    label:'Portaria',  mono:true, sei:true, replicavel:true}
+];
+var FC_FIELD_MAP = {}; FC_COLS.forEach(function(c){ FC_FIELD_MAP[c.k] = c; });
+var FC_REPLICAVEIS = {}; FC_COLS.forEach(function(c){ if (c.replicavel) FC_REPLICAVEIS[c.k] = 1; });
+var _fcSel = null, _fcCopy = null, _fcInit = false;
+
+function fcFind(id) { for (var i = 0; i < FISCAIS.length; i++) if (FISCAIS[i].id === id) return FISCAIS[i]; return null; }
+
+// Estilo do <td> por coluna (mono/acento/muted/nome). nowrap em tudo: a coluna
+// cresce para caber o valor inteiro e a rolagem horizontal cuida do excesso.
+function fcTdStyle(col) {
+  var s = 'white-space:nowrap;';
+  if (col.k === 'nome') s += 'font-weight:600;color:var(--text);';
+  else if (col.k === 'contrato') s += "font-family:'DM Mono',monospace;color:var(--accent);font-weight:600;";
+  else if (col.mono) s += "font-family:'DM Mono',monospace;font-size:11px;";
+  else if (col.muted) s += 'font-size:11px;color:var(--muted);';
+  else s += 'font-size:11px;';
+  return s;
+}
+
+// HTML de leitura da célula.
+function fcCellDisplay(col, f) {
+  if (col.calc) {
+    var dado = termoAtualDoContrato(f.contrato), st = dado ? (dado._st || '') : '';
+    return st === 'VIGENTE'  ? '<span class="badge bg" style="font-size:10px">Vigente</span>'
+         : st === 'ENCERRADO'? '<span class="badge br" style="font-size:10px">Encerrado</span>'
+         : st === 'A INICIAR'? '<span class="badge bo" style="font-size:10px">A Iniciar</span>'
+         : '<span style="color:var(--muted);font-size:11px">—</span>';
+  }
+  var v = f[col.k];
+  if (col.upper) v = String(v || '').toUpperCase();
+  if (v === undefined || v === null || String(v).trim() === '') return '<span class="doc-empty">—</span>';
+  if (col.k === 'situacao') { var cor = FC_SIT_COLOR[v] || 'var(--muted)'; return '<span style="color:' + cor + ';font-weight:600">' + esc(v) + '</span>'; }
+  if (col.sei) return '<span>' + esc(v) + '</span> <button type="button" class="fc-sei-btn" title="Abrir portaria no SEI" onclick="event.stopPropagation();fcAbrirPortariaSei(\'' + f.id + '\',event)">↗ SEI</button>';
+  return esc(v);
+}
+
+// HTML do editor (duplo clique).
+function fcEditorHtml(col, v) {
+  v = (v === undefined || v === null) ? '' : v;
+  if (col.type === 'select') {
+    var cur = String(v), opts = (col.options || []).slice();
+    if (cur && opts.indexOf(cur) === -1) opts.push(cur);
+    return '<select class="doc-inp"><option value="">—</option>'
+      + opts.map(function(o){ return '<option value="' + esc(o) + '"' + (o === cur ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+  }
+  if (col.type === 'contrato') {
+    var curc = String(v), lista = fiscalContratosOrdenados();
+    if (curc && lista.indexOf(curc) === -1) lista = [curc].concat(lista);
+    return '<select class="doc-inp"><option value="">—</option>'
+      + lista.map(function(o){ return '<option value="' + esc(o) + '"' + (o === curc ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+  }
+  var attrs = '';
+  if (col.list) attrs += ' list="' + col.list + '"';
+  if (col.upper) attrs += ' oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"';
+  if (col.mask === 'phone') attrs += ' oninput="maskPhone(this)" maxlength="15"';
+  return '<input class="doc-inp" type="text"' + attrs + ' value="' + esc(v) + '">';
+}
+
+// Texto legível (para o Ctrl+C / área de transferência).
+function fcTextoCelula(col, f) {
+  if (col.calc) { var dado = termoAtualDoContrato(f.contrato); return dado ? (dado._st || '') : ''; }
+  var v = f[col.k]; if (col.upper) v = String(v || '').toUpperCase();
+  return (v === undefined || v === null) ? '' : String(v);
+}
+
+// ── Seleção ──
+function fcLimparSel() { var p = document.querySelector('#fiscal-cards td.fc-sel'); if (p) p.classList.remove('fc-sel'); }
+function fcSelecionar(td) { if (!td) return; fcLimparSel(); _fcSel = {id: td.getAttribute('data-id'), k: td.getAttribute('data-k')}; td.classList.add('fc-sel'); }
+function fcCellTd(id, k) { return document.querySelector('#fiscal-cards td[data-id="' + id + '"][data-k="' + k + '"]'); }
+function fcReaplicarSel() { if (!_fcSel) return; var td = fcCellTd(_fcSel.id, _fcSel.k); if (td) td.classList.add('fc-sel'); }
+function fcHasOpenEditor() { return !!document.querySelector('#fiscal-cards .fc-editing'); }
+
+// ── Edição de uma célula (duplo clique) ──
+function fcEditCell(td) {
+  if (!td) return;
+  if (!canEditView('fiscais')) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return; }
+  if (td.classList.contains('fc-editing')) return;
+  var f = fcFind(td.getAttribute('data-id')), col = FC_FIELD_MAP[td.getAttribute('data-k')];
+  if (!f || !col || col.calc) return;
+  td.classList.add('fc-editing');
+  td.innerHTML = fcEditorHtml(col, f[col.k]);
+  var inp = td.querySelector('.doc-inp');
+  if (!inp) { fcCancelCell(td); return; }
+  inp.focus(); if (inp.select) { try { inp.select(); } catch (e) {} }
+  inp.onkeydown = function(e) {
+    if (e.key === 'Enter')       { e.preventDefault(); fcCommitCell(td, 0); }
+    else if (e.key === 'Escape') { e.preventDefault(); fcCancelCell(td); }
+    else if (e.key === 'Tab')    { e.preventDefault(); fcCommitCell(td, e.shiftKey ? -1 : 1); }
+  };
+  inp.onblur = function() { setTimeout(function() { if (td.classList.contains('fc-editing') && td.contains(inp)) fcCommitCell(td, 0); }, 120); };
+  if (col.type === 'select' || col.type === 'contrato') inp.onchange = function() { fcCommitCell(td, 0); };
+}
+
+function fcCommitCell(td, move) {
+  var inp = td.querySelector('.doc-inp'); if (!inp) return;
+  var id = td.getAttribute('data-id'), col = FC_FIELD_MAP[td.getAttribute('data-k')], f = fcFind(id);
+  var mudou = false;
+  if (f && col) {
+    var novo = String(inp.value || '').trim(); if (col.upper) novo = novo.toUpperCase();
+    var atual = f[col.k] === undefined ? '' : String(f[col.k]);
+    if (novo !== atual) {
+      f[col.k] = novo;
+      // Escolher o contrato preenche empresa e status (como no cadastro novo).
+      if (col.k === 'contrato') {
+        var d = termoAtualDoContrato(novo);
+        var nome = (d && d['EMPRESA']) ? d['EMPRESA'].trim() : ''; if (nome) f.empresa = nome;
+        f.statusContrato = d ? (d._st === 'VIGENTE' ? 'Contrato Vigente' : d._st === 'A INICIAR' ? 'Contrato A Iniciar' : 'Contrato Encerrado') : '';
+      }
+      saveFiscaisToStorage(); mudou = true;
+    }
+  }
+  td.classList.remove('fc-editing');
+  // Contrato muda empresa, status e a borda da linha: redesenha a tabela.
+  if (mudou && col.k === 'contrato') { renderFiscaisTable(); docToast('✔ Alteração salva em "Contrato".'); return; }
+  td.innerHTML = fcCellDisplay(col, f);
+  if (mudou) docToast('✔ Alteração salva em "' + col.label + '".');
+  if (move) fcEditVizinha(td, move);
+}
+
+function fcCancelCell(td) { var col = FC_FIELD_MAP[td.getAttribute('data-k')], f = fcFind(td.getAttribute('data-id')); td.classList.remove('fc-editing'); td.innerHTML = fcCellDisplay(col, f); }
+
+function fcEditVizinha(td, dir) {
+  var tr = td.parentNode; if (!tr) return;
+  var cels = Array.prototype.filter.call(tr.children, function(c){ return c.classList.contains('fc-cell'); });
+  var i = cels.indexOf(td); if (i === -1) return;
+  var alvo = cels[i + dir]; if (alvo) fcEditCell(alvo);
+}
+
+// ── Copiar / Colar em várias linhas (só o que está no filtro) ──
+function fcCopiarSel() {
+  if (!_fcSel) return false;
+  var col = FC_FIELD_MAP[_fcSel.k], f = fcFind(_fcSel.id);
+  if (!col || !f) return false;
+  var texto = fcTextoCelula(col, f);
+  _fcCopy = {k: _fcSel.k, texto: texto};
+  docCopiar(texto);
+  var mostra = texto === '' ? '(vazio)' : '"' + texto + '"';
+  if (FC_REPLICAVEIS[_fcSel.k]) docToast('Copiado ' + mostra + '. Selecione uma célula de "' + col.label
+      + '" e tecle Ctrl+V para replicar nas ' + fcFiltered.length.toLocaleString('pt-BR') + ' linha(s) do filtro.');
+  else docToast('Copiado ' + mostra + '.');
+  return true;
+}
+
+function fcColarSel() {
+  if (!_fcSel) return false;
+  var col = FC_FIELD_MAP[_fcSel.k]; if (!col) return false;
+  if (!FC_REPLICAVEIS[_fcSel.k]) { docToast('Colar em várias linhas não é permitido na coluna "' + col.label + '". Dê um duplo clique para editar a célula.', true); return true; }
+  if (!canEditView('fiscais')) { docToast('Seu perfil é somente leitura — edição não permitida.', true); return true; }
+  if (_fcCopy) { fcReplicarNasFiltradas(col, _fcCopy.texto); return true; }
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(function(t){ fcReplicarNasFiltradas(col, t); })
+      .catch(function(){ docToast('Copie um valor primeiro: selecione uma célula e tecle Ctrl+C.', true); });
+    return true;
+  }
+  docToast('Copie um valor primeiro: selecione uma célula e tecle Ctrl+C.', true); return true;
+}
+
+function fcReplicarNasFiltradas(col, texto) {
+  var valor = String(texto || '').trim(); if (col.upper) valor = valor.toUpperCase();
   var alvo = fcFiltered.slice();
-  if (!alvo.length) { alert('Nenhuma linha no filtro para preencher.'); return; }
-  var sobrescreve = alvo.filter(function(r){ var a = String(r.enderecoSei || '').trim(); return a && a !== valor; }).length;
+  if (!alvo.length) { docToast('Nenhuma linha no filtro para preencher.', true); return; }
+  var sobrescreve = alvo.filter(function(r){ var a = String(r[col.k] || '').trim(); return a && a !== valor; }).length;
   var disp = valor === '' ? '(vazio)' : '"' + valor + '"';
-  var msg = 'Colar ' + disp + ' na coluna "End. SEI" em ' + alvo.length.toLocaleString('pt-BR') + ' linha(s) do filtro?';
+  var msg = 'Colar ' + disp + ' na coluna "' + col.label + '" em ' + alvo.length.toLocaleString('pt-BR') + ' linha(s) do filtro?';
   if (sobrescreve) msg += '\n\n' + sobrescreve.toLocaleString('pt-BR') + ' linha(s) já têm valor e serão substituídas.';
   if (!confirm(msg)) return;
   var n = 0;
   alvo.forEach(function(r) {
-    // Atualiza a instância "oficial" em FISCAIS e a de fcFiltered (o listener do
-    // Firebase recria os objetos a cada save, então as duas podem divergir).
-    var rec = FISCAIS.find(function(x){ return x.id === r.id; });
-    var atual = String((rec || r).enderecoSei || '');
-    if (atual === valor) return;
-    if (rec) rec.enderecoSei = valor;
-    if (r !== rec) r.enderecoSei = valor;
-    n++;
+    var rec = fcFind(r.id) || r;
+    if (String(rec[col.k] || '') === valor) return;
+    rec[col.k] = valor; if (r !== rec) r[col.k] = valor; n++;
   });
-  saveFiscaisToStorage();
+  if (n) saveFiscaisToStorage();
   renderFiscaisTable();
-  alert(n ? '✔ ' + n.toLocaleString('pt-BR') + ' linha(s) preenchida(s) em "End. SEI".'
-          : 'Nenhuma linha alterada — todas já tinham esse valor.');
+  docToast(n ? '✔ ' + n.toLocaleString('pt-BR') + ' linha(s) preenchida(s) em "' + col.label + '".'
+             : 'Nenhuma linha alterada — todas já tinham esse valor.');
+}
+
+function fcTeclaCopyPaste(e) {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  var view = document.getElementById('view-fiscais');
+  if (!view || !view.classList.contains('active')) return;
+  if (fcHasOpenEditor()) return;
+  var ae = document.activeElement;
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.nodeName)) return;
+  if (!_fcSel) return;
+  var key = (e.key || '').toLowerCase();
+  if (key === 'c') { if (fcCopiarSel()) e.preventDefault(); }
+  else if (key === 'v') { if (fcColarSel()) e.preventDefault(); }
+}
+
+function fcAbrirPortariaSei(id, ev) { var f = fcFind(id); if (f) fcPortariaSei(String(f.portaria || ''), ev); }
+
+// Liga os eventos de clique/duplo-clique/teclado uma única vez. O container
+// #fiscal-cards persiste entre os redesenhos (só o innerHTML muda).
+function fcInitCelulas() {
+  if (_fcInit) return;
+  var cont = document.getElementById('fiscal-cards'); if (!cont) return;
+  cont.addEventListener('click', function(e) {
+    var td = e.target; while (td && td.nodeName !== 'TD') td = td.parentNode;
+    if (!td || !td.classList || !td.classList.contains('fc-cell')) return;
+    if (td.classList.contains('fc-editing')) return;
+    fcSelecionar(td);
+  });
+  cont.addEventListener('dblclick', function(e) {
+    var td = e.target; while (td && td.nodeName !== 'TD') td = td.parentNode;
+    if (!td || !td.classList) return;
+    if (td.classList.contains('fc-cell')) fcEditCell(td);
+    else if (td.classList.contains('fc-calc')) docToast('"Status" é calculado pelo contrato — para mudar, altere o Contrato.', true);
+  });
+  document.addEventListener('keydown', fcTeclaCopyPaste);
+  _fcInit = true;
 }
 
 // Contratos em ordem (ano mais recente primeiro), compartilhado pelo cadastro
@@ -3547,6 +3759,7 @@ function fiscalContratoOpts(sel) {
 function renderFiscaisTable() {
   var canEdit = canEditView('fiscais');
   var wrap = document.getElementById('fiscal-cards');
+  fcInitCelulas();
   if (!FISCAIS.length) {
     wrap.innerHTML = '<div class="fiscais-empty">Nenhum fiscal cadastrado.<br>Clique em "+ Novo Fiscal" para começar.</div>';
     return;
@@ -3558,107 +3771,34 @@ function renderFiscaisTable() {
   var totalPages = Math.ceil(fcFiltered.length / fcPer);
   var start = (fcPage - 1) * fcPer;
   var slice = fcFiltered.slice(start, start + fcPer);
-  var sitColor = {'Titular':'var(--blue)','Substituto':'var(--amber)','Presidente':'var(--purple)','Presidente substituto':'var(--purple)','Membro de comissão':'var(--green)'};
-  // Edição inline (mesmo estilo transparente das telas Empresas/Conta Vinculada).
-  var inpBase = 'width:100%;box-sizing:border-box;background:transparent;border:1px solid transparent;border-radius:4px;color:inherit;font:inherit;padding:3px 5px;outline:none;text-align:center';
-  var inpFocus = "this.style.borderColor='var(--accent)';this.style.background='var(--surface2)'";
-  var inpBlur  = "this.style.borderColor='transparent';this.style.background='transparent'";
-  // O input inline tem width:100%, então a largura da coluna vem do tamanho
-  // "natural" do input (size). Ajustamos size ao conteúdo para a coluna crescer
-  // e mostrar o valor inteiro (a barra de rolagem horizontal cuida do excesso).
-  // width:auto anula o width:100% de inpBase para que o atributo size (ciente da
-  // fonte) governe a largura do input, fazendo a coluna crescer até caber o valor.
-  function fcSize(val) { return Math.max(String(val || '').length + 2, 8); }
-  function edInp(id, campo, val, extraAttrs, extraStyle, upper) {
-    if (!canEdit) return esc(upper ? String(val || '').toUpperCase() : (val || ''));
-    var oninput = upper ? ' oninput="this.value=this.value.toUpperCase()"' : '';
-    return '<input value="'+esc(val||'')+'" size="'+fcSize(val)+'" '+(extraAttrs||'')+oninput
-      +' style="'+inpBase+(extraStyle||'')+';width:auto" onfocus="'+inpFocus+'" onblur="'+inpBlur
-      +';fiscalInlineSalvar(\''+id+'\',\''+campo+'\',this.value'+(upper?'.toUpperCase()':'')+'.trim())">';
-  }
-  function edTel(id, campo, val) {
-    if (!canEdit) return esc(val || '');
-    return '<input value="'+esc(val||'')+'" size="'+fcSize(val)+'" oninput="maskPhone(this)" maxlength="15"'
-      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px;width:auto" onfocus="'+inpFocus+'" onblur="'+inpBlur
-      +';fiscalInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
-  }
-  function edSit(f) {
-    var cor = f.situacao ? (sitColor[f.situacao]||'var(--muted)') : 'var(--muted)';
-    if (!canEdit) return f.situacao
-      ? '<span style="color:'+cor+';font-weight:600">'+esc(f.situacao)+'</span>'
-      : '<span style="color:var(--muted)">—</span>';
-    return '<select style="'+inpBase+';color:'+cor+';font-weight:600" onfocus="'+inpFocus+'" onblur="'+inpBlur+'"'
-      +' onchange="fiscalInlineSalvar(\''+f.id+'\',\'situacao\',this.value)">'
-      +'<option value=""'+(f.situacao?'':' selected')+'>—</option>'
-      + SITUACOES.map(function(s){ return '<option value="'+s+'"'+(s===(f.situacao||'')?' selected':'')+'>'+s+'</option>'; }).join('')
-      +'</select>';
-  }
-  function edContrato(f) {
-    var estilo = ';font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600';
-    if (!canEdit) return esc(f.contrato);
-    return '<select style="'+inpBase+estilo+'" onmousedown="fiscalContratoOpts(this)" onfocus="fiscalContratoOpts(this);'+inpFocus+'" onblur="'+inpBlur+'"'
-      +' onchange="fiscalInlineSalvar(\''+f.id+'\',\'contrato\',this.value)">'
-      +'<option value="'+esc(f.contrato||'')+'" selected>'+esc(f.contrato||'—')+'</option>'
-      +'</select>';
-  }
   var rows = slice.map(function(f) {
-    // Status vem sempre do ÚLTIMO termo do contrato (maior TÉRMINO DA VIGÊNCIA),
-    // e não do primeiro que aparecer: um termo antigo encerrado não pode mascarar
-    // um termo novo vigente. Só assim dá pra saber se o contrato está mesmo encerrado.
+    // Status vem sempre do ÚLTIMO termo do contrato (maior TÉRMINO DA VIGÊNCIA):
+    // um termo antigo encerrado não pode mascarar um termo novo vigente.
     var dado = termoAtualDoContrato(f.contrato);
     var st = dado ? (dado._st || '') : '';
     var rowStyle = st === 'VIGENTE' ? 'border-left:3px solid var(--green)' : st === 'ENCERRADO' ? 'border-left:3px solid var(--red)' : st === 'A INICIAR' ? 'border-left:3px solid var(--blue)' : '';
-    var stBadge = st === 'VIGENTE'
-      ? '<span class="badge bg" style="font-size:10px">Vigente</span>'
-      : st === 'ENCERRADO'
-        ? '<span class="badge br" style="font-size:10px">Encerrado</span>'
-        : st === 'A INICIAR'
-          ? '<span class="badge bo" style="font-size:10px">A Iniciar</span>'
-          : '<span style="color:var(--muted);font-size:11px">—</span>';
-    var actions = canEdit
-      ? '<button class="btn-usr-del" onclick="confirmDeleteFiscal(\''+f.id+'\')">Excluir</button>'
-      : '';
-    return '<tr style="'+rowStyle+'">'
-      +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+edInp(f.id,'nome',(f.nome||'').toUpperCase(),'',';font-weight:600',true)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edInp(f.id,'siape',f.siape,'',';font-family:\'DM Mono\',monospace;font-size:11px')+'</td>'
-      +'<td>'+edSit(f)+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;color:var(--accent);font-weight:600;white-space:nowrap">'+edContrato(f)+'</td>'
-      +'<td>'+stBadge+'</td>'
-      +'<td style="white-space:nowrap">'+edInp(f.id,'empresa',f.empresa,'list="fc-dl-empresas"')+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+edInp(f.id,'unidade',f.unidade,'',';font-size:11px;color:var(--muted)')+'</td>'
-      +'<td style="font-size:11px">'+edInp(f.id,'email',f.email,'type="email"',';font-size:11px')+'</td>'
-      +'<td style="font-size:11px">'+edInp(f.id,'email2',f.email2,'type="email"',';font-size:11px')+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(f.id,'telefone',f.telefone)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted);white-space:nowrap">'
-       +'<div style="display:flex;align-items:center;gap:4px">'
-         +edInp(f.id,'enderecoSei',f.enderecoSei,'',';font-size:11px;color:var(--muted)')
-         +(canEdit ? '<button type="button" class="fc-sei-btn" title="Replicar este End. SEI em todas as linhas do filtro atual" onclick="fcReplicarSei(\''+f.id+'\')">⎘ filtro</button>' : '')
-       +'</div>'
-      +'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'
-       +'<div class="fc-por">'
-         +edInp(f.id,'portaria',f.portaria,'',';font-family:\'DM Mono\',monospace;font-size:11px')
-         +'<button type="button" class="fc-sei-btn" title="Abrir portaria no SEI" onclick="fcPortariaSeiInput(this,event)">↗ SEI</button>'
-       +'</div>'
-      +'</td>'
-      +(canEdit ? '<td style="white-space:nowrap">'+actions+'</td>' : '')
-      +'</tr>';
+    var tds = FC_COLS.map(function(col) {
+      if (col.calc) return '<td class="fc-calc" data-k="_status" style="white-space:nowrap">' + fcCellDisplay(col, f) + '</td>';
+      return '<td class="' + (canEdit ? 'fc-cell' : '') + '" data-id="' + f.id + '" data-k="' + col.k + '" style="' + fcTdStyle(col) + '">' + fcCellDisplay(col, f) + '</td>';
+    }).join('');
+    var actions = canEdit ? '<td style="white-space:nowrap"><button class="btn-usr-del" onclick="confirmDeleteFiscal(\'' + f.id + '\')">Excluir</button></td>' : '';
+    return '<tr style="' + rowStyle + '">' + tds + actions + '</tr>';
   }).join('');
   var empresasDl = Array.from(new Set(DADOS.map(function(d){ return (d['EMPRESA']||'').trim(); }).filter(Boolean))).sort()
     .map(function(e){ return '<option value="'+esc(e)+'">'; }).join('');
   var pag = fcPaginationHtml(totalPages);
-  wrap.innerHTML = '<div class="table-wrap">'
+  var hint = canEdit ? '<div class="fc-hint">✎ <b>Duplo clique</b> edita a célula. <b>1 clique</b> seleciona; <kbd>Ctrl+C</kbd> copia e <kbd>Ctrl+V</kbd> replica o valor em <b>todas as linhas do filtro</b> (colunas: Situação, Empresa, Unidade, End. SEI e Portaria).</div>' : '';
+  var ths = FC_COLS.map(function(c){ return '<th>'+c.label+'</th>'; }).join('');
+  wrap.innerHTML = hint + '<div class="table-wrap">'
     +'<div class="table-info"><span>'+fcFiltered.length+' fiscal(is)</span><span>Página '+fcPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
-    +'<thead><tr>'
-    +'<th>Nome</th><th>SIAPE</th><th>Situação</th><th>Contrato</th><th>Status</th><th>Empresa</th><th>Unidade</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th><th>End. SEI</th><th>Portaria</th>'
-    +(canEdit ? '<th>Ações</th>' : '')
-    +'</tr></thead>'
+    +'<thead><tr>'+ths+(canEdit ? '<th>Ações</th>' : '')+'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'
     +'</table></div>'
     +pag
     +'<datalist id="fc-dl-empresas">'+empresasDl+'</datalist>'
     +'</div>';
+  fcReaplicarSel();
   setTimeout(fcStickyScrollSync, 0);
 }
 
