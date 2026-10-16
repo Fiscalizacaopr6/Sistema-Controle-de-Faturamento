@@ -592,7 +592,10 @@ select.doc-inp{cursor:pointer}
 .fc-sei-btn:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.12)}
 .fc-sei-btn:disabled{color:var(--muted);cursor:not-allowed;opacity:.4}
 /* Fiscais — edição direto na célula (modelo da aba Documentos) */
-#fiscal-cards td.fc-cell{cursor:cell}
+/* user-select:none evita que o duplo clique selecione o texto da célula e
+   roube o foco do input recém-aberto (o cursor cai direto no campo). */
+#fiscal-cards td.fc-cell{cursor:cell;-webkit-user-select:none;user-select:none}
+#fiscal-cards td.fc-editing,#fiscal-cards .doc-inp{-webkit-user-select:text;user-select:text}
 #fiscal-cards td.fc-cell:hover{box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.35)}
 #fiscal-cards td.fc-calc{cursor:default}
 #fiscal-cards td.fc-editing{padding:3px 5px;background:rgba(var(--accent-rgb),.10)}
@@ -3609,7 +3612,20 @@ function fcEditCell(td) {
   td.innerHTML = fcEditorHtml(col, f[col.k]);
   var inp = td.querySelector('.doc-inp');
   if (!inp) { fcCancelCell(td); return; }
-  inp.focus(); if (inp.select) { try { inp.select(); } catch (e) {} }
+  // Foca o input recém-criado. O duplo clique seleciona texto da célula e rouba
+  // o foco, então limpamos a seleção e tentamos focar algumas vezes (agora e em
+  // timeouts) até o cursor cair dentro do campo.
+  var foca = function() {
+    try {
+      var s = window.getSelection && window.getSelection();
+      if (s && s.removeAllRanges) s.removeAllRanges();
+      inp.focus();
+      if (inp.select) inp.select();
+    } catch (e) {}
+  };
+  foca();
+  setTimeout(foca, 0);
+  setTimeout(foca, 60);
   inp.onkeydown = function(e) {
     if (e.key === 'Enter')       { e.preventDefault(); fcCommitCell(td, 0); }
     else if (e.key === 'Escape') { e.preventDefault(); fcCancelCell(td); }
@@ -3737,7 +3753,7 @@ function fcInitCelulas() {
   cont.addEventListener('dblclick', function(e) {
     var td = e.target; while (td && td.nodeName !== 'TD') td = td.parentNode;
     if (!td || !td.classList) return;
-    if (td.classList.contains('fc-cell')) fcEditCell(td);
+    if (td.classList.contains('fc-cell')) { e.preventDefault(); fcEditCell(td); }
     else if (td.classList.contains('fc-calc')) docToast('"Status" é calculado pelo contrato — para mudar, altere o Contrato.', true);
   });
   document.addEventListener('keydown', fcTeclaCopyPaste);
