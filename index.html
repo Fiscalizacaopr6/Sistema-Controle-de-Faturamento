@@ -3486,6 +3486,38 @@ function termoAtualDoContrato(contrato) {
   return best;
 }
 
+// Replica o End. SEI de uma linha em TODAS as linhas do filtro atual
+// (fcFiltered), igual ao "colar em várias linhas" da aba Documentos: colar só
+// no que está filtrado. Pede confirmação e avisa quantas serão substituídas.
+function fcReplicarSei(id) {
+  if (!canEditView('fiscais')) { alert('Seu perfil é somente leitura — edição não permitida.'); return; }
+  var origem = FISCAIS.find(function(x){ return x.id === id; });
+  if (!origem) return;
+  var valor = String(origem.enderecoSei || '').trim();
+  var alvo = fcFiltered.slice();
+  if (!alvo.length) { alert('Nenhuma linha no filtro para preencher.'); return; }
+  var sobrescreve = alvo.filter(function(r){ var a = String(r.enderecoSei || '').trim(); return a && a !== valor; }).length;
+  var disp = valor === '' ? '(vazio)' : '"' + valor + '"';
+  var msg = 'Colar ' + disp + ' na coluna "End. SEI" em ' + alvo.length.toLocaleString('pt-BR') + ' linha(s) do filtro?';
+  if (sobrescreve) msg += '\n\n' + sobrescreve.toLocaleString('pt-BR') + ' linha(s) já têm valor e serão substituídas.';
+  if (!confirm(msg)) return;
+  var n = 0;
+  alvo.forEach(function(r) {
+    // Atualiza a instância "oficial" em FISCAIS e a de fcFiltered (o listener do
+    // Firebase recria os objetos a cada save, então as duas podem divergir).
+    var rec = FISCAIS.find(function(x){ return x.id === r.id; });
+    var atual = String((rec || r).enderecoSei || '');
+    if (atual === valor) return;
+    if (rec) rec.enderecoSei = valor;
+    if (r !== rec) r.enderecoSei = valor;
+    n++;
+  });
+  saveFiscaisToStorage();
+  renderFiscaisTable();
+  alert(n ? '✔ ' + n.toLocaleString('pt-BR') + ' linha(s) preenchida(s) em "End. SEI".'
+          : 'Nenhuma linha alterada — todas já tinham esse valor.');
+}
+
 // Contratos em ordem (ano mais recente primeiro), compartilhado pelo cadastro
 // novo e pela edição inline.
 function fiscalContratosOrdenados() {
@@ -3597,7 +3629,12 @@ function renderFiscaisTable() {
       +'<td style="font-size:11px">'+edInp(f.id,'email',f.email,'type="email"',';font-size:11px')+'</td>'
       +'<td style="font-size:11px">'+edInp(f.id,'email2',f.email2,'type="email"',';font-size:11px')+'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edTel(f.id,'telefone',f.telefone)+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+edInp(f.id,'enderecoSei',f.enderecoSei,'',';font-size:11px;color:var(--muted)')+'</td>'
+      +'<td style="font-size:11px;color:var(--muted);white-space:nowrap">'
+       +'<div style="display:flex;align-items:center;gap:4px">'
+         +edInp(f.id,'enderecoSei',f.enderecoSei,'',';font-size:11px;color:var(--muted)')
+         +(canEdit ? '<button type="button" class="fc-sei-btn" title="Replicar este End. SEI em todas as linhas do filtro atual" onclick="fcReplicarSei(\''+f.id+'\')">⎘ filtro</button>' : '')
+       +'</div>'
+      +'</td>'
       +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'
        +'<div class="fc-por">'
          +edInp(f.id,'portaria',f.portaria,'',';font-family:\'DM Mono\',monospace;font-size:11px')
