@@ -1683,6 +1683,16 @@ function setupRealtimeListeners() {
     var val = snap.val(); if (!val) return;
     var arr = Array.isArray(val) ? val : Object.values(val);
     FISCAIS.length = 0; arr.forEach(function(d){ if(d) FISCAIS.push(d); });
+    // Se houver uma célula em edição na tela de Fiscais, não redesenhar agora —
+    // o refreshAll fecharia o editor no meio da digitação. Reagenda p/ depois.
+    if (typeof fcHasOpenEditor === 'function' && fcHasOpenEditor()) {
+      clearTimeout(window._fcRefreshPend);
+      window._fcRefreshPend = setTimeout(function reagenda(){
+        if (fcHasOpenEditor()) { window._fcRefreshPend = setTimeout(reagenda, 800); return; }
+        refreshAll();
+      }, 800);
+      return;
+    }
     refreshAll();
   });
   fbdb.ref('unidades').on('value', function(snap) {
@@ -3718,6 +3728,10 @@ function fcInitCelulas() {
     var td = e.target; while (td && td.nodeName !== 'TD') td = td.parentNode;
     if (!td || !td.classList || !td.classList.contains('fc-cell')) return;
     if (td.classList.contains('fc-editing')) return;
+    var id = td.getAttribute('data-id'), k = td.getAttribute('data-k');
+    // 2º clique na MESMA célula já selecionada entra em edição (além do duplo
+    // clique rápido). Assim "dois cliques" edita mesmo clicando pausado.
+    if (_fcSel && _fcSel.id === id && _fcSel.k === k) { fcEditCell(td); return; }
     fcSelecionar(td);
   });
   cont.addEventListener('dblclick', function(e) {
