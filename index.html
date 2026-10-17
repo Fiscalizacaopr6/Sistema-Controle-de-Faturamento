@@ -619,17 +619,19 @@ body.sb-min .sb{width:72px}
 body.sb-min .main{margin-left:72px}
 body.sb-min #doc-hbar{left:72px}
 
-.sb-logo{padding:18px 16px;display:flex;align-items:center;gap:12px;
+.sb-logo{padding:0 0 14px;display:flex;flex-direction:column;align-items:stretch;gap:12px;
   border-bottom:1px solid rgba(var(--accent-rgb),.26)}
-.sb-crest{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:.5px;
-  background:linear-gradient(135deg,rgba(var(--accent-rgb),1) 0%,rgba(var(--accent-rgb),.55) 100%);
-  box-shadow:0 6px 16px rgba(var(--accent-rgb),.35)}
-.sb-brand{min-width:0}
+.sb-crest{display:flex;align-items:center;justify-content:center;padding:14px 12px;min-height:70px;
+  font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#0d1f3c;letter-spacing:1px;
+  background:#fff;border-bottom:1px solid rgba(var(--accent-rgb),.26)}
+.sb-crest img{max-width:100%;max-height:48px;object-fit:contain}
+body.sb-min .sb-crest{padding:10px 6px;min-height:0}
+body.sb-min .sb-crest img{max-height:34px}
+.sb-brand{min-width:0;padding:0 16px}
 .sb-lt{font-size:12.5px;font-weight:700;letter-spacing:.3px;color:var(--text);text-transform:none;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-ls{font-size:10.5px;color:var(--muted);margin-top:2px;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Sora',sans-serif}
 .sb-ls b{color:var(--accent);font-weight:700}
-body.sb-min .sb-logo{padding:0;height:77px;justify-content:center}
+body.sb-min .sb-logo{padding:0;gap:0}
 body.sb-min .sb-brand{display:none}
 
 .sb-nav{padding:14px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden}
@@ -720,7 +722,7 @@ body.sb-min .sb-cico{transform:rotate(180deg)}
 .fbar-b.gho:hover{color:var(--text);border-color:var(--accent)}
 
 /* ── Cartões de indicador ── */
-.kpi-grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px;margin-bottom:24px}
+.kpi-grid{grid-template-columns:repeat(auto-fill,minmax(256px,1fr));gap:16px;margin-bottom:24px}
 .kpi{border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;
   box-shadow:0 2px 10px rgba(0,0,0,.05)}
 .kpi::before{height:3px}
@@ -758,6 +760,9 @@ body.sb-min .sb-cico{transform:rotate(180deg)}
 .bar-row{gap:12px;padding-right:96px}
 .bar-name{width:132px;font-size:11px}
 .bar-track{height:19px;border-radius:10px;overflow:visible;position:relative}
+/* trilho sem fundo: o valor fica logo depois da barra e as linhas de grade
+   aparecem atrás (o seletor leva o `html` só para vencer a regra do modo claro) */
+html .bar-plot .bar-track{background:transparent}
 .bar-fill{border-radius:10px;padding-left:0;position:relative}
 .bar-val{position:absolute;left:calc(100% + 9px);top:50%;transform:translateY(-50%);
   color:var(--text);font-weight:500;font-size:10.5px}
@@ -772,6 +777,77 @@ body.sb-min .sb-cico{transform:rotate(180deg)}
 .btn.primary:hover{filter:brightness(1.08)}
 .table-wrap{border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
 .fiscal-card,.ai{border-radius:14px}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DASHBOARD — três cartões de gráfico, eixos e tabela de vencimentos
+   ══════════════════════════════════════════════════════════════════════════ */
+.dash-row{display:grid;grid-template-columns:1.15fr .92fr 1.15fr;gap:18px;margin-bottom:22px;align-items:start}
+@media (max-width:1320px){.dash-row{grid-template-columns:1fr 1fr}}
+@media (max-width:900px){.dash-row{grid-template-columns:1fr}}
+.chart-head{justify-content:flex-start}
+.chart-head .chart-title{flex:1 1 auto;min-width:0}
+.chart-sel{flex:0 0 auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);
+  font-family:'Sora',sans-serif;font-size:11px;padding:6px 9px;cursor:pointer;outline:none}
+
+/* ── Barras com eixo e linhas de grade ── */
+.bar-plot{position:relative}
+.bar-grid{position:absolute;top:0;bottom:0;left:144px;right:96px;pointer-events:none;
+  background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px 25%);
+  border-right:1px solid var(--border)}
+.bar-plot .bar-chart{position:relative;z-index:1}
+.bar-axis{position:relative;height:14px;margin:9px 96px 0 144px;
+  font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+/* posicionado em %, e não distribuído: só assim cada número cai em cima da
+   sua linha de grade */
+.bar-axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.bar-axis span[data-p="0"]{transform:translateX(0)}
+.bar-axis span[data-p="100"]{transform:translateX(-100%)}
+.bar-mais{margin-top:10px;font-size:10.5px;color:var(--muted);text-align:center}
+@media (max-width:1320px){
+  .bar-name{width:96px}
+  .bar-grid{left:108px;right:76px}
+  .bar-axis{margin-left:108px;margin-right:76px}
+  .bar-row{padding-right:76px}
+}
+
+/* ── Rosca (contratos por tipo) ── */
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
+.donut{position:relative;width:184px;height:184px;flex:0 0 auto}
+.donut svg{width:100%;height:100%;transform:rotate(-90deg)}
+.donut-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-n{font-size:27px;font-weight:700;line-height:1}
+.donut-l{font-size:10.5px;color:var(--muted);margin-top:3px}
+.donut-leg{width:100%;display:flex;flex-direction:column;gap:7px}
+.donut-li{display:flex;align-items:center;gap:9px;font-size:11.5px}
+.donut-sq{flex:0 0 auto;width:11px;height:11px;border-radius:3px}
+.donut-nm{flex:1 1 auto;min-width:0;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.donut-pc{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--muted);width:34px;text-align:right}
+.donut-qt{font-family:'DM Mono',monospace;font-size:11.5px;font-weight:600;color:var(--text);width:30px;text-align:right}
+
+/* ── Linha (evolução do valor mensal) ── */
+.line-wrap{width:100%}
+.line-wrap svg{width:100%;height:auto;aspect-ratio:460/210;display:block;overflow:visible}
+.line-g{stroke:var(--border);stroke-width:1}
+.line-t{fill:var(--muted);font-family:'DM Mono',monospace;font-size:9px}
+.line-p{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.line-a{fill:rgba(var(--accent-rgb),.13)}
+.line-d{fill:var(--accent)}
+
+/* ── Tabela de vencimentos do painel ── */
+#db-venc30{overflow-x:auto}
+.db-tbl-head{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--border)}
+.db-tbl-head .chart-title{flex:1 1 auto}
+.db-vazio{padding:22px 18px;font-size:12px;color:var(--muted);text-align:center}
+.db-ico-btn{background:none;border:0;color:var(--muted);font-size:14px;cursor:pointer;padding:2px 5px;border-radius:6px;transition:all .15s}
+.db-ico-btn:hover{color:var(--accent);background:rgba(var(--accent-rgb),.12)}
+.db-dias{display:inline-block;padding:3px 9px;border-radius:7px;font-family:'DM Mono',monospace;font-size:10.5px;font-weight:500}
+.db-dias.q{background:rgba(239,68,68,.13);color:var(--red)}
+.db-dias.a{background:rgba(245,158,11,.14);color:var(--amber)}
+
+/* ── Variação mês a mês nos indicadores ── */
+.kpi-trend.up::before{content:'↑'}
+.kpi-trend.down::before{content:'↓'}
+.kpi-trend.flat::before{content:'='}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -825,10 +901,10 @@ body.sb-min .sb-cico{transform:rotate(180deg)}
 <div id="app">
   <div class="sb">
     <div class="sb-logo" title="Faturamento · UFRJ · Contratos">
-      <div class="sb-crest">UFRJ</div>
+      <div class="sb-crest"><img src="ufrj-logo.png" alt="UFRJ" onerror="this.parentNode.textContent='UFRJ'"></div>
       <div class="sb-brand">
         <div class="sb-lt">Gestão de Contratos</div>
-        <div class="sb-ls"><b>PR-6</b> &middot; Faturamento</div>
+        <div class="sb-ls"><b>PR-6</b> &middot; Pró-Reitoria de Gestão e Governança</div>
       </div>
     </div>
     <nav class="sb-nav">
@@ -970,13 +1046,39 @@ body.sb-min .sb-cico{transform:rotate(180deg)}
           <button class="chart-tab" data-chart="de-resp" onclick="showChart('de-resp')">Dedicação exclusiva por responsável</button>
           <button class="chart-tab" data-chart="imr-resp" onclick="showChart('imr-resp')">IMR por responsável</button>
         </div>
-        <div class="chart-card" id="single-chart-card">
-          <div class="chart-head">
-            <div class="chart-hico">📊</div>
-            <div class="chart-title" id="single-chart-title"></div>
+        <div class="dash-row">
+          <div class="chart-card" id="single-chart-card">
+            <div class="chart-head">
+              <div class="chart-hico">📊</div>
+              <div class="chart-title" id="single-chart-title"></div>
+            </div>
+            <div class="bar-plot">
+              <div class="bar-grid"></div>
+              <div class="bar-chart" id="single-chart"></div>
+            </div>
+            <div class="bar-axis" id="single-chart-axis"></div>
           </div>
-          <div class="bar-chart" id="single-chart"></div>
+          <div class="chart-card">
+            <div class="chart-head">
+              <div class="chart-hico">🍩</div>
+              <div class="chart-title">Contratos por tipo (vigentes)</div>
+            </div>
+            <div class="donut-wrap" id="db-donut"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head">
+              <div class="chart-hico">📈</div>
+              <div class="chart-title">Evolução do valor mensal (vigentes)</div>
+              <select class="chart-sel" id="db-evo-range" onchange="buildDashboard()">
+                <option value="12">Últimos 12 meses</option>
+                <option value="24">Últimos 24 meses</option>
+                <option value="6">Últimos 6 meses</option>
+              </select>
+            </div>
+            <div class="line-wrap" id="db-line"></div>
+          </div>
         </div>
+        <div class="table-wrap" id="db-venc30"></div>
       </div>
       <div id="db-contrato-detail" style="display:none"></div>
     </div>
@@ -2095,6 +2197,192 @@ function showChart(key) {
   });
   document.getElementById('single-chart-title').textContent = d.title;
   document.getElementById('single-chart').innerHTML = d.html;
+  var eixo = document.getElementById('single-chart-axis');
+  if (eixo) eixo.innerHTML = d.axis || '';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PAINEL — cálculos e desenhos
+   Tudo aqui sai de /dados: não há histórico gravado dos indicadores, então a
+   variação "vs. mês anterior" e a linha de evolução são RECONSTITUÍDAS a
+   partir das vigências (o que estava valendo em cada data de referência).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// Funcionários de um termo: o campo de vigentes manda; sem ele, o do contrato.
+function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
+// Valor global de um termo; na falta dele, o anual calculado.
+function valGlobal(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
+
+function dataDe(d, campo){ var v = d[campo] ? new Date(d[campo]) : null; return (v && !isNaN(v)) ? v : null; }
+
+// Termos que estavam vigentes numa data de referência.
+function vigentesEm(base, ref) {
+  return base.filter(function(d){
+    var t = dataDe(d, 'TÉRMINO DA VIGÊNCIA');
+    if (!t || t < ref) return false;
+    var i = dataDe(d, 'INÍCIO DO CONTRATO');
+    return !(i && i > ref);
+  });
+}
+
+// Retrato dos indicadores numa data — mesma conta dos cartões, só que "como
+// estava" naquele dia. É isso que permite comparar com o mês anterior.
+function dashRetrato(base, ref) {
+  var v = vigentesEm(base, ref);
+  var conts = new Set();
+  v.forEach(function(d){ var c = (d['CONTRATO']||'').trim(); if (c) conts.add(c); });
+  var fisc = new Set();
+  FISCAIS.forEach(function(f){
+    if (!conts.has((f.contrato||'').trim())) return;
+    var n = (f.nome||'').trim().toUpperCase();
+    if (n) fisc.add(n);
+  });
+  var imrPorConta = {};
+  base.forEach(function(d){
+    var c = (d['CONTRATO']||'').trim();
+    if (!c || !conts.has(c)) return;
+    var n = imrDoTermo(d);
+    if (!(c in imrPorConta) || n > imrPorConta[c]) imrPorConta[c] = n;
+  });
+  var imr = 0; Object.keys(imrPorConta).forEach(function(c){ imr += imrPorConta[c]; });
+  // Vencendo: termos que terminam nos 30 dias seguintes à data de referência.
+  var lim = new Date(ref.getTime() + 30*86400000);
+  return {
+    contratos: conts.size,
+    mensal:   v.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0),
+    global:   v.reduce(function(s,d){ return s+valGlobal(d); }, 0),
+    func:     v.reduce(function(s,d){ return s+funcDoTermo(d); }, 0),
+    fiscais:  fisc.size,
+    empresas: new Set(v.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size,
+    imr:      imr,
+    venc30:   v.filter(function(d){ var t = dataDe(d, 'TÉRMINO DA VIGÊNCIA'); return t && t <= lim; }).length
+  };
+}
+
+// Selo de variação. Sem base de comparação (mês anterior zerado), não inventa
+// porcentagem: mostra "—".
+function dashTrend(atual, anterior) {
+  if (!anterior) {
+    return atual
+      ? '<span class="kpi-trend flat">—</span><span class="kpi-tl">sem base no mês anterior</span>'
+      : '<span class="kpi-trend flat">0%</span><span class="kpi-tl">vs. mês anterior</span>';
+  }
+  var p = (atual - anterior) / anterior * 100;
+  var cls = p > 0.05 ? 'up' : (p < -0.05 ? 'down' : 'flat');
+  var abs = Math.abs(p);
+  var num = (abs >= 10 ? Math.round(abs) : Math.round(abs*10)/10).toString().replace('.', ',');
+  return '<span class="kpi-trend '+cls+'">'+num+'%</span><span class="kpi-tl">vs. mês anterior</span>';
+}
+
+// Máximo "redondo" do eixo (1/2/5 × 10ⁿ) para a régua não ficar quebrada.
+function eixoMax(v) {
+  if (!(v > 0)) return 1;
+  var exp = Math.pow(10, Math.floor(Math.log10(v)));
+  var r = v / exp;
+  var m = r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10;
+  return m * exp;
+}
+
+function eixoHtml(max, fmt) {
+  // As linhas de grade ficam de 25% em 25%; rotulamos 0, 50% e 100% para os
+  // números não se encavalarem em cartão estreito.
+  return [0, 50, 100].map(function(p){
+    var v = max*p/100;
+    return '<span data-p="'+p+'" style="left:'+p+'%">' + (fmt ? fmt(v) : Math.round(v)) + '</span>';
+  }).join('');
+}
+
+// Rosca: 1 fatia por TIPO, contando CONTRATOS (não termos), top 5 + "Outros".
+function renderDonut(porTipo, total) {
+  var el = document.getElementById('db-donut');
+  if (!el) return;
+  if (!total) { el.innerHTML = '<div class="db-vazio">Sem contratos vigentes no filtro atual.</div>'; return; }
+  var cores = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  var ord = Object.entries(porTipo).sort(function(a,b){ return b[1]-a[1]; });
+  var top = ord.slice(0,5);
+  var resto = ord.slice(5).reduce(function(s,e){ return s+e[1]; }, 0);
+  if (resto) top.push(['Outros', resto]);
+  var R = 56, C = 2*Math.PI*R, off = 0, segs = '', leg = '';
+  top.forEach(function(e,i){
+    var frac = e[1]/total, cor = cores[i%cores.length];
+    segs += '<circle cx="92" cy="92" r="'+R+'" fill="none" stroke="'+cor+'" stroke-width="26"'
+         + ' stroke-dasharray="'+(frac*C).toFixed(2)+' '+C.toFixed(2)+'"'
+         + ' stroke-dashoffset="'+(-off*C).toFixed(2)+'"><title>'+e[0]+': '+e[1]+'</title></circle>';
+    off += frac;
+    leg += '<div class="donut-li"><span class="donut-sq" style="background:'+cor+'"></span>'
+        + '<span class="donut-nm" title="'+e[0]+'">'+e[0]+'</span>'
+        + '<span class="donut-pc">'+Math.round(frac*100)+'%</span>'
+        + '<span class="donut-qt">'+e[1]+'</span></div>';
+  });
+  el.innerHTML = '<div class="donut"><svg viewBox="0 0 184 184">'+segs+'</svg>'
+    + '<div class="donut-mid"><div class="donut-n">'+total+'</div><div class="donut-l">contratos</div></div></div>'
+    + '<div class="donut-leg">'+leg+'</div>';
+}
+
+// Linha: valor mensal vigente no último dia de cada mês da janela escolhida.
+function renderLinha(base) {
+  var el = document.getElementById('db-line');
+  if (!el) return;
+  var selEl = document.getElementById('db-evo-range');
+  var n = selEl ? (parseInt(selEl.value, 10) || 12) : 12;
+  var MES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var hoje = new Date(), pts = [];
+  for (var k = n-1; k >= 0; k--) {
+    var ref = new Date(hoje.getFullYear(), hoje.getMonth()-k+1, 0); // último dia do mês
+    pts.push({ r: MES[ref.getMonth()], v: dashRetrato(base, ref).mensal });
+  }
+  var max = eixoMax(Math.max.apply(null, pts.map(function(p){ return p.v; })) || 1);
+  var W = 460, H = 210, L = 52, B = 26, T = 8, PW = W-L-10, PH = H-B-T;
+  function x(i){ return L + (pts.length < 2 ? PW/2 : i*PW/(pts.length-1)); }
+  function y(v){ return T + PH - (v/max)*PH; }
+  var g = '', lbl = '';
+  for (var i = 0; i <= 5; i++) {
+    var yy = T + PH - i*PH/5;
+    g += '<line class="line-g" x1="'+L+'" y1="'+yy+'" x2="'+(W-10)+'" y2="'+yy+'"/>';
+    lbl += '<text class="line-t" x="'+(L-7)+'" y="'+(yy+3)+'" text-anchor="end">'+fmtM(max*i/5)+'</text>';
+  }
+  var d = pts.map(function(p,i){ return (i?'L':'M')+x(i).toFixed(1)+' '+y(p.v).toFixed(1); }).join(' ');
+  var area = d + ' L'+x(pts.length-1).toFixed(1)+' '+(T+PH)+' L'+x(0).toFixed(1)+' '+(T+PH)+' Z';
+  var dots = pts.map(function(p,i){ return '<circle class="line-d" cx="'+x(i).toFixed(1)+'" cy="'+y(p.v).toFixed(1)+'" r="3"><title>'+p.r+': '+fmtBR(p.v)+'</title></circle>'; }).join('');
+  // Com janelas longas, mostra um rótulo sim, outro não, para não embolar.
+  var passo = pts.length > 14 ? 2 : 1;
+  var xs = pts.map(function(p,i){ return (i % passo) ? '' : '<text class="line-t" x="'+x(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+p.r+'</text>'; }).join('');
+  el.innerHTML = '<svg viewBox="0 0 '+W+' '+H+'">'
+    + g + lbl + '<path class="line-a" d="'+area+'"/><path class="line-p" d="'+d+'"/>' + dots + xs + '</svg>';
+}
+
+// Tabela "Contratos com vencimento em 30 dias" — 1 linha por termo vigente.
+function renderVenc30(vig) {
+  var el = document.getElementById('db-venc30');
+  if (!el) return;
+  var lista = vig.filter(function(d){ return d._dias !== null && d._dias >= 0 && d._dias <= 30; })
+                 .sort(function(a,b){ return a._dias - b._dias; });
+  var head = '<div class="db-tbl-head"><div class="chart-hico">🗓️</div>'
+    + '<div class="chart-title">Contratos com vencimento em 30 dias</div>'
+    + '<button class="fbar-b gho" onclick="showKpiLista(\'venc30\')">Ver todos</button></div>';
+  if (!lista.length) { el.innerHTML = head + '<div class="db-vazio">Nenhum contrato vence nos próximos 30 dias.</div>'; return; }
+  var linhas = lista.slice(0, 8).map(function(d){
+    var c = (d['CONTRATO']||'').trim();
+    return '<tr>'
+      + '<td style="font-weight:600;color:var(--accent)">'+(c||'—')+'</td>'
+      + '<td style="text-align:left">'+(d['EMPRESA']||'—')+'</td>'
+      + '<td>'+(d['RESPONSÁVEL NO FATURAMENTO']||'—')+'</td>'
+      + '<td>'+(d['TIPO']||'—')+'</td>'
+      + '<td>'+fmtDate(d['TÉRMINO DA VIGÊNCIA'])+'</td>'
+      + '<td><span class="db-dias '+(d._dias <= 7 ? 'q' : 'a')+'">'+d._dias+(d._dias === 1 ? ' dia' : ' dias')+'</span></td>'
+      + '<td>'+fmtBR(d['TOTAL MENSAL'])+'</td>'
+      + '<td><span class="badge br">Vencendo</span></td>'
+      + '<td><button class="db-ico-btn" title="Abrir o contrato" onclick="openContratoModal(\''+c.replace(/'/g, "\\'")+'\')">👁</button></td>'
+      + '</tr>';
+  }).join('');
+  el.innerHTML = head
+    + '<table><thead><tr>'
+    + '<th>Contrato</th><th style="text-align:left">Empresa</th><th>Responsável</th><th>Tipo</th>'
+    + '<th>Término da vigência</th><th>Dias restantes</th><th>Valor mensal</th><th>Status</th><th>Ações</th>'
+    + '</tr></thead><tbody>'+linhas+'</tbody></table>'
+    + (lista.length > 8
+       ? '<div class="table-info">mostrando 8 de '+lista.length+' termos</div>'
+       : '');
 }
 
 var currentYearFilter = '';
@@ -2418,10 +2706,8 @@ function buildDashboard() {
   });
   var fiscVigCount = fiscVigNomes.size;
   var mensal = vig.reduce(function(s,d){ return s+(d['TOTAL MENSAL']||0); }, 0);
-  function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return v; var n = +d['N° FUNCIONÁRIO']; return n > 0 ? n : 0; }
   var func = vig.reduce(function(s,d){ return s+funcDoTermo(d); }, 0);
   var v30 = vig.filter(function(d){ return d._dias !== null && d._dias <= 30; }).length;
-  function valGlobal(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
   var totalG = vig.reduce(function(s,d){ return s + valGlobal(d); }, 0);
   var empresas = new Set(vig.map(function(d){ return (d['EMPRESA']||'').trim().toLowerCase(); }).filter(Boolean)).size;
   // Total de IMR em contratos vigentes. N° IMR é um valor por CONTRATO gravado em
@@ -2439,15 +2725,19 @@ function buildDashboard() {
   var imrTotal = 0;
   Object.keys(imrPorConta).forEach(function(c){ imrTotal += imrPorConta[c]; });
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
+  // Variação: o mesmo retrato de hoje contra o do último dia do mês passado.
+  var hojeRef = new Date(); hojeRef.setHours(0,0,0,0);
+  var mesPassado = new Date(hojeRef.getFullYear(), hojeRef.getMonth(), 0);
+  var rAtual = dashRetrato(base, hojeRef), rAnt = dashRetrato(base, mesPassado);
   var kpis = [
-    {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', i:'📄', btn:true},
-    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', i:'💰', small:true, btnValor:true},
-    {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', i:'👥', btnFiscVig:true},
-    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple', i:'🧑‍🔧', btnFunc:true},
-    {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', i:'🗓️', btnV30:true},
-    {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', i:'📊', small:true, btnGlobal:true},
-    {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', i:'🏭', btnEmp:true},
-    {l:'Total de IMR', v:imrTotal, s:'em contratos vigentes'+labelAno, c:'amber', i:'📋', btnImr:true},
+    {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', i:'📄', t:['contratos'], btn:true},
+    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', i:'💰', t:['mensal'], small:true, btnValor:true},
+    {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', i:'👥', t:['fiscais'], btnFiscVig:true},
+    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple', i:'🧑‍🔧', t:['func'], btnFunc:true},
+    {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', i:'🗓️', t:['venc30'], btnV30:true},
+    {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', i:'📊', t:['global'], small:true, btnGlobal:true},
+    {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', i:'🏭', t:['empresas'], btnEmp:true},
+    {l:'Total de IMR', v:imrTotal, s:'em contratos vigentes'+labelAno, c:'amber', i:'📋', t:['imr'], btnImr:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
     var clickFn = k.btn ? 'showKpiLista(\'vigentes\')'
@@ -2461,8 +2751,8 @@ function buildDashboard() {
                 : '';
     var clickable = !!clickFn;
     // O realce ao passar o mouse (escala/sombra/brilho) é feito em CSS (.kpi:hover).
-    // O rodapé do cartão não traz comparação com o mês anterior: o sistema não
-    // guarda o histórico mensal dos indicadores, então ali vai o atalho da lista.
+    // Rodapé: variação contra o mês anterior, reconstituída das vigências.
+    var chave = k.t && k.t[0];
     return '<div class="kpi '+k.c+'"'
       +(clickable?' onclick="'+clickFn+'" style="cursor:pointer"':'')
       +'>'
@@ -2474,19 +2764,29 @@ function buildDashboard() {
           +'<div class="kpi-sub">'+k.s+'</div>'
         +'</div>'
       +'</div>'
-      +(clickable
-        ? '<div class="kpi-foot"><span class="kpi-trend flat">↗ detalhar</span><span class="kpi-tl">clique para abrir a lista</span></div>'
+      +(chave
+        ? '<div class="kpi-foot">'+dashTrend(rAtual[chave], rAnt[chave])+'</div>'
         : '')
       +'</div>';
   }).join('');
   var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
-  function barHtml(data, fmtVal) {
+  // Barras + régua do eixo. A escala vai até um máximo "redondo" (eixoMax),
+  // e não até a maior barra, para a régua embaixo bater com as linhas de grade.
+  function barSet(data, fmtVal) {
     var sorted = Object.entries(data).sort(function(a,b){ return b[1]-a[1]; });
-    var mx = sorted[0] ? sorted[0][1] : 1;
-    return sorted.map(function(e,i){
+    if (!sorted.length) return { html:'<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>', axis:'' };
+    var mx = eixoMax(sorted[0][1]);
+    // Só as maiores cabem no cartão; o resto vira uma nota no rodapé.
+    var total = sorted.length;
+    sorted = sorted.slice(0, 10);
+    var html = sorted.map(function(e,i){
       var label = fmtVal ? fmtVal(e[1]) : e[1];
-      return '<div class="bar-row"><div class="bar-name">'+e[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+((e[1]/mx)*100).toFixed(1)+'%;background:'+colors[i%10]+'"><span class="bar-val">'+label+'</span></div></div></div>';
-    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>';
+      return '<div class="bar-row"><div class="bar-name" title="'+e[0]+'">'+e[0]+'</div><div class="bar-track"><div class="bar-fill" style="width:'+((e[1]/mx)*100).toFixed(1)+'%;background:'+colors[i%10]+'"><span class="bar-val">'+label+'</span></div></div></div>';
+    }).join('')
+      + (total > sorted.length
+         ? '<div class="bar-mais">mostrando as '+sorted.length+' maiores de '+total+'</div>'
+         : '');
+    return { html:html, axis:eixoHtml(mx, fmtVal) };
   }
   var byR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byR[r]=(byR[r]||0)+(d['TOTAL MENSAL']||0); });
   var byT = {}; vig.forEach(function(d){ var t=d['TIPO']||'Outros'; byT[t]=(byT[t]||0)+1; });
@@ -2504,15 +2804,24 @@ function buildDashboard() {
     var r = respPorConta[c] || '?';
     byIMR[r] = (byIMR[r] || 0) + imrPorConta[c];
   });
+  function cd(title, data, fmtVal) { var b = barSet(data, fmtVal); return { title:title, html:b.html, axis:b.axis }; }
   CHART_DATA = {
-    'resp':      { title:'Valor mensal por responsável (vigentes)',  html:barHtml(byR, fmtM) },
-    'tipo':      { title:'Contratos vigentes por tipo',              html:barHtml(byT) },
-    'cont-resp': { title:'Qtd. de contratos por responsável',        html:barHtml(byCR) },
-    'func-resp': { title:'Funcionários vigentes por responsável',    html:barHtml(byFR) },
-    'de-resp':   { title:'Dedicação exclusiva por responsável',      html:barHtml(byDE) },
-    'imr-resp':  { title:'IMR por responsável',                      html:barHtml(byIMR) }
+    'resp':      cd('Valor mensal por responsável (vigentes)', byR, fmtM),
+    'tipo':      cd('Contratos vigentes por tipo',             byT),
+    'cont-resp': cd('Qtd. de contratos por responsável',       byCR),
+    'func-resp': cd('Funcionários vigentes por responsável',   byFR),
+    'de-resp':   cd('Dedicação exclusiva por responsável',     byDE),
+    'imr-resp':  cd('IMR por responsável',                     byIMR)
   };
   showChart(activeChart);
+
+  // Rosca por TIPO contando CONTRATOS (1 termo por contrato), linha de
+  // evolução e tabela dos que vencem em 30 dias.
+  var tipoPorContrato = {};
+  vigContratos.forEach(function(d){ var t = d['TIPO'] || 'Outros'; tipoPorContrato[t] = (tipoPorContrato[t]||0)+1; });
+  renderDonut(tipoPorContrato, vigContratos.length);
+  renderLinha(base);
+  renderVenc30(vig);
 }
 
 // ── Filtros em lista suspensa (compartilhados pelas telas) ──
