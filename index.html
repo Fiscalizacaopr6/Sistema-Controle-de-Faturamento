@@ -781,9 +781,15 @@ html .bar-plot .bar-track{background:transparent}
 /* ══════════════════════════════════════════════════════════════════════════
    DASHBOARD — três cartões de gráfico, eixos e tabela de vencimentos
    ══════════════════════════════════════════════════════════════════════════ */
-.dash-row{display:grid;grid-template-columns:1.15fr .92fr 1.15fr;gap:18px;margin-bottom:22px;align-items:start}
-@media (max-width:1320px){.dash-row{grid-template-columns:1fr 1fr}}
-@media (max-width:900px){.dash-row{grid-template-columns:1fr}}
+/* Os três cartões têm sempre a MESMA ALTURA: align-items:stretch faz cada um
+   ocupar a altura da linha do grid (a do cartão mais alto). As larguras seguem
+   diferentes de propósito — a rosca pede menos espaço que as barras e a linha.
+   O minmax(0,…) impede que o conteúdo estique a coluna além da fração. */
+.dash-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.92fr) minmax(0,1.15fr);
+  gap:18px;margin-bottom:22px;align-items:stretch}
+.dash-row > .chart-card{height:100%;display:flex;flex-direction:column;min-width:0}
+@media (max-width:1320px){.dash-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:900px){.dash-row{grid-template-columns:minmax(0,1fr)}}
 .chart-head{justify-content:flex-start}
 .chart-head .chart-title{flex:1 1 auto;min-width:0}
 .chart-sel{flex:0 0 auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);
@@ -811,7 +817,7 @@ html .bar-plot .bar-track{background:transparent}
 }
 
 /* ── Rosca (contratos por tipo) ── */
-.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;flex:1 1 auto}
 /* A rosca acompanha a largura do cartão (com teto), em vez de ficar num
    quadrado fixo — é isso que a deixava pequena e fora de proporção. */
 .donut{position:relative;width:100%;max-width:236px;aspect-ratio:1;flex:0 0 auto;margin:0 auto}
@@ -828,8 +834,8 @@ html .bar-plot .bar-track{background:transparent}
 .donut-qt{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--text);width:30px;text-align:right}
 
 /* ── Linha (evolução do valor mensal) ── */
-.line-wrap{width:100%}
-.line-wrap svg{width:100%;height:auto;aspect-ratio:470/230;display:block;overflow:visible}
+.line-wrap{width:100%;flex:1 1 auto;display:flex;align-items:center}
+.line-wrap svg{width:100%;min-width:0;height:auto;aspect-ratio:470/230;display:block;overflow:visible}
 .line-bg{fill:var(--surface2)}
 .line-g{stroke:var(--border);stroke-width:1}
 .line-t{fill:var(--muted);font-family:'Sora',sans-serif;font-size:10px}
