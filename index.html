@@ -603,6 +603,175 @@ select.doc-inp{cursor:pointer}
 .fc-hint{font-size:11px;color:var(--muted);margin:0 0 12px;line-height:1.5}
 .fc-hint b{color:var(--text);font-weight:600}
 .fc-hint kbd{font-family:'DM Mono',monospace;font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text)}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LAYOUT 2.0 — arranjo novo (menu com pílulas, faixa de boas-vindas, barra de
+   filtros em cartão, KPIs com ícone e variação, gráficos em cartão).
+   As CORES continuam vindo do bloco "IDENTIDADE VISUAL POR TELA": tudo aqui
+   usa var(--accent)/var(--accent-rgb), então o degradê de cada tela é mantido.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Menu lateral ── */
+.sb{width:248px;
+  background:linear-gradient(180deg,rgba(var(--accent-rgb),.34) 0%,rgba(var(--accent-rgb),.13) 30%,rgba(var(--accent-rgb),.04) 58%,transparent 84%),var(--surface)}
+.main{margin-left:248px}
+body.sb-min .sb{width:72px}
+body.sb-min .main{margin-left:72px}
+body.sb-min #doc-hbar{left:72px}
+
+.sb-logo{padding:18px 16px;display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid rgba(var(--accent-rgb),.26)}
+.sb-crest{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:#fff;letter-spacing:.5px;
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),1) 0%,rgba(var(--accent-rgb),.55) 100%);
+  box-shadow:0 6px 16px rgba(var(--accent-rgb),.35)}
+.sb-brand{min-width:0}
+.sb-lt{font-size:12.5px;font-weight:700;letter-spacing:.3px;color:var(--text);text-transform:none;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-ls{font-size:10.5px;color:var(--muted);margin-top:2px;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Sora',sans-serif}
+.sb-ls b{color:var(--accent);font-weight:700}
+body.sb-min .sb-logo{padding:0;height:77px;justify-content:center}
+body.sb-min .sb-brand{display:none}
+
+.sb-nav{padding:14px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden}
+.sb-nav::-webkit-scrollbar{width:6px}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(var(--accent-rgb),.3);border-radius:3px}
+.nav-item{border-left:0!important;border-radius:11px;padding:10px 12px;gap:11px;font-size:13px;font-weight:500;transform-origin:center}
+.nav-item:hover{background:rgba(var(--accent-rgb),.15);color:var(--text);transform:none}
+.nav-item.active{color:#fff;font-weight:600;
+  background:linear-gradient(100deg,rgba(var(--accent-rgb),.95) 0%,rgba(var(--accent-rgb),.58) 100%);
+  box-shadow:0 7px 18px rgba(var(--accent-rgb),.34)}
+.nav-sub{padding-left:0}
+.nav-sub-item{padding-left:34px;font-size:12.5px}
+body.sb-min .nav-item{justify-content:center;padding:11px 0;gap:0;border-radius:11px}
+body.sb-min .nav-item:hover{transform:none;background:rgba(var(--accent-rgb),.2)}
+body.sb-min .nav-sub-item{padding-left:0}
+
+.sb-foot{padding:14px 16px;border-top:1px solid rgba(var(--accent-rgb),.26);display:flex;flex-direction:column;gap:10px;font-family:'Sora',sans-serif}
+.sb-fitem{display:flex;align-items:center;gap:10px}
+.sb-fico{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;
+  background:rgba(var(--accent-rgb),.18);border:1px solid rgba(var(--accent-rgb),.32)}
+.sb-fv{color:var(--text);font-size:14px;font-weight:700;margin:0;line-height:1.15;font-family:'DM Mono',monospace}
+.sb-fl{font-size:10.5px;color:var(--muted);line-height:1.2}
+
+/* O botão de recolher continua visível com o menu encolhido — senão não
+   haveria como abrir de volta (o rodapé some). */
+.sb-toggle{display:none}
+.sb-collapse{display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;cursor:pointer;
+  background:rgba(var(--accent-rgb),.07);border:0;border-top:1px solid rgba(var(--accent-rgb),.26);
+  color:var(--muted);font-family:'Sora',sans-serif;font-size:12px;transition:all .18s}
+.sb-collapse:hover{background:rgba(var(--accent-rgb),.16);color:var(--text)}
+.sb-cico{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;
+  background:rgba(var(--accent-rgb),.2);border:1px solid rgba(var(--accent-rgb),.34);color:var(--accent);transition:transform .2s}
+body.sb-min .sb-collapse{justify-content:center;padding:12px 0}
+body.sb-min .sb-cico{transform:rotate(180deg)}
+
+/* ── Topbar: os controles viram "chips" ── */
+.topbar{padding:10px 24px}
+.tb-chip{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:9px;
+  background:rgba(var(--accent-rgb),.10);border:1px solid rgba(var(--accent-rgb),.28);
+  color:var(--muted);font-family:'Sora',sans-serif;font-size:11.5px;cursor:pointer;transition:all .18s;white-space:nowrap}
+.tb-chip:hover{background:rgba(var(--accent-rgb),.2);color:var(--text);border-color:var(--accent)}
+.tb-date{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:9px;
+  background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.22);
+  font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted)}
+.tb-who{display:inline-flex;align-items:center;gap:9px;height:36px;padding:0 12px 0 5px;border-radius:11px;
+  background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.3)}
+.tb-av{flex:0 0 auto;width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),1),rgba(var(--accent-rgb),.5))}
+.tb-wn{font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--text);line-height:1.1}
+.tb-wr{font-size:10px;color:var(--muted);line-height:1.2;margin-top:1px}
+@media (max-width:1100px){.tb-date{display:none}}
+
+/* ── Faixa de boas-vindas do Dashboard ── */
+.hero{position:relative;overflow:hidden;border-radius:16px;padding:26px 28px;margin-bottom:22px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:linear-gradient(105deg,rgba(var(--accent-rgb),1) 0%,rgba(var(--accent-rgb),.88) 45%,rgba(var(--accent-rgb),.6) 100%),#0d1f3c;
+  border:1px solid rgba(var(--accent-rgb),.4);box-shadow:0 14px 34px rgba(var(--accent-rgb),.22)}
+.hero::after{content:'';position:absolute;right:-60px;top:-80px;width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.18) 0%,transparent 68%);pointer-events:none}
+.hero-tx{position:relative;z-index:2;min-width:0}
+.hero-h{font-size:25px;font-weight:700;color:#fff;letter-spacing:-.3px;line-height:1.15}
+.hero-s{font-size:13px;color:rgba(255,255,255,.82);margin-top:6px}
+.hero-mark{position:relative;z-index:2;text-align:right;flex:0 0 auto}
+.hero-mk{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;color:#fff;letter-spacing:1px;line-height:1}
+.hero-mks{font-size:10px;color:rgba(255,255,255,.75);margin-top:5px;max-width:190px;line-height:1.35}
+@media (max-width:820px){.hero{padding:20px}.hero-mark{display:none}.hero-h{font-size:20px}}
+
+/* ── Barra de filtros em cartão ── */
+.fbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:22px;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;
+  box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.fbar-f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fbar-l{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+.fbar-i,.fbar-s{background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);
+  font-family:'Sora',sans-serif;font-size:12.5px;padding:9px 12px;outline:none;height:38px;transition:border-color .15s,box-shadow .15s}
+.fbar-s{cursor:pointer}
+.fbar-i:focus,.fbar-s:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14)}
+.fbar-x{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.fbar-sp{flex:1 1 auto}
+.fbar-b{height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 16px;border-radius:9px;cursor:pointer;
+  font-family:'Sora',sans-serif;font-size:12.5px;font-weight:600;border:1px solid transparent;transition:all .18s;white-space:nowrap}
+.fbar-b.pri{color:#fff;border-color:rgba(var(--accent-rgb),.6);
+  background:linear-gradient(100deg,rgba(var(--accent-rgb),1),rgba(var(--accent-rgb),.65));
+  box-shadow:0 6px 16px rgba(var(--accent-rgb),.3)}
+.fbar-b.pri:hover{filter:brightness(1.08)}
+.fbar-b.gho{background:transparent;border-color:var(--border);color:var(--muted)}
+.fbar-b.gho:hover{color:var(--text);border-color:var(--accent)}
+
+/* ── Cartões de indicador ── */
+.kpi-grid{grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px;margin-bottom:24px}
+.kpi{border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.kpi::before{height:3px}
+.kpi-top{display:flex;align-items:flex-start;gap:13px}
+.kpi-ico{flex:0 0 auto;width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px}
+.kpi.blue .kpi-ico{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.28)}
+.kpi.green .kpi-ico{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.28)}
+.kpi.amber .kpi-ico{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.28)}
+.kpi.red .kpi-ico{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.28)}
+.kpi.purple .kpi-ico{background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.28)}
+.kpi-tx{min-width:0;flex:1}
+.kpi-label{font-size:10px;letter-spacing:1.3px;margin-bottom:7px;line-height:1.3}
+.kpi-value{font-size:24px}
+.kpi-sub{margin-top:5px;font-size:10.5px}
+.kpi-foot{display:flex;align-items:center;gap:8px;padding-top:11px;border-top:1px solid var(--border)}
+.kpi-trend{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:7px;
+  font-family:'DM Mono',monospace;font-size:10.5px;font-weight:500}
+.kpi-trend.up{background:rgba(16,185,129,.13);color:var(--green)}
+.kpi-trend.down{background:rgba(239,68,68,.13);color:var(--red)}
+.kpi-trend.flat{background:rgba(100,116,139,.13);color:var(--muted)}
+.kpi-tl{font-size:10px;color:var(--muted)}
+
+/* ── Gráficos ── */
+.chart-card{border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.chart-head{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.chart-hico{flex:0 0 auto;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;
+  background:rgba(var(--accent-rgb),.15);border:1px solid rgba(var(--accent-rgb),.3)}
+.chart-title{font-size:14px;font-weight:600;margin:0}
+.chart-tabs{gap:8px;margin-bottom:16px}
+.chart-tab{border-radius:9px;padding:8px 14px}
+.chart-tab.active{background:linear-gradient(100deg,rgba(var(--accent-rgb),.92),rgba(var(--accent-rgb),.6));border-color:transparent;color:#fff}
+.bar-chart{gap:11px}
+/* o valor agora fica DEPOIS da barra: a faixa reservada à direita impede que
+   o rótulo da maior barra escape do cartão */
+.bar-row{gap:12px;padding-right:96px}
+.bar-name{width:132px;font-size:11px}
+.bar-track{height:19px;border-radius:10px;overflow:visible;position:relative}
+.bar-fill{border-radius:10px;padding-left:0;position:relative}
+.bar-val{position:absolute;left:calc(100% + 9px);top:50%;transform:translateY(-50%);
+  color:var(--text);font-weight:500;font-size:10.5px}
+
+/* ── Mesmo arredondamento/respiro nas demais telas (filtros, tabelas, botões) ── */
+.filters{border-radius:14px;padding:14px 16px;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.si,.sel,.btn{border-radius:9px;padding:9px 12px;font-size:12.5px}
+.si:focus,.sel:focus{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14)}
+.btn.primary{border-color:rgba(var(--accent-rgb),.6);
+  background:linear-gradient(100deg,rgba(var(--accent-rgb),1),rgba(var(--accent-rgb),.65));
+  box-shadow:0 6px 16px rgba(var(--accent-rgb),.3)}
+.btn.primary:hover{filter:brightness(1.08)}
+.table-wrap{border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.fiscal-card,.ai{border-radius:14px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -655,9 +824,12 @@ select.doc-inp{cursor:pointer}
 <!-- APP -->
 <div id="app">
   <div class="sb">
-    <div class="sb-logo">
-      <div class="sb-lt">Faturamento</div>
-      <div class="sb-ls">UFRJ &middot; Contratos</div>
+    <div class="sb-logo" title="Faturamento · UFRJ · Contratos">
+      <div class="sb-crest">UFRJ</div>
+      <div class="sb-brand">
+        <div class="sb-lt">Gestão de Contratos</div>
+        <div class="sb-ls"><b>PR-6</b> &middot; Faturamento</div>
+      </div>
     </div>
     <nav class="sb-nav">
       <div class="nav-item active" id="nav-dashboard" title="Dashboard" onclick="showView('dashboard')"><span class="sb-ic">📊</span><span class="sb-tx">Dashboard</span></div>
@@ -678,9 +850,20 @@ select.doc-inp{cursor:pointer}
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
     </nav>
     <div class="sb-foot">
-      <div class="sb-fv" id="sb-vigentes">—</div><div>contratos vigentes</div>
-      <div class="sb-fv" style="margin-top:10px" id="sb-valor">—</div><div>valor mensal total</div>
+      <div class="sb-fitem">
+        <div class="sb-fico">📄</div>
+        <div><div class="sb-fv" id="sb-vigentes">—</div><div class="sb-fl">contratos vigentes</div></div>
+      </div>
+      <div class="sb-fitem">
+        <div class="sb-fico">📈</div>
+        <div><div class="sb-fv" id="sb-valor">—</div><div class="sb-fl">valor mensal total</div></div>
+      </div>
     </div>
+    <!-- Recolher o menu: fica fora do rodapé porque precisa continuar visível
+         com o menu encolhido (o rodapé some nesse estado). -->
+    <button class="sb-collapse" id="sb-collapse" onclick="toggleSidebar()" title="Recolher o menu" aria-label="Recolher o menu">
+      <span class="sb-cico">‹</span><span class="sb-tx">Recolher menu</span>
+    </button>
   </div>
   <div class="main">
     <div class="topbar">
@@ -696,11 +879,18 @@ select.doc-inp{cursor:pointer}
         <div class="tela-id-s" id="tela-id-s">Visão geral da carteira de contratos</div>
       </div>
       <div class="topbar-right">
-        <span id="tb-date"></span>
-        <span id="tb-user" style="color:var(--accent);font-weight:600"></span>
-        <button id="theme-toggle" onclick="toggleTheme()" title="Modo claro" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:14px;padding:3px 8px;cursor:pointer;line-height:1;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">☀️</button>
-        <button onclick="openChangePasswordModal()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;padding:3px 9px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🔑 Minha Senha</button>
-        <button id="btn-backup-admin" onclick="openBackupModal()" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;padding:3px 9px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">💾 Backup</button>
+        <span class="tb-date">🗓️ <span id="tb-date"></span></span>
+        <!-- Identificação do usuário: avatar com as iniciais + login e nível -->
+        <span class="tb-who">
+          <span class="tb-av" id="tb-av">—</span>
+          <span>
+            <span class="tb-wn" id="tb-user"></span>
+            <span class="tb-wr" id="tb-role"></span>
+          </span>
+        </span>
+        <button id="theme-toggle" class="tb-chip" onclick="toggleTheme()" title="Modo claro">☀️</button>
+        <button class="tb-chip" onclick="openChangePasswordModal()">🔑 Minha Senha</button>
+        <button id="btn-backup-admin" class="tb-chip" onclick="openBackupModal()" style="display:none">💾 Backup</button>
         <button class="logout-btn" onclick="doLogout()">Sair</button>
       </div>
     </div>
@@ -710,42 +900,65 @@ select.doc-inp{cursor:pointer}
 
     <!-- DASHBOARD -->
     <div class="view active" id="view-dashboard">
+      <!-- Faixa de boas-vindas: o degradê é o da tela (var(--accent-rgb)) -->
+      <div class="hero">
+        <div class="hero-tx">
+          <div class="hero-h" id="hero-ola">Olá</div>
+          <div class="hero-s">Bem-vindo ao Sistema de Gestão de Contratos da UFRJ</div>
+        </div>
+        <div class="hero-mark">
+          <div class="hero-mk">UFRJ</div>
+          <div class="hero-mks">Tradição, Conhecimento e Serviço Público</div>
+        </div>
+      </div>
+
       <!-- Filtro de contrato + filtros -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;flex-wrap:wrap">
-        <input id="db-busca" type="text" list="db-busca-list" autocomplete="off"
-          placeholder="🔎 Buscar contrato ou empresa…"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();dashBuscaGo(this.value,true);}"
-          onchange="dashBuscaGo(this.value,false)"
-          style="min-width:260px;flex:0 1 320px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;padding:9px 14px;outline:none;transition:border-color .15s"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        <datalist id="db-busca-list"></datalist>
-        <select id="db-contrato-filter" onchange="openContratoModal(this.value); this.value='';"
-          style="min-width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:9px 14px;cursor:pointer;outline:none">
-          <option value="">Selecione um contrato…</option>
-        </select>
-        <div id="db-extra-filters" style="display:flex;align-items:center;gap:10px">
-          <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
-          <select id="db-empresa-filter" onchange="setEmpresaFilter(this.value)"
-            style="max-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-            <option value="">Todas as empresas</option>
-          </select>
-          <select id="db-year-filter" onchange="setYearFilter(this.value)"
-            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-            <option value="">Todos os anos</option>
-          </select>
-          <select id="db-tipo-filter" onchange="setTipoFilter(this.value)"
-            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-            <option value="">Todos os tipos</option>
-          </select>
-          <select id="db-subtipo-filter" onchange="setSubtipoFilter(this.value)"
-            style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:9px 14px;cursor:pointer;outline:none">
-            <option value="">Todos os subtipos</option>
+      <div class="fbar">
+        <div class="fbar-f" style="flex:0 1 320px;min-width:240px">
+          <span class="fbar-l">Buscar</span>
+          <input id="db-busca" class="fbar-i" type="text" list="db-busca-list" autocomplete="off"
+            placeholder="🔎 Buscar contrato, empresa ou palavra-chave…"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();dashBuscaGo(this.value,true);}"
+            onchange="dashBuscaGo(this.value,false)">
+          <datalist id="db-busca-list"></datalist>
+        </div>
+        <div class="fbar-f">
+          <span class="fbar-l">Contrato</span>
+          <select id="db-contrato-filter" class="fbar-s" style="min-width:180px;font-family:'DM Mono',monospace"
+            onchange="openContratoModal(this.value); this.value='';">
+            <option value="">Todos os contratos</option>
           </select>
         </div>
-        <button onclick="clearDashFilters()" id="db-clear-btn"
-          style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:var(--red);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">✕ Limpar filtros</button>
-        <button onclick="exportDashboardPDF()" id="db-pdf-btn"
-          style="background:rgba(var(--accent-rgb),.15);border:1px solid rgba(var(--accent-rgb),.35);border-radius:8px;color:var(--accent);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:9px 14px;cursor:pointer;white-space:nowrap">📄 PDF</button>
+        <!-- O display fica na classe: o JS zera style.display para reexibir. -->
+        <div id="db-extra-filters" class="fbar-x">
+          <div class="fbar-f">
+            <span class="fbar-l">Empresa</span>
+            <select id="db-empresa-filter" class="fbar-s" style="max-width:220px" onchange="setEmpresaFilter(this.value)">
+              <option value="">Todas as empresas</option>
+            </select>
+          </div>
+          <div class="fbar-f">
+            <span class="fbar-l">Ano</span>
+            <select id="db-year-filter" class="fbar-s" onchange="setYearFilter(this.value)">
+              <option value="">Todos os anos</option>
+            </select>
+          </div>
+          <div class="fbar-f">
+            <span class="fbar-l">Tipo</span>
+            <select id="db-tipo-filter" class="fbar-s" onchange="setTipoFilter(this.value)">
+              <option value="">Todos os tipos</option>
+            </select>
+          </div>
+          <div class="fbar-f">
+            <span class="fbar-l">Subtipo</span>
+            <select id="db-subtipo-filter" class="fbar-s" onchange="setSubtipoFilter(this.value)">
+              <option value="">Todos os subtipos</option>
+            </select>
+          </div>
+        </div>
+        <div class="fbar-sp"></div>
+        <button class="fbar-b pri" onclick="exportDashboardPDF()" id="db-pdf-btn">📄 PDF</button>
+        <button class="fbar-b gho" onclick="clearDashFilters()" id="db-clear-btn">✕ Limpar</button>
       </div>
       <div id="db-charts-area">
         <div class="kpi-grid" id="kpi-grid"></div>
@@ -758,7 +971,10 @@ select.doc-inp{cursor:pointer}
           <button class="chart-tab" data-chart="imr-resp" onclick="showChart('imr-resp')">IMR por responsável</button>
         </div>
         <div class="chart-card" id="single-chart-card">
-          <div class="chart-title" id="single-chart-title"></div>
+          <div class="chart-head">
+            <div class="chart-hico">📊</div>
+            <div class="chart-title" id="single-chart-title"></div>
+          </div>
           <div class="bar-chart" id="single-chart"></div>
         </div>
       </div>
@@ -1648,7 +1864,16 @@ function launchApp(u) {
   var userInfo = USERS_DB[u] || {role:'n1'};
   currentRole = normalizeRole(userInfo.role);
   document.getElementById('app').style.display = 'block';
-  document.getElementById('tb-user').textContent = u + ' (' + roleLabel(currentRole) + ')';
+  document.getElementById('tb-user').textContent = u;
+  document.getElementById('tb-role').textContent = roleLabel(currentRole);
+  // Iniciais do login para o avatar (ex.: "ismaeloliveira" → "IS")
+  document.getElementById('tb-av').textContent = String(u || '?').trim().slice(0,2).toUpperCase();
+  // Saudação da faixa do Dashboard
+  var ola = document.getElementById('hero-ola');
+  if (ola) {
+    var nome = String(u || '').trim();
+    ola.textContent = 'Olá, ' + (nome ? nome.charAt(0).toUpperCase() + nome.slice(1) : 'bem-vindo');
+  }
   var now = new Date();
   document.getElementById('tb-date').textContent = now.toLocaleDateString('pt-BR', {weekday:'short',year:'numeric',month:'short',day:'numeric'});
   applyPermissionsUI();
@@ -2215,14 +2440,14 @@ function buildDashboard() {
   Object.keys(imrPorConta).forEach(function(c){ imrTotal += imrPorConta[c]; });
   var labelAno = currentYearFilter ? ' em '+currentYearFilter : '';
   var kpis = [
-    {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', btn:true},
-    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', small:true, btnValor:true},
-    {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', btnFiscVig:true},
-    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple', btnFunc:true},
-    {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', btnV30:true},
-    {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', small:true, btnGlobal:true},
-    {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', btnEmp:true},
-    {l:'Total de IMR', v:imrTotal, s:'em contratos vigentes'+labelAno, c:'amber', btnImr:true},
+    {l:'Contratos Vigentes', v:vigContratos.length, s:'de '+base.length+' no total'+labelAno, c:'blue', i:'📄', btn:true},
+    {l:'Valor Mensal (Vigentes)', v:fmtBR(mensal), s:'contratos ativos'+labelAno, c:'green', i:'💰', small:true, btnValor:true},
+    {l:'Fiscais em Contratos Vigentes', v:fiscVigCount, s:'nomes distintos'+labelAno, c:'purple', i:'👥', btnFiscVig:true},
+    {l:'Funcionários Vigentes', v:func, s:'em contratos ativos'+labelAno, c:'purple', i:'🧑‍🔧', btnFunc:true},
+    {l:'Vencendo em 30 dias', v:v30, s:'requerem atenção', c:'amber', i:'🗓️', btnV30:true},
+    {l:'Valor Global', v:fmtBR(totalG), s:'contratos vigentes'+labelAno, c:'blue', i:'📊', small:true, btnGlobal:true},
+    {l:'Total de Empresas', v:empresas, s:'em contratos vigentes'+labelAno, c:'green', i:'🏭', btnEmp:true},
+    {l:'Total de IMR', v:imrTotal, s:'em contratos vigentes'+labelAno, c:'amber', i:'📋', btnImr:true},
   ];
   document.getElementById('kpi-grid').innerHTML = kpis.map(function(k){
     var clickFn = k.btn ? 'showKpiLista(\'vigentes\')'
@@ -2236,12 +2461,22 @@ function buildDashboard() {
                 : '';
     var clickable = !!clickFn;
     // O realce ao passar o mouse (escala/sombra/brilho) é feito em CSS (.kpi:hover).
+    // O rodapé do cartão não traz comparação com o mês anterior: o sistema não
+    // guarda o histórico mensal dos indicadores, então ali vai o atalho da lista.
     return '<div class="kpi '+k.c+'"'
       +(clickable?' onclick="'+clickFn+'" style="cursor:pointer"':'')
       +'>'
-      +'<div class="kpi-label">'+k.l+'</div>'
-      +'<div class="kpi-value" style="'+(k.small?'font-size:17px;line-height:1.25':'')+'">'+k.v+'</div>'
-      +'<div class="kpi-sub">'+k.s+'</div>'
+      +'<div class="kpi-top">'
+        +'<div class="kpi-ico">'+(k.i||'•')+'</div>'
+        +'<div class="kpi-tx">'
+          +'<div class="kpi-label">'+k.l+'</div>'
+          +'<div class="kpi-value" style="'+(k.small?'font-size:17px;line-height:1.25':'')+'">'+k.v+'</div>'
+          +'<div class="kpi-sub">'+k.s+'</div>'
+        +'</div>'
+      +'</div>'
+      +(clickable
+        ? '<div class="kpi-foot"><span class="kpi-trend flat">↗ detalhar</span><span class="kpi-tl">clique para abrir a lista</span></div>'
+        : '')
       +'</div>';
   }).join('');
   var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
@@ -6972,11 +7207,16 @@ function toggleSidebar() {
 }
 
 function updateSidebarBtn() {
-  var btn = document.getElementById('sb-toggle');
-  if (!btn) return;
   var min = document.body.classList.contains('sb-min');
-  btn.title = min ? 'Mostrar o menu' : 'Recolher o menu';
-  btn.setAttribute('aria-label', btn.title);
+  var rot = min ? 'Mostrar o menu' : 'Recolher o menu';
+  [document.getElementById('sb-toggle'), document.getElementById('sb-collapse')].forEach(function(btn){
+    if (!btn) return;
+    btn.title = rot;
+    btn.setAttribute('aria-label', rot);
+  });
+  // o texto do botão do rodapé acompanha o estado
+  var tx = document.querySelector('#sb-collapse .sb-tx');
+  if (tx) tx.textContent = rot === 'Recolher o menu' ? 'Recolher menu' : 'Mostrar menu';
 }
 
 // ── Minha Senha ──
