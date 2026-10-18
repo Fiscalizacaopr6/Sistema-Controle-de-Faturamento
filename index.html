@@ -793,8 +793,10 @@ html .bar-plot .bar-track{background:transparent}
 /* ── Rosca (contratos por tipo) ── */
 .donut-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 auto}
 /* Sem legenda embaixo: a rosca sozinha ocupa o cartão, e quem diz o que é
-   cada fatia é o balão que aparece ao passar o mouse. */
-.donut{position:relative;width:100%;max-width:306px;aspect-ratio:1;flex:0 0 auto;margin:0 auto}
+   cada fatia é o balão que aparece ao passar o mouse. A margem negativa usa
+   parte do respiro lateral do cartão, para a rosca encher o espaço. */
+.donut-wrap{margin:0 -12px}
+.donut{position:relative;width:100%;max-width:348px;aspect-ratio:1;flex:0 0 auto;margin:0 auto}
 .donut svg{width:100%;height:100%;display:block}
 .donut-pin{fill:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;pointer-events:none}
 .donut-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
