@@ -1959,11 +1959,9 @@ function launchApp(u) {
     applyFilters();
     updateSidebar();
     setupRealtimeListeners();
-    // Restaura a tela em que o usuário estava antes de atualizar
-    var lastView = sessionStorage.getItem('ufrj_view');
-    var cvId = sessionStorage.getItem('ufrj_cvform');
-    if (lastView === 'cvform' && cvId) cvAbrirFormulario(cvId);
-    else if (lastView && lastView !== 'dashboard') showView(lastView);
+    // Sempre entra no Dashboard (login ou F5): a tela anterior não é restaurada.
+    sessionStorage.removeItem('ufrj_cvform');
+    showView('dashboard');
     // Alertas de login (Conta Vinculada pendente e, p/ certos usuários, designação).
     checarAlertasLogin();
   });
