@@ -847,82 +847,6 @@ html .bar-plot .bar-track{background:transparent}
 .kpi-trend.up::before{content:'↑'}
 .kpi-trend.down::before{content:'↓'}
 .kpi-trend.flat::before{content:'='}
-
-/* ══════════════════════════════════════════════════════════════════════════
-   AZUL-MARINHO INSTITUCIONAL (Dashboard)
-   A lateral e a faixa de cima ficam na mesma tonalidade do material da UFRJ,
-   com as faixas diagonais claras por cima. Vale só no Dashboard: nas outras
-   telas a lateral e a topbar seguem a cor da própria tela (bloco "IDENTIDADE
-   VISUAL POR TELA"). O azul vivo (--viva) é o do item de menu selecionado.
-   ══════════════════════════════════════════════════════════════════════════ */
-:root{
-  --mar1:#102d61;--mar2:#0a1c3f;--mar3:#07142e;--viva:#1668d8;--viva2:#2a7ef0;
-  --mar-faixas:repeating-linear-gradient(115deg,rgba(255,255,255,.05) 0 24px,transparent 24px 62px);
-}
-
-/* ── Logo: a imagem já vem com o fundo azul-marinho, então ocupa o canto
-      superior esquerdo inteiro, sem moldura ── */
-.sb-crest{display:block;padding:0;min-height:0;background:var(--mar2);border-bottom:1px solid rgba(255,255,255,.12)}
-.sb-crest img{display:block;width:100%;height:auto;max-height:none}
-body.sb-min .sb-crest{padding:0}
-/* Encolhido, só cabe o brasão: a imagem é recortada na parte dele */
-body.sb-min .sb-crest img{height:52px;object-fit:cover;object-position:17% center}
-
-/* ── "Gestão de Contratos" + PR-6 ── */
-.sb-ls{display:flex;align-items:center;gap:9px;white-space:normal;overflow:visible}
-.sb-ls b{flex:0 0 auto;font-size:17px;line-height:1}
-.sb-ls span{min-width:0;padding-left:9px;border-left:1px solid rgba(var(--accent-rgb),.4);line-height:1.25}
-
-/* ── Lateral ── */
-html[data-tela="dashboard"] .sb,html[data-tela="db-lista"] .sb{
-  background:var(--mar-faixas),linear-gradient(180deg,var(--mar1) 0%,var(--mar2) 46%,var(--mar3) 100%);
-  border-right-color:rgba(255,255,255,.12)}
-html[data-tela="dashboard"] .sb-logo,html[data-tela="db-lista"] .sb-logo{border-bottom-color:rgba(255,255,255,.12)}
-html[data-tela="dashboard"] .sb-lt,html[data-tela="db-lista"] .sb-lt{color:#fff}
-html[data-tela="dashboard"] .sb-ls,html[data-tela="db-lista"] .sb-ls{color:rgba(255,255,255,.62)}
-html[data-tela="dashboard"] .sb-ls b,html[data-tela="db-lista"] .sb-ls b{color:#fff}
-html[data-tela="dashboard"] .sb-ls span,html[data-tela="db-lista"] .sb-ls span{border-left-color:rgba(255,255,255,.28)}
-html[data-tela="dashboard"] .nav-item,html[data-tela="db-lista"] .nav-item{color:rgba(255,255,255,.82)}
-html[data-tela="dashboard"] .nav-item:hover,html[data-tela="db-lista"] .nav-item:hover{
-  background:rgba(255,255,255,.1);color:#fff}
-html[data-tela="dashboard"] .nav-item.active,html[data-tela="db-lista"] .nav-item.active{
-  background:linear-gradient(100deg,var(--viva) 0%,var(--viva2) 100%);color:#fff;
-  box-shadow:0 7px 18px rgba(22,104,216,.42)}
-html[data-tela="dashboard"] .sb-foot,html[data-tela="db-lista"] .sb-foot{border-top-color:rgba(255,255,255,.12)}
-html[data-tela="dashboard"] .sb-fico,html[data-tela="db-lista"] .sb-fico{
-  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}
-html[data-tela="dashboard"] .sb-fv,html[data-tela="db-lista"] .sb-fv{color:#fff}
-html[data-tela="dashboard"] .sb-fl,html[data-tela="db-lista"] .sb-fl{color:rgba(255,255,255,.6)}
-html[data-tela="dashboard"] .sb-collapse,html[data-tela="db-lista"] .sb-collapse{
-  background:rgba(255,255,255,.05);border-top-color:rgba(255,255,255,.12);color:rgba(255,255,255,.75)}
-html[data-tela="dashboard"] .sb-collapse:hover,html[data-tela="db-lista"] .sb-collapse:hover{
-  background:rgba(255,255,255,.12);color:#fff}
-html[data-tela="dashboard"] .sb-cico,html[data-tela="db-lista"] .sb-cico{
-  background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.26);color:#fff}
-
-/* ── Faixa de cima, na mesma tonalidade ── */
-html[data-tela="dashboard"] .topbar,html[data-tela="db-lista"] .topbar{
-  background:var(--mar-faixas),linear-gradient(100deg,var(--mar1) 0%,var(--mar2) 58%,var(--mar3) 100%);
-  border-bottom-color:rgba(255,255,255,.12)}
-html[data-tela="dashboard"] .topbar::after,html[data-tela="db-lista"] .topbar::after{display:none}
-html[data-tela="dashboard"] .tela-id-t,html[data-tela="db-lista"] .tela-id-t{color:#fff}
-html[data-tela="dashboard"] .tela-id-k,html[data-tela="db-lista"] .tela-id-k{color:#8fb6e8}
-html[data-tela="dashboard"] .tela-id-s,html[data-tela="db-lista"] .tela-id-s{
-  color:rgba(255,255,255,.7);border-left-color:rgba(255,255,255,.22)}
-html[data-tela="dashboard"] .tela-id-ico,html[data-tela="db-lista"] .tela-id-ico{
-  background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.26)}
-html[data-tela="dashboard"] .tb-date,html[data-tela="db-lista"] .tb-date,
-html[data-tela="dashboard"] .tb-chip,html[data-tela="db-lista"] .tb-chip,
-html[data-tela="dashboard"] .tb-who,html[data-tela="db-lista"] .tb-who{
-  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.84)}
-html[data-tela="dashboard"] .tb-chip:hover,html[data-tela="db-lista"] .tb-chip:hover{
-  background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.45);color:#fff}
-html[data-tela="dashboard"] .tb-wn,html[data-tela="db-lista"] .tb-wn{color:#fff}
-html[data-tela="dashboard"] .tb-wr,html[data-tela="db-lista"] .tb-wr{color:rgba(255,255,255,.7)}
-html[data-tela="dashboard"] .tb-av,html[data-tela="db-lista"] .tb-av{
-  background:linear-gradient(135deg,var(--viva),var(--viva2))}
-html[data-tela="dashboard"] .logout-btn,html[data-tela="db-lista"] .logout-btn{
-  background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.5);color:#fecaca}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -976,11 +900,10 @@ html[data-tela="dashboard"] .logout-btn,html[data-tela="db-lista"] .logout-btn{
 <div id="app">
   <div class="sb">
     <div class="sb-logo" title="Faturamento · UFRJ · Contratos">
-      <div class="sb-crest"><img src="ufrj-logo-branco.webp" alt="UFRJ · Universidade Federal do Rio de Janeiro"
-        onerror="this.onerror=null;this.src='ufrj-logo.png'"></div>
+      <div class="sb-crest"><img src="ufrj-logo.png" alt="UFRJ" onerror="this.parentNode.textContent='UFRJ'"></div>
       <div class="sb-brand">
         <div class="sb-lt">Gestão de Contratos</div>
-        <div class="sb-ls"><b>PR-6</b><span>Pró-Reitoria de Gestão e Governança</span></div>
+        <div class="sb-ls"><b>PR-6</b> &middot; Pró-Reitoria de Gestão e Governança</div>
       </div>
     </div>
     <nav class="sb-nav">
