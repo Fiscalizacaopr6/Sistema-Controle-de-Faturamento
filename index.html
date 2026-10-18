@@ -780,16 +780,13 @@ html .bar-plot .bar-track{background:transparent}
 .chart-sel{flex:0 0 auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);
   font-family:'Sora',sans-serif;font-size:11px;padding:6px 9px;cursor:pointer;outline:none}
 
-/* ── Barras com eixo e linhas de grade ── */
+/* ── Barras: sem régua e sem linhas de grade; o número ao lado de cada barra
+      é que diz o valor ── */
 .bar-plot{position:relative}
-.bar-grid{--n:4;position:absolute;top:0;bottom:0;left:132px;right:76px;pointer-events:none;
-  background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px calc(100%/var(--n)));
-  border-right:1px solid var(--border)}
 .bar-plot .bar-chart{position:relative;z-index:1}
 .bar-mais{margin-top:10px;font-size:10.5px;color:var(--muted);text-align:center}
 @media (max-width:1320px){
   .bar-name{width:104px}
-  .bar-grid{left:116px;right:74px}
   .bar-row{padding-right:74px}
 }
 
@@ -1032,7 +1029,6 @@ html .bar-plot .bar-track{background:transparent}
               <div class="chart-title" id="single-chart-title"></div>
             </div>
             <div class="bar-plot">
-              <div class="bar-grid"></div>
               <div class="bar-chart" id="single-chart"></div>
             </div>
           </div>
@@ -2169,9 +2165,6 @@ function showChart(key) {
   });
   document.getElementById('single-chart-title').textContent = d.title;
   document.getElementById('single-chart').innerHTML = d.html;
-  // as linhas de grade acompanham a quantidade de intervalos da escala
-  var grade = document.querySelector('#single-chart-card .bar-grid');
-  if (grade) grade.style.setProperty('--n', d.n || 4);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -2808,11 +2801,11 @@ function buildDashboard() {
   // Barras + régua do eixo. A escala vai até um máximo "redondo" (eixoMax),
   // e não até a maior barra, para a régua embaixo bater com as linhas de grade.
   // Barras. `fmtVal` formata o número que vai ao lado de cada barra. A escala
-  // ainda é calculada (eixoEscala) porque dela saem a largura das barras e a
-  // quantidade de linhas de grade — só a régua de números não é desenhada.
+  // (eixoEscala) continua sendo calculada: é dela que sai a largura das barras,
+  // num máximo redondo, mesmo sem régua nem grade desenhadas.
   function barSet(data, fmtVal) {
     var sorted = Object.entries(data).sort(function(a,b){ return b[1]-a[1]; });
-    if (!sorted.length) return { html:'<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>', n:4 };
+    if (!sorted.length) return '<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>';
     var esc = eixoEscala(sorted[0][1], 4);
     // Só as maiores cabem no cartão; o resto vira uma nota no rodapé.
     var total = sorted.length;
@@ -2826,7 +2819,7 @@ function buildDashboard() {
       + (total > sorted.length
          ? '<div class="bar-mais">mostrando as '+sorted.length+' maiores de '+total+'</div>'
          : '');
-    return { html:html, n:esc.n };
+    return html;
   }
   var byR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byR[r]=(byR[r]||0)+(d['TOTAL MENSAL']||0); });
   var byT = {}; vig.forEach(function(d){ var t=d['TIPO']||'Outros'; byT[t]=(byT[t]||0)+1; });
@@ -2844,10 +2837,7 @@ function buildDashboard() {
     var r = respPorConta[c] || '?';
     byIMR[r] = (byIMR[r] || 0) + imrPorConta[c];
   });
-  function cd(title, data, fmtVal) {
-    var b = barSet(data, fmtVal);
-    return { title:title, html:b.html, n:b.n };
-  }
+  function cd(title, data, fmtVal) { return { title:title, html:barSet(data, fmtVal) }; }
   var emReais = function(v){ return fmtMi(v, true); };   // ao lado da barra
   CHART_DATA = {
     'resp':      cd('Valor mensal por responsável (vigentes)', byR, emReais),
