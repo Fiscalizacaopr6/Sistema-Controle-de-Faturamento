@@ -742,14 +742,14 @@ body.sb-min .sb-cico{transform:rotate(180deg)}
 .bar-chart{gap:10px}
 /* o valor agora fica DEPOIS da barra: a faixa reservada à direita impede que
    o rótulo da maior barra escape do cartão */
-.bar-row{gap:12px;padding-right:92px}
-.bar-name{width:140px;font-size:11.5px;color:var(--text);font-weight:500}
+.bar-row{gap:12px;padding-right:76px}
+.bar-name{width:120px;font-size:11.5px;color:var(--text);font-weight:500}
 .bar-track{height:20px;border-radius:10px;overflow:visible;position:relative}
 /* trilho sem fundo: o valor fica logo depois da barra e as linhas de grade
    aparecem atrás (o seletor leva o `html` só para vencer a regra do modo claro) */
 html .bar-plot .bar-track{background:transparent}
 .bar-fill{border-radius:10px;padding-left:0;position:relative}
-.bar-val{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+.bar-val{position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
   color:var(--text);font-weight:600;font-size:11.5px;font-family:'Sora',sans-serif}
 
 /* ── Mesmo arredondamento/respiro nas demais telas (filtros, tabelas, botões) ── */
@@ -770,7 +770,7 @@ html .bar-plot .bar-track{background:transparent}
    ocupar a altura da linha do grid (a do cartão mais alto). As larguras seguem
    diferentes de propósito — a rosca pede menos espaço que as barras e a linha.
    O minmax(0,…) impede que o conteúdo estique a coluna além da fração. */
-.dash-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.92fr) minmax(0,1.15fr);
+.dash-row{display:grid;grid-template-columns:minmax(0,.98fr) minmax(0,.95fr) minmax(0,1.29fr);
   gap:18px;margin-bottom:22px;align-items:stretch}
 .dash-row > .chart-card{height:100%;display:flex;flex-direction:column;min-width:0}
 @media (max-width:1320px){.dash-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
@@ -782,12 +782,12 @@ html .bar-plot .bar-track{background:transparent}
 
 /* ── Barras com eixo e linhas de grade ── */
 .bar-plot{position:relative}
-.bar-grid{--n:4;position:absolute;top:0;bottom:0;left:152px;right:92px;pointer-events:none;
+.bar-grid{--n:4;position:absolute;top:0;bottom:0;left:132px;right:76px;pointer-events:none;
   background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px calc(100%/var(--n)));
   border-right:1px solid var(--border)}
 .bar-plot .bar-chart{position:relative;z-index:1}
-.bar-axis{position:relative;height:15px;margin:10px 92px 0 152px;
-  font-family:'Sora',sans-serif;font-size:11px;color:var(--muted)}
+.bar-axis{position:relative;height:15px;margin:10px 76px 0 132px;
+  font-family:'Sora',sans-serif;font-size:10px;color:var(--muted)}
 /* posicionado em %, e não distribuído: só assim cada número cai em cima da
    sua linha de grade */
 .bar-axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
@@ -802,21 +802,25 @@ html .bar-plot .bar-track{background:transparent}
 }
 
 /* ── Rosca (contratos por tipo) ── */
-.donut-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;flex:1 1 auto}
-/* A rosca acompanha a largura do cartão (com teto), em vez de ficar num
-   quadrado fixo — é isso que a deixava pequena e fora de proporção. */
-.donut{position:relative;width:100%;max-width:236px;aspect-ratio:1;flex:0 0 auto;margin:0 auto}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 auto}
+/* Sem legenda embaixo: a rosca sozinha ocupa o cartão, e quem diz o que é
+   cada fatia é o balão que aparece ao passar o mouse. */
+.donut{position:relative;width:100%;max-width:306px;aspect-ratio:1;flex:0 0 auto;margin:0 auto}
 .donut svg{width:100%;height:100%;display:block}
-.donut-pin{fill:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700}
+.donut-pin{fill:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;pointer-events:none}
 .donut-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .donut-n{font-size:32px;font-weight:700;line-height:1}
 .donut-l{font-size:11.5px;color:var(--muted);margin-top:4px}
-.donut-leg{width:100%;display:flex;flex-direction:column;gap:9px}
-.donut-li{display:flex;align-items:center;gap:10px;font-size:12.5px}
-.donut-sq{flex:0 0 auto;width:13px;height:13px;border-radius:3px}
-.donut-nm{flex:1 1 auto;min-width:0;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.donut-pc{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--muted);width:36px;text-align:right}
-.donut-qt{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--text);width:30px;text-align:right}
+/* Ao passar o mouse, a fatia sob o cursor fica cheia e as outras esmaecem */
+.donut-seg{transition:opacity .15s}
+.donut:hover .donut-seg{opacity:.2}
+.donut .donut-seg:hover{opacity:1}
+.donut-tip{position:absolute;z-index:3;pointer-events:none;opacity:0;transform:translate(-50%,-135%);
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 11px;
+  box-shadow:0 10px 24px rgba(0,0,0,.2);white-space:nowrap;transition:opacity .12s}
+.donut-tip.on{opacity:1}
+.donut-tip b{display:block;color:var(--text);font-size:12px;font-weight:600}
+.donut-tip span{color:var(--muted);font-family:'DM Mono',monospace;font-size:11px}
 
 /* ── Linha (evolução do valor mensal) ── */
 .line-wrap{width:100%;flex:1 1 auto;display:flex;align-items:center}
@@ -2290,47 +2294,68 @@ function eixoHtml(esc, fmt) {
   return h;
 }
 
-// Rosca: 1 fatia por TIPO, contando CONTRATOS (não termos), top 5 + "Outros".
+// Rosca: 1 fatia por TIPO, contando CONTRATOS (não termos). Todos os tipos
+// entram — não há mais agrupamento em "Outros". Sem legenda: o nome e a
+// quantidade aparecem no balão ao passar o mouse, e a fatia sob o cursor fica
+// cheia enquanto as outras esmaecem.
 function renderDonut(porTipo, total) {
   var el = document.getElementById('db-donut');
   if (!el) return;
   if (!total) { el.innerHTML = '<div class="db-vazio">Sem contratos vigentes no filtro atual.</div>'; return; }
-  var cores = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
-  var ord = Object.entries(porTipo).sort(function(a,b){ return b[1]-a[1]; });
-  var top = ord.slice(0,5);
-  var resto = ord.slice(5).reduce(function(s,e){ return s+e[1]; }, 0);
-  if (resto) top.push(['Outros', resto]);
+  var cores = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4',
+               '#84cc16','#f97316','#ec4899','#14b8a6','#6366f1','#eab308',
+               '#f43f5e','#22c55e','#a855f7','#0ea5e9'];
+  var fatias = Object.entries(porTipo).sort(function(a,b){ return b[1]-a[1]; });
   // Geometria da rosca, em unidades do viewBox 200×200: o traço é desenhado
   // em cima do raio RM, então o anel vai de RM−ESP/2 a RM+ESP/2.
   var VB = 200, CX = 100, RM = 72, ESP = 54;
   var CIRC = 2*Math.PI*RM;
   var VAO = 2;                      // respiro branco entre as fatias
-  var off = 0, segs = '', rotulos = '', leg = '';
-  top.forEach(function(e,i){
+  var off = 0, grupos = '';
+  fatias.forEach(function(e,i){
     var frac = e[1]/total, cor = cores[i%cores.length];
     var arco = Math.max(frac*CIRC - VAO, 0.6);
-    segs += '<circle cx="'+CX+'" cy="'+CX+'" r="'+RM+'" fill="none" stroke="'+cor+'" stroke-width="'+ESP+'"'
-         + ' stroke-dasharray="'+arco.toFixed(2)+' '+(CIRC-arco).toFixed(2)+'"'
-         + ' stroke-dashoffset="'+(-off*CIRC).toFixed(2)+'"><title>'+e[0]+': '+e[1]+'</title></circle>';
-    // A porcentagem vai no meio da fatia; fatia muito fina não comporta texto.
     var pct = Math.round(frac*100);
+    var seg = '<circle cx="'+CX+'" cy="'+CX+'" r="'+RM+'" fill="none" stroke="'+cor+'" stroke-width="'+ESP+'"'
+      + ' transform="rotate(-90 '+CX+' '+CX+')"'
+      + ' stroke-dasharray="'+arco.toFixed(2)+' '+(CIRC-arco).toFixed(2)+'"'
+      + ' stroke-dashoffset="'+(-off*CIRC).toFixed(2)+'"/>';
+    // A porcentagem vai no meio da fatia; fatia muito fina não comporta texto.
+    var rot = '';
     if (frac >= 0.05) {
       var ang = (off + frac/2) * 2*Math.PI - Math.PI/2;
-      rotulos += '<text class="donut-pin" x="'+(CX + Math.cos(ang)*RM).toFixed(1)+'"'
-              + ' y="'+(CX + Math.sin(ang)*RM).toFixed(1)+'"'
-              + ' text-anchor="middle" dominant-baseline="central">'+pct+'%</text>';
+      rot = '<text class="donut-pin" x="'+(CX + Math.cos(ang)*RM).toFixed(1)+'"'
+          + ' y="'+(CX + Math.sin(ang)*RM).toFixed(1)+'"'
+          + ' text-anchor="middle" dominant-baseline="central">'+pct+'%</text>';
     }
+    // A fatia e o seu rótulo ficam no mesmo grupo para esmaecerem juntos.
+    grupos += '<g class="donut-seg" data-nome="'+esc(e[0])+'" data-qtd="'+e[1]+'" data-pct="'+pct+'">'
+           + seg + rot + '</g>';
     off += frac;
-    leg += '<div class="donut-li"><span class="donut-sq" style="background:'+cor+'"></span>'
-        + '<span class="donut-nm" title="'+e[0]+'">'+e[0]+'</span>'
-        + '<span class="donut-pc">'+pct+'%</span>'
-        + '<span class="donut-qt">'+e[1]+'</span></div>';
   });
-  // Só os arcos giram −90° (para começar no topo); os rótulos ficam de pé.
-  el.innerHTML = '<div class="donut"><svg viewBox="0 0 '+VB+' '+VB+'">'
-    + '<g transform="rotate(-90 '+CX+' '+CX+')">'+segs+'</g>' + rotulos + '</svg>'
-    + '<div class="donut-mid"><div class="donut-n">'+total+'</div><div class="donut-l">contratos</div></div></div>'
-    + '<div class="donut-leg">'+leg+'</div>';
+  el.innerHTML = '<div class="donut"><svg viewBox="0 0 '+VB+' '+VB+'">'+grupos+'</svg>'
+    + '<div class="donut-mid"><div class="donut-n">'+total+'</div><div class="donut-l">contratos</div></div>'
+    + '<div class="donut-tip"></div></div>';
+  ligarBalaoDonut(el);
+}
+
+// Balão da rosca: segue o cursor dentro do círculo e some ao sair.
+function ligarBalaoDonut(el) {
+  var cont = el.querySelector('.donut');
+  var tip = el.querySelector('.donut-tip');
+  if (!cont || !tip) return;
+  cont.addEventListener('mousemove', function(ev){
+    var g = ev.target.closest ? ev.target.closest('.donut-seg') : null;
+    if (!g) { tip.classList.remove('on'); return; }
+    var r = cont.getBoundingClientRect();
+    tip.style.left = (ev.clientX - r.left) + 'px';
+    tip.style.top  = (ev.clientY - r.top) + 'px';
+    var q = +g.getAttribute('data-qtd');
+    tip.innerHTML = '<b>' + g.getAttribute('data-nome') + '</b>'
+      + '<span>' + q + (q === 1 ? ' contrato' : ' contratos') + ' · ' + g.getAttribute('data-pct') + '%</span>';
+    tip.classList.add('on');
+  });
+  cont.addEventListener('mouseleave', function(){ tip.classList.remove('on'); });
 }
 
 // Linha: valor mensal vigente no último dia de cada mês da janela escolhida.
