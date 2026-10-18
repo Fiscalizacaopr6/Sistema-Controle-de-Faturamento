@@ -770,7 +770,7 @@ html .bar-plot .bar-track{background:transparent}
    ocupar a altura da linha do grid (a do cartão mais alto). As larguras seguem
    diferentes de propósito — a rosca pede menos espaço que as barras e a linha.
    O minmax(0,…) impede que o conteúdo estique a coluna além da fração. */
-.dash-row{display:grid;grid-template-columns:minmax(0,.98fr) minmax(0,.95fr) minmax(0,1.29fr);
+.dash-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.92fr) minmax(0,1.15fr);
   gap:18px;margin-bottom:22px;align-items:stretch}
 .dash-row > .chart-card{height:100%;display:flex;flex-direction:column;min-width:0}
 @media (max-width:1320px){.dash-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
@@ -786,18 +786,10 @@ html .bar-plot .bar-track{background:transparent}
   background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px calc(100%/var(--n)));
   border-right:1px solid var(--border)}
 .bar-plot .bar-chart{position:relative;z-index:1}
-.bar-axis{position:relative;height:15px;margin:10px 76px 0 132px;
-  font-family:'Sora',sans-serif;font-size:10px;color:var(--muted)}
-/* posicionado em %, e não distribuído: só assim cada número cai em cima da
-   sua linha de grade */
-.bar-axis span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
-.bar-axis span[data-p="0"]{transform:translateX(0)}
-.bar-axis span[data-p="100"]{transform:translateX(-100%)}
 .bar-mais{margin-top:10px;font-size:10.5px;color:var(--muted);text-align:center}
 @media (max-width:1320px){
   .bar-name{width:104px}
   .bar-grid{left:116px;right:74px}
-  .bar-axis{margin-left:116px;margin-right:74px}
   .bar-row{padding-right:74px}
 }
 
@@ -1043,7 +1035,6 @@ html .bar-plot .bar-track{background:transparent}
               <div class="bar-grid"></div>
               <div class="bar-chart" id="single-chart"></div>
             </div>
-            <div class="bar-axis" id="single-chart-axis"></div>
           </div>
           <div class="chart-card">
             <div class="chart-head">
@@ -2178,9 +2169,7 @@ function showChart(key) {
   });
   document.getElementById('single-chart-title').textContent = d.title;
   document.getElementById('single-chart').innerHTML = d.html;
-  var eixo = document.getElementById('single-chart-axis');
-  if (eixo) eixo.innerHTML = d.axis || '';
-  // as linhas de grade acompanham a quantidade de intervalos da régua
+  // as linhas de grade acompanham a quantidade de intervalos da escala
   var grade = document.querySelector('#single-chart-card .bar-grid');
   if (grade) grade.style.setProperty('--n', d.n || 4);
 }
@@ -2281,17 +2270,6 @@ function eixoEscala(vmax, alvo) {
   var passo = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * exp;
   var n = Math.max(1, Math.ceil(vmax/passo));
   return { max: passo*n, passo: passo, n: n };
-}
-
-// Régua: um número por linha de grade, posicionado em % para cair em cima dela.
-function eixoHtml(esc, fmt) {
-  var h = '';
-  for (var i = 0; i <= esc.n; i++) {
-    var p = i*100/esc.n, v = esc.passo*i;
-    h += '<span data-p="'+(i === 0 ? 0 : (i === esc.n ? 100 : p))+'" style="left:'+p+'%">'
-      + (fmt ? fmt(v) : Math.round(v)) + '</span>';
-  }
-  return h;
 }
 
 // Rosca: 1 fatia por TIPO, contando CONTRATOS (não termos). Todos os tipos
@@ -2829,11 +2807,12 @@ function buildDashboard() {
   var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6'];
   // Barras + régua do eixo. A escala vai até um máximo "redondo" (eixoMax),
   // e não até a maior barra, para a régua embaixo bater com as linhas de grade.
-  // Barras + régua. `fmtVal` formata o número ao lado da barra; `fmtEixo`
-  // formata a régua embaixo (no modelo ela vem sem o "R$": 0, 2 mi, 4 mi…).
-  function barSet(data, fmtVal, fmtEixo) {
+  // Barras. `fmtVal` formata o número que vai ao lado de cada barra. A escala
+  // ainda é calculada (eixoEscala) porque dela saem a largura das barras e a
+  // quantidade de linhas de grade — só a régua de números não é desenhada.
+  function barSet(data, fmtVal) {
     var sorted = Object.entries(data).sort(function(a,b){ return b[1]-a[1]; });
-    if (!sorted.length) return { html:'<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>', axis:'', n:4 };
+    if (!sorted.length) return { html:'<div style="color:var(--muted);font-size:12px;padding:8px">Sem dados</div>', n:4 };
     var esc = eixoEscala(sorted[0][1], 4);
     // Só as maiores cabem no cartão; o resto vira uma nota no rodapé.
     var total = sorted.length;
@@ -2847,7 +2826,7 @@ function buildDashboard() {
       + (total > sorted.length
          ? '<div class="bar-mais">mostrando as '+sorted.length+' maiores de '+total+'</div>'
          : '');
-    return { html:html, axis:eixoHtml(esc, fmtEixo || fmtVal), n:esc.n };
+    return { html:html, n:esc.n };
   }
   var byR = {}; vig.forEach(function(d){ var r=d['RESPONSÁVEL NO FATURAMENTO']||'?'; byR[r]=(byR[r]||0)+(d['TOTAL MENSAL']||0); });
   var byT = {}; vig.forEach(function(d){ var t=d['TIPO']||'Outros'; byT[t]=(byT[t]||0)+1; });
@@ -2865,14 +2844,13 @@ function buildDashboard() {
     var r = respPorConta[c] || '?';
     byIMR[r] = (byIMR[r] || 0) + imrPorConta[c];
   });
-  function cd(title, data, fmtVal, fmtEixo) {
-    var b = barSet(data, fmtVal, fmtEixo);
-    return { title:title, html:b.html, axis:b.axis, n:b.n };
+  function cd(title, data, fmtVal) {
+    var b = barSet(data, fmtVal);
+    return { title:title, html:b.html, n:b.n };
   }
   var emReais = function(v){ return fmtMi(v, true); };   // ao lado da barra
-  var soNumero = function(v){ return fmtMi(v, false); }; // na régua
   CHART_DATA = {
-    'resp':      cd('Valor mensal por responsável (vigentes)', byR, emReais, soNumero),
+    'resp':      cd('Valor mensal por responsável (vigentes)', byR, emReais),
     'tipo':      cd('Contratos vigentes por tipo',             byT),
     'cont-resp': cd('Qtd. de contratos por responsável',       byCR),
     'func-resp': cd('Funcionários vigentes por responsável',   byFR),
