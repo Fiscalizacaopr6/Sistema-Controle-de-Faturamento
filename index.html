@@ -3349,12 +3349,10 @@ function openContratoModal(num) {
     + '<div style="display:flex;flex-direction:column;gap:4px;min-width:0">'
     + termosOrdenados.map(function(t){
         var rotulo = t['TERMO ATUAL'] || '—';
-        var tv = fmtDate(t['TÉRMINO DA VIGÊNCIA']);
-        var sub = tv ? ' <span style="color:var(--muted);font-size:11px">(término ' + esc2(tv) + ')</span>' : '';
         var link = String(t['LINK DO TERMO'] || '').trim();
         return link
-          ? '<span><a href="' + esc2(link) + '" target="_blank" rel="noopener" class="lnk">' + esc2(rotulo) + ' ↗</a>' + sub + '</span>'
-          : '<span style="color:var(--text);font-weight:500">' + esc2(rotulo) + sub + '</span>';
+          ? '<a href="' + esc2(link) + '" target="_blank" rel="noopener" class="lnk">' + esc2(rotulo) + ' ↗</a>'
+          : '<span style="color:var(--text);font-weight:500">' + esc2(rotulo) + '</span>';
       }).join('')
     + '</div></div>';
   var contratoHtml = ''
