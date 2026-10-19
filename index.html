@@ -3398,11 +3398,7 @@ function openContratoModal(num) {
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.telefone || '—') + '</td>'
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.enderecoSei || '—') + '</td>'
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">'
-          + (f.portaria
-              ? (fcPortariaDoc(f.portaria)
-                  ? '<span class="doc-ob" title="Clique para abrir a portaria no SEI" onclick="fcPortariaSei(' + JSON.stringify(String(f.portaria)) + ',event)">' + esc2(f.portaria) + '</span>'
-                  : esc2(f.portaria))
-              : '—')
+          + seiPortariaLink(f.portaria)
           + '</td>'
         + '</tr>';
     });
@@ -8412,6 +8408,19 @@ function seiProcLink(num) {
   return '<span class="lnk" style="cursor:pointer" title="Abrir no SEI — copia o número e preenche a Pesquisa"'
     + ' onclick="event.stopPropagation();docAbrirSei(\'' + n.replace(/['\\]/g, '') + '\')">'
     + esc(n) + ' \u2197</span>';
+}
+
+// Portaria do fiscal como link clicável pro SEI (mesmo comportamento dos
+// processos). O número do documento é extraído por fcPortariaDoc; sem número
+// reconhecível, mostra só o texto. Vazio -> '—'.
+function seiPortariaLink(portaria) {
+  var p = String(portaria == null ? '' : portaria).trim();
+  if (!p) return '—';
+  var ndoc = fcPortariaDoc(p);
+  if (!ndoc) return esc(p);
+  return '<span class="lnk" style="cursor:pointer" title="Abrir a portaria no SEI — copia o número e preenche a Pesquisa"'
+    + ' onclick="event.stopPropagation();docAbrirSei(\'' + String(ndoc).replace(/['\\]/g, '') + '\')">'
+    + esc(p) + ' \u2197</span>';
 }
 
 function docFecharObMenu() {
