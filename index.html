@@ -3331,7 +3331,32 @@ function openContratoModal(num) {
 
   // ── 1. Contrato ──
   var termoAtual = d['TERMO ATUAL'] || '—';
-  var objeto = (d['OBJETO'] || '').trim();
+  // O objeto exibido é SEMPRE o do TERMO DE CONTRATO (rótulo "TERMO DE CONTRATO"
+  // ou "CONTRATO"); aditivos/apostilas/erratas não redefinem o objeto.
+  var termoContrato = termos.find(function(t){
+    var s = (t['TERMO ATUAL'] || '').toUpperCase();
+    return s.indexOf('CONTRATO') !== -1 && s.indexOf('ADITIVO') === -1 && s.indexOf('APOSTILA') === -1 && s.indexOf('ERRATA') === -1;
+  }) || d;
+  var objeto = (termoContrato['OBJETO'] || '').trim();
+  // Todos os termos do contrato, em ordem cronológica (término asc), para listar os links.
+  var termosOrdenados = termos.slice().sort(function(a, b){
+    var at = String(a['TÉRMINO DA VIGÊNCIA'] || ''), bt = String(b['TÉRMINO DA VIGÊNCIA'] || '');
+    if (at !== bt) return at < bt ? -1 : 1;
+    return String(a['INÍCIO DO CONTRATO'] || '') < String(b['INÍCIO DO CONTRATO'] || '') ? -1 : 1;
+  });
+  var termosLinksHtml = '<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px">'
+    + '<span style="color:var(--muted);min-width:180px;flex-shrink:0">Termos do Contrato</span>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;min-width:0">'
+    + termosOrdenados.map(function(t){
+        var rotulo = t['TERMO ATUAL'] || '—';
+        var tv = fmtDate(t['TÉRMINO DA VIGÊNCIA']);
+        var sub = tv ? ' <span style="color:var(--muted);font-size:11px">(término ' + esc2(tv) + ')</span>' : '';
+        var link = String(t['LINK DO TERMO'] || '').trim();
+        return link
+          ? '<span><a href="' + esc2(link) + '" target="_blank" rel="noopener" class="lnk">' + esc2(rotulo) + ' ↗</a>' + sub + '</span>'
+          : '<span style="color:var(--text);font-weight:500">' + esc2(rotulo) + sub + '</span>';
+      }).join('')
+    + '</div></div>';
   var contratoHtml = ''
     + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px">'
     + '<span class="badge ' + stBadgeCls(st) + '">' + esc2(st) + '</span>'
@@ -3349,7 +3374,8 @@ function openContratoModal(num) {
     + row2('Processo de Pagamento', seiProcLink(d['PROCESSO PAGAMENTO']), true)
     + row2('Processo de Contratação', seiProcLink(d['PROCESSO CONTRATAÇÃO']), true)
     + row2('Processo de Conta Vinculada', seiProcLink(d['PROCESSO CONTA VINCULADA']), true)
-    + (objeto ? '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Objeto do Termo</div>'
+    + termosLinksHtml
+    + (objeto ? '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Objeto do Contrato</div>'
         + '<div style="font-size:13px;line-height:1.6;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">' + esc2(objeto) + '</div></div>' : '');
 
   // ── 2. Empresa ──
