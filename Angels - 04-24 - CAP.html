@@ -512,13 +512,13 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
             <td class="val"><input type="number" class="ci" id="crecheAprovados" value="0" step="1" min="0" oninput="recalcAll()" style="width:100%;"></td>
           </tr>
           <tr>
-            <td class="lbl">Valor Estimado Unitário (R$)</td>
+            <td class="lbl">Reembolso por dependente (R$)</td>
             <td class="val">
-              <input type="number" class="ci" id="crechemBDI" value="0" step="0.01" min="0" oninput="recalcAll()" style="width:100%;text-align:right;">
+              <input type="number" class="ci" id="crechemBDI" value="0" step="0.01" min="0" oninput="recalcAll();propagateCrecheUnit()" style="width:100%;text-align:right;">
             </td>
           </tr>
           <tr>
-            <td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Valor estimado unitário)</small></td>
+            <td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Reembolso por dependente)</small></td>
             <td class="res" id="crecheTotalReemb">R$ 0,00</td>
           </tr>
           <tr>
@@ -854,6 +854,11 @@ function propagateCrecheRetido(){
   // Retido cascateia para frente: aparece em todos os meses; ao mudar, vale daquele mes em diante.
   const v=val('crecheRetido');
   for(let k=currentPeriod;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].crecheRetido=v; }
+}
+function propagateCrecheUnit(){
+  // Reembolso por dependente cascateia para frente (mesma regra do Retido).
+  const v=val('crechemBDI');
+  for(let k=currentPeriod;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].crechemBDI=v; }
 }
 function propagateHeaderUpdate(){
   const v=val('headerUpdate');
