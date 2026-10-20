@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMR Removip - 34-26 - PR-5</title>
+<meta property="og:title" content="IMR Removip - 34-26 - PR-5 - Eventos (Glosas por Indicadores)">
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
+
+/* ── PAGE ── */
+.page{background:#fff;width:1280px;max-width:98vw;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35);}
+
+/* ── TAB BAR ── */
+.tab-nav{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.tab-info{font-size:12px;font-weight:bold;color:#1f3864;}
+.tab-hint{font-size:10px;color:#777;font-style:italic;margin-left:auto;}
+.tabbar{display:flex;gap:3px;overflow-x:auto;padding:6px;background:#1f3864;border-radius:4px;margin-bottom:10px;}
+.tab-btn{flex:0 0 auto;min-width:72px;padding:5px 8px;font-size:10px;border:1px solid #2e74b5;background:#2e74b5;color:#fff;border-radius:3px;cursor:pointer;white-space:nowrap;font-family:Arial;text-align:center;line-height:1.25;}
+.tab-btn.active{background:#fff;color:#1f3864;font-weight:bold;border-color:#fff;}
+.tab-btn.special{background:#556b2f;border-color:#6b8e23;}
+.tab-btn.special.active{background:#fff;color:#33450f;border-color:#fff;}
+.tab-btn.cons{background:#7b4b12;border-color:#9c6322;}
+.tab-btn.cons.active{background:#fff;color:#7b4b12;border-color:#fff;}
+.tab-btn:hover{opacity:.92;}
+.tab-btn.hasglosa{box-shadow:inset 0 -3px 0 #ffd54f;}
+
+/* ── HEADER ── */
+.header-wrap{border:2px solid #1f3864;}
+.header-top{display:flex;align-items:stretch;}
+.header-logo{width:90px;border-right:1.5px solid #1f3864;display:flex;align-items:center;justify-content:center;padding:6px;background:#f5f5f5;}
+.header-logo span{font-size:9px;color:#777;text-align:center;line-height:1.3;font-weight:bold;}
+.header-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;text-align:center;}
+.header-title .org{font-size:11px;color:#1f3864;font-weight:bold;}
+.header-title .main{font-size:13px;font-weight:bold;color:#000;margin-top:2px;}
+.header-title .sub{font-size:10px;color:#555;margin-top:2px;font-style:italic;}
+.header-badge{width:80px;border-left:1.5px solid #1f3864;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:16px;letter-spacing:2px;}
+.header-badge small{font-size:9px;letter-spacing:0;font-weight:normal;margin-top:2px;}
+
+/* ── INFO GRID ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #1f3864;border-top:none;}
+.info-cell{display:flex;align-items:center;padding:4px 8px;gap:6px;border-bottom:1px solid #bbb;border-right:1px solid #bbb;}
+.info-cell:nth-child(2n){border-right:none;}
+.info-cell.full{grid-column:1/-1;border-right:none;}
+.info-cell label{font-weight:bold;white-space:nowrap;color:#1f3864;min-width:90px;}
+.info-cell input{flex:1;border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:#f0f7ff;padding:2px 4px;border-radius:2px;}
+.info-cell input:disabled{background:#f0f0f0;color:#555;cursor:not-allowed;}
+.info-cell .fixed{flex:1;padding:2px 4px;font-weight:bold;color:#222;}
+
+/* ── SECTION TITLE BAR ── */
+.sec-title{background:#1f3864;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;margin-top:12px;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.sec-title span{flex:1;}
+
+.instrucao{background:#fffde7;border:1px solid #f0e2a0;border-radius:3px;font-size:10px;color:#665c00;padding:6px 10px;margin:8px 0;line-height:1.4;}
+
+/* ── IDENTIFICAÇÃO DA MEDIÇÃO ── */
+.med-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1.5px solid #1f3864;border-top:none;}
+.med-cell{display:flex;flex-direction:column;gap:3px;padding:5px 8px;border-right:1px solid #bbb;}
+.med-cell:last-child{border-right:none;}
+.med-cell label{font-weight:bold;color:#1f3864;font-size:10px;}
+.med-cell input{border:none;border-bottom:1.5px solid #2e74b5;outline:none;font-size:11px;font-family:Arial;background:#fffde7;padding:2px 4px;border-radius:2px;}
+.med-cell input:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;}
+.med-cell input.money{text-align:right;font-weight:bold;}
+.med-cell .ro{font-weight:bold;color:#222;padding:2px 4px;}
+
+/* ── TABELAS ── */
+.tbl-scroll{overflow-x:auto;}
+.imr-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.imr-tbl th{background:#1f3864;color:#fff;border:1px solid #555;padding:4px 3px;text-align:center;vertical-align:middle;font-size:10px;line-height:1.15;}
+.imr-tbl th.meas{background:#2e74b5;}
+.imr-tbl th.calc{background:#3f6f3f;}
+.imr-tbl td{border:1px solid #bbb;padding:2px 4px;vertical-align:middle;text-align:center;}
+.imr-tbl td.ind{text-align:left;font-weight:bold;color:#1f3864;}
+.imr-tbl td.num{width:28px;font-weight:bold;background:#e3e8f0;}
+.imr-tbl td.base{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.3px;}
+.imr-tbl td.c{background:#eef5ee;font-weight:bold;color:#245c24;}
+.imr-tbl td.c.warn{background:#fdeaea;color:#b71c1c;}
+.imr-tbl td.faixa{background:#f7f7f7;font-size:9px;text-align:left;color:#444;}
+.imr-tbl td.faixa.warn{background:#fdeaea;color:#b71c1c;font-weight:bold;}
+.imr-tbl td.money{text-align:right;background:#eef5ee;font-weight:bold;color:#245c24;padding-right:6px;}
+.imr-tbl td.money.warn{background:#fdeaea;color:#b71c1c;}
+.imr-tbl td.rm{background:#fff;border:none;}
+.imr-tbl input.ci{width:100%;border:none;border-bottom:1px solid #ccc;font-size:10px;outline:none;background:transparent;font-family:Arial;padding:1px 2px;text-align:center;}
+.imr-tbl input.ci.meas{background:#fffde7;font-weight:bold;}
+.imr-tbl input.ci.txt{text-align:left;}
+.imr-tbl input.ci.qt{background:#fffde7;font-weight:bold;width:62px;}
+.imr-tbl input.ci:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.imr-tbl tr.totrow td{background:#dce6f1;font-weight:bold;font-size:11px;color:#1f3864;}
+.imr-tbl tr.totrow td.money{background:#f3dcdc;color:#8c1d1d;}
+.imr-tbl tr.liqrow td{background:#cbe6cd;font-weight:bold;font-size:12px;color:#12481a;}
+.imr-tbl tr.grprow td{background:#1f3864;color:#fff;font-weight:bold;text-align:left;font-size:10px;letter-spacing:.4px;}
+.imr-tbl tr.subrow td{background:#dce6f1;font-weight:bold;color:#1f3864;}
+.imr-tbl td.espec{text-align:left;font-size:9px;line-height:1.3;color:#333;}
+.imr-tbl td.extrap{background:#b71c1c;color:#fff;font-weight:bold;font-size:9px;text-align:center;}
+
+.rm-btn{background:#b71c1c;color:#fff;border:none;border-radius:3px;width:20px;height:20px;font-size:11px;line-height:1;cursor:pointer;}
+.rm-btn:hover{opacity:.8;}
+.rm-btn:disabled{background:#ccc;cursor:not-allowed;}
+.add-btn{margin:6px 0;font-size:10px;padding:4px 12px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
+.add-btn:hover{background:#2e74b5;}
+.add-btn:disabled{background:#ccc;cursor:not-allowed;}
+
+.month-summary{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+.sum-card{border:1.5px solid #1f3864;border-radius:5px;padding:6px 14px;min-width:170px;background:#f4f8ff;}
+.sum-card .lbl{font-size:9px;color:#1f3864;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;}
+.sum-card .num{font-size:15px;font-weight:bold;color:#1f3864;margin-top:2px;}
+.sum-card.green{border-color:#2e7d32;background:#f1f8f2;}
+.sum-card.green .lbl{color:#2e7d32;}
+.sum-card.green .num{color:#12481a;}
+.sum-card.red{border-color:#b71c1c;background:#fdf3f3;}
+.sum-card.red .lbl{color:#b71c1c;}
+.sum-card.red .num{color:#8c1d1d;}
+
+.alerta{border:1.5px solid #b71c1c;background:#fdeaea;color:#8c1d1d;border-radius:4px;padding:7px 12px;margin-top:10px;font-size:10px;line-height:1.45;font-weight:bold;}
+.alerta.ok{border-color:#2e7d32;background:#f1f8f2;color:#1b5e20;font-weight:normal;}
+
+.obs-box{width:100%;min-height:68px;border:1.5px solid #2e74b5;border-radius:3px;background:#fffde7;font-family:Arial;font-size:10px;padding:6px 8px;outline:none;resize:vertical;line-height:1.4;}
+.obs-box:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;}
+
+/* ── LOCK / PRINT ── */
+.lock-btn{font-size:10px;padding:3px 10px;border:1.5px solid;border-radius:3px;cursor:pointer;font-family:Arial;font-weight:bold;white-space:nowrap;}
+.lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
+.lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
+.lock-btn:hover{opacity:.8;}
+.print-btn{font-size:10px;padding:4px 12px;background:#455a64;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
+.print-btn:hover{opacity:.85;}
+
+/* ── REFERÊNCIA (CRITÉRIOS) ── */
+.ref-wrap{border:2px solid #556b2f;border-radius:5px;overflow:hidden;margin-top:4px;}
+.ref-head{background:#556b2f;color:#fff;font-weight:bold;font-size:12px;padding:6px 12px;}
+.ind-block{border-bottom:1px solid #d3ddb8;}
+.ind-title{background:#eaf1d6;color:#33450f;font-weight:bold;font-size:11px;padding:5px 12px;}
+.ind-body{display:grid;grid-template-columns:170px 1fr;font-size:10px;}
+.ind-body .k{background:#f6f9ee;color:#556b2f;font-weight:bold;padding:4px 10px;border-top:1px solid #eef2e2;border-right:1px solid #eef2e2;}
+.ind-body .v{padding:4px 10px;border-top:1px solid #eef2e2;white-space:pre-line;line-height:1.35;}
+.faixa-row{background:#fbfdf6;}
+
+@media print{
+  body{background:#fff;}
+  .page{width:auto;box-shadow:none;margin:0;padding:0;}
+  .tabbar,.tab-nav,.no-print{display:none!important;}
+  .imr-tbl{font-size:8.5px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- barra de navegação -->
+  <div class="tab-nav">
+    <span class="tab-info" id="tabInfo">Outubro/2026</span>
+    <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
+    <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
+    <button class="lock-btn unlocked" id="lockBtn" onclick="toggleLock()">🔓 Destravado</button>
+    <span class="tab-hint">Preencha as células em amarelo. Faixas, alíquotas e glosas são calculadas.</span>
+  </div>
+  <div class="tabbar" id="tabbar"></div>
+
+  <!-- cabeçalho -->
+  <div class="header-wrap">
+    <div class="header-top">
+      <div class="header-logo"><span>UFRJ<br>PR-6</span></div>
+      <div class="header-title">
+        <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
+        <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
+        <div class="sub">Anexo do Termo de Referência — Critérios de aferição, glosas e sanções (Art. 156, Lei nº 14.133/2021)</div>
+      </div>
+      <div class="header-badge">IMR<small>Nº 01</small></div>
+    </div>
+    <div class="info-grid">
+      <div class="info-cell"><label>EMPRESA</label><span class="fixed">REMOVIP Serviço Médico Ltda.</span></div>
+      <div class="info-cell"><label>CONTRATO</label><span class="fixed">34/26</span></div>
+      <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Inicial de Contrato</span></div>
+      <div class="info-cell"><label>VIGÊNCIA</label><span class="fixed">02/10/2026 a 02/10/2027</span></div>
+      <div class="info-cell"><label>UNIDADE</label><span class="fixed">PR-5 (Extensão) e Gabinete do Reitor</span></div>
+      <div class="info-cell"><label>VALOR GLOBAL</label><span class="fixed">R$ 76.500,00 (estimado)</span></div>
+      <div class="info-cell"><label>PROCESSO SEI</label><span class="fixed">23079.249840/2026-16 — doc. 7085807</span></div>
+      <div class="info-cell"><label>MODALIDADE</label><span class="fixed">Pregão Eletrônico nº 90011/2026</span></div>
+      <div class="info-cell"><label>FISCAL TITULAR</label><input id="fiscal" placeholder="Nome do fiscal titular" oninput="onG('fiscal',this.value)"></div>
+      <div class="info-cell"><label>FISCAL SUBST.</label><input id="fiscalSub" placeholder="Nome do fiscal substituto" oninput="onG('fiscalSub',this.value)"></div>
+      <div class="info-cell"><label>GESTOR</label><input id="gestor" placeholder="Gestor do contrato" oninput="onG('gestor',this.value)"></div>
+      <div class="info-cell"><label>PREPOSTO</label><input id="preposto" placeholder="Preposto da CONTRATADA" oninput="onG('preposto',this.value)"></div>
+    </div>
+  </div>
+
+  <!-- conteúdo -->
+  <div id="content"></div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+/* ═══════════════════ PERÍODOS ═══════════════════ */
+const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_ABR=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+// 12 meses: Outubro/2026 → Setembro/2027 (conforme abas da planilha)
+const MONTHS=[], MONTHS_SHORT=[];
+for(let k=0;k<12;k++){ const t=9+k; const y=2026+Math.floor(t/12); const m=((t%12)+12)%12;
+  MONTHS.push(MESES_CAP[m]+'/'+y); MONTHS_SHORT.push(MESES_ABR[m]+'/'+String(y).slice(2)); }
+const NUM_MONTHS=MONTHS.length;
+
+/* ═══════════════════ INDICADORES (faixas = réplica das fórmulas IF da planilha) ═══════════════════
+   base 'C' = contagem ACUMULADA ao longo do contrato (indicadores 01 e 04)
+   base 'M' = contagem MENSAL
+   tipo 'A' (2 faixas, 2%/5%)  ·  'B' (3 faixas 0,10/0,20/0,50%)  ·  'C' (3 faixas 0,50/1/2%)
+   tipo 'D' (2 faixas 2%/5% mensal)  ·  'E' (3 faixas 0,50/2/5%)                                   */
+const INDS=[
+ {n:'01', nome:'PREPOSTO — Quantidade',                                 base:'C', tipo:'A'},
+ {n:'02', nome:'PREPOSTO — Qualidade da Gestão',                        base:'M', tipo:'B'},
+ {n:'03', nome:'CUMPRIMENTO DE PRAZOS',                                 base:'M', tipo:'C'},
+ {n:'04', nome:'GESTÃO DE RH — Qualificação do Pessoal',                base:'C', tipo:'A'},
+ {n:'05', nome:'GESTÃO DE RH — Efetivo de Pessoal x Demandas',          base:'M', tipo:'C'},
+ {n:'06', nome:'GESTÃO DE RH — Regularidade Legal/Fiscal/Tributos',     base:'M', tipo:'D'},
+ {n:'07', nome:'EQUIPAMENTOS E FERRAMENTAS — Quantidade',               base:'M', tipo:'C'},
+ {n:'08', nome:'EQUIPAMENTOS E FERRAMENTAS — Qualidade',                base:'M', tipo:'C'},
+ {n:'09', nome:'SMS — Segurança do Trabalho',                           base:'M', tipo:'E'},
+ {n:'10', nome:'SMS — Meio Ambiente',                                   base:'M', tipo:'E'},
+];
+const NUM_INDS=INDS.length;
+
+// Retorna {faixa, aliq} para um indicador, dadas as ocorrências do mês e as acumuladas no contrato.
+function avaliar(i, occMes, occAcum){
+  const d=INDS[i];
+  if(occMes===''||occMes===null||occMes===undefined||isNaN(occMes)) return {faixa:'—', aliq:null};
+  const om=Number(occMes);
+  if(om===0) return {faixa:'Sem ocorrência', aliq:0};
+  if(d.base==='C'){                                  // acumulado no contrato (tipo A)
+    const ac=Number(occAcum);
+    return ac<=1
+      ? {faixa:'Até 1 Ocorrência no contrato',    aliq:0.02}
+      : {faixa:'Acima de 1 Ocorrência no contrato', aliq:0.05};
+  }
+  if(d.tipo==='D'){                                  // 2 faixas mensais 2% / 5%
+    return om<=1
+      ? {faixa:'Até 1 Ocorrência no mês',    aliq:0.02}
+      : {faixa:'Acima de 1 Ocorrência no mês', aliq:0.05};
+  }
+  const f = om<=1 ? 0 : (om<=3 ? 1 : 2);             // 3 faixas mensais
+  const rot=['Até 1 Ocorrência no mês','De 2 a 3 Ocorrências no mês','Acima de 3 Ocorrências no mês'][f];
+  const aliqs={B:[0.001,0.002,0.005], C:[0.005,0.01,0.02], E:[0.005,0.02,0.05]}[d.tipo];
+  return {faixa:rot, aliq:aliqs[f]};
+}
+
+/* ═══════════════════ COMPOSIÇÃO DO CONTRATO (Anexo do Contrato nº 34/2026) ═══════════════════ */
+const ITENS=[
+ {g:'SERVIÇOS MÉDICOS', item:109, und:'UN', qtd:15, vu:3200, esp:'Ambulância UTI — Locação de ambulância UTI (resgate) com médico e enfermeiro. Diária de 12 horas. (ARP nº 29/2026, item 109)'},
+ {g:'SERVIÇOS MÉDICOS', item:111, und:'UN', qtd:3,  vu:9500, esp:'Posto médico temporário (diária de 12 horas) em sala/espaço interno da UFRJ, para eventos com público estimado acima de 1.000 pessoas, incluindo 1 médico, 1 enfermeiro e 1 técnico de enfermagem, equipamentos médicos e medicamentos conforme Resolução SEDEC nº 83, de 05/01/2016 (arts. 17, 18 e 19 e Anexo II). Documentação CART e FARE. (ARP nº 29/2026, item 111)'},
+];
+const NUM_ITENS=ITENS.length;
+function itemTotal(i){ return ITENS[i].qtd*ITENS[i].vu; }
+const TOTAL_CONTRATO=ITENS.reduce((a,_,i)=>a+itemTotal(i),0);
+
+/* ═══════════════════ ESTADO ═══════════════════ */
+const STORAGE_KEY='IMR_REMOVIP_3426';
+let state=null;
+let currentTab=0;   // 0..11 = mês | 'cons' | 'crit' | 'comp'
+
+function blankOcorr(){ return {data:'',ind:'',desc:'',prov:'',resp:'',evid:''}; }
+function blankMonth(){
+  return {nf:'', ateste:'', bruto:'',
+          occ:new Array(NUM_INDS).fill(''),
+          qt:new Array(NUM_ITENS).fill(''),
+          ocorr:[blankOcorr()],
+          obs:''};
+}
+function defaultState(){
+  const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankMonth());
+  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',locked:false,pwd:'',months};
+}
+
+/* ═══════════════════ PARSE / FORMATO ═══════════════════ */
+function parseNum(s){
+  if(s===''||s===null||s===undefined) return '';
+  const n=Number(String(s).replace(',','.'));
+  return isNaN(n)?'':n;
+}
+function parseMoney(s){
+  if(s===''||s===null||s===undefined) return '';
+  let t=String(s).replace(/[R$\s]/g,'');
+  if(t.indexOf(',')>-1){ t=t.replace(/\./g,'').replace(',','.'); }
+  const n=Number(t);
+  return isNaN(n)?'':n;
+}
+function fmtMoney(n){
+  if(n===''||n===null||n===undefined||isNaN(n)) return '—';
+  return 'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtAliq(a){
+  if(a===null||a===undefined) return '—';
+  return Number(a*100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
+}
+function fmtQtd(n){
+  if(n===''||n===null||n===undefined||isNaN(n)) return '—';
+  return Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+}
+
+/* ═══════════════════ CÁLCULO ═══════════════════ */
+// ocorrências acumuladas no contrato (meses 0..mi) para o indicador i
+function acumulado(mi,i){
+  let s=0;
+  for(let k=0;k<=mi;k++){ const v=parseNum(state.months[k].occ[i]); if(v!=='') s+=v; }
+  return s;
+}
+function linhaGlosa(mi,i){
+  const om=parseNum(state.months[mi].occ[i]);
+  const ac=INDS[i].base==='C'?acumulado(mi,i):'';
+  const r=avaliar(i,om,ac);
+  const bruto=parseMoney(state.months[mi].bruto);
+  const valor=(r.aliq===null||bruto==='')?null:bruto*r.aliq;
+  return {occMes:om, acum:ac, faixa:r.faixa, aliq:r.aliq, valor:valor};
+}
+function totaisMes(mi){
+  const bruto=parseMoney(state.months[mi].bruto);
+  let aliq=0, temAliq=false;
+  for(let i=0;i<NUM_INDS;i++){ const l=linhaGlosa(mi,i); if(l.aliq!==null){ aliq+=l.aliq; temAliq=true; } }
+  const glosa=(temAliq&&bruto!=='')?bruto*aliq:'';
+  const liq=(bruto!==''&&glosa!=='')?bruto-glosa:'';
+  return {bruto:bruto, aliq:temAliq?aliq:'', glosa:glosa, liquido:liq};
+}
+// consumo acumulado (R$) do item i até o mês mi, inclusive
+function consumoItem(mi,i){
+  let s=0;
+  for(let k=0;k<=mi;k++){ const q=parseNum(state.months[k].qt[i]); if(q!=='') s+=q*ITENS[i].vu; }
+  return s;
+}
+function saldoItem(mi,i){ return itemTotal(i)-consumoItem(mi,i); }
+// meses com glosa >= 10% (gatilho do item 16.14 do TR)
+function mesesAlerta(){
+  return state.months.map((_,mi)=>{ const t=totaisMes(mi); return (t.aliq!==''&&t.aliq>=0.10); });
+}
+function gatilhoRescisao(){
+  const a=mesesAlerta(); let run=0;
+  for(let i=0;i<a.length;i++){ run = a[i] ? run+1 : 0; if(run>=3) return i; }
+  return -1;
+}
+
+/* ═══════════════════ RENDER — ABAS ═══════════════════ */
+function renderTabs(){
+  const bar=document.getElementById('tabbar'); bar.innerHTML='';
+  const al=mesesAlerta();
+  MONTHS_SHORT.forEach((lbl,i)=>{
+    const b=document.createElement('button');
+    b.className='tab-btn'+(currentTab===i?' active':'')+(al[i]?' hasglosa':'');
+    b.innerHTML='<b>'+lbl.split('/')[0]+'</b><span>/'+lbl.split('/')[1]+'</span>';
+    b.title=MONTHS[i]+(al[i]?' — glosa ≥ 10%':'');
+    b.onclick=()=>{ currentTab=i; render(); };
+    bar.appendChild(b);
+  });
+  [['cons','📊 Consolidação','cons'],['crit','📑 Critérios','special'],['comp','📋 Composição','special']].forEach(([id,txt,cls])=>{
+    const b=document.createElement('button');
+    b.className='tab-btn '+cls+(currentTab===id?' active':'');
+    b.textContent=txt; b.style.minWidth='110px';
+    b.onclick=()=>{ currentTab=id; render(); };
+    bar.appendChild(b);
+  });
+}
+
+function render(){
+  renderTabs();
+  const info=document.getElementById('tabInfo');
+  const content=document.getElementById('content');
+  if(currentTab==='crit'){ info.textContent='Critérios do IMR (Referência)'; content.innerHTML=critHTML(); return; }
+  if(currentTab==='comp'){ info.textContent='Composição do Contrato'; content.innerHTML=compHTML(); return; }
+  if(currentTab==='cons'){ info.textContent='Consolidação Anual'; content.innerHTML=consHTML(); return; }
+  info.textContent=MONTHS[currentTab];
+  content.innerHTML=monthHTML(currentTab);
+  recalcMonth(currentTab);
+}
+
+/* ═══════════════════ RENDER — MÊS ═══════════════════ */
+function monthHTML(mi){
+  const m=state.months[mi], lk=state.locked?'disabled':'';
+  let h='';
+  h+='<div class="instrucao"><b>Preenchimento:</b> informe o Nº da Nota Fiscal, o Nº do Ateste/SEI e o <b>Valor Bruto da Medição</b>; '+
+     'em seguida, para cada indicador (01 a 10), lance o <b>número de ocorrências apuradas no mês</b>. As colunas de ocorrências acumuladas, '+
+     'faixa aplicável, alíquota e valor da glosa são calculadas automaticamente. Os indicadores <b>01</b> e <b>04</b> usam contagem '+
+     '<b>acumulada ao longo do contrato</b>; os demais, contagem <b>mensal</b>.</div>';
+
+  h+='<div class="sec-title"><span>MEDIÇÃO MENSAL — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="med-grid">';
+  h+='<div class="med-cell"><label>Período de referência</label><div class="ro">'+MONTHS[mi].toUpperCase().replace('/',' ')+'</div></div>';
+  h+='<div class="med-cell"><label>Nº da Nota Fiscal</label><input '+lk+' value="'+esc(m.nf)+'" oninput="setF('+mi+',\'nf\',this.value)" placeholder="NF nº"></div>';
+  h+='<div class="med-cell"><label>Nº do Ateste / SEI</label><input '+lk+' value="'+esc(m.ateste)+'" oninput="setF('+mi+',\'ateste\',this.value)" placeholder="doc. SEI"></div>';
+  h+='<div class="med-cell"><label>Valor Bruto da Medição (R$)</label><input class="money" '+lk+' value="'+esc(m.bruto)+'" oninput="setBruto('+mi+',this.value)" onblur="brutoBlur('+mi+')" placeholder="0,00"></div>';
+  h+='</div>';
+
+  h+='<div class="sec-title"><span>APURAÇÃO DOS INDICADORES E GLOSAS</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl" id="indTbl"><thead><tr>';
+  h+='<th style="width:30px">Nº</th><th style="min-width:230px">Indicador</th><th style="width:60px">Base</th>';
+  h+='<th class="meas" style="width:78px">Ocorrências<br>no mês</th>';
+  h+='<th class="calc" style="width:82px">Ocorrências<br>acumuladas</th>';
+  h+='<th class="calc" style="min-width:190px">Faixa aplicável</th>';
+  h+='<th class="calc" style="width:74px">Alíquota<br>da glosa</th>';
+  h+='<th class="calc" style="width:110px">Valor da glosa (R$)</th>';
+  h+='</tr></thead><tbody>';
+  INDS.forEach((d,i)=>{
+    h+='<tr data-i="'+i+'">';
+    h+='<td class="num">'+d.n+'</td>';
+    h+='<td class="ind">'+esc(d.nome)+'</td>';
+    h+='<td class="base">'+(d.base==='C'?'Contrato':'Mês')+'</td>';
+    h+='<td><input class="ci meas" '+lk+' value="'+esc(m.occ[i])+'" oninput="setOcc('+mi+','+i+',this.value)"></td>';
+    h+='<td class="c" data-acum>—</td>';
+    h+='<td class="faixa" data-faixa>—</td>';
+    h+='<td class="c" data-aliq>—</td>';
+    h+='<td class="money" data-val>—</td>';
+    h+='</tr>';
+  });
+  h+='</tbody><tfoot>';
+  h+='<tr class="totrow"><td colspan="6" style="text-align:right">TOTAL DE GLOSAS DO MÊS</td><td id="totAliq">—</td><td class="money" id="totGlosa">—</td></tr>';
+  h+='<tr class="liqrow"><td colspan="7" style="text-align:right">VALOR LÍQUIDO A PAGAR (R$)</td><td id="totLiq" style="text-align:right">—</td></tr>';
+  h+='</tfoot></table></div>';
+
+  h+='<div class="month-summary">'+
+       '<div class="sum-card"><div class="lbl">Valor bruto da medição</div><div class="num" id="cardBruto">—</div></div>'+
+       '<div class="sum-card red"><div class="lbl">Total de glosas</div><div class="num" id="cardGlosa">—</div></div>'+
+       '<div class="sum-card red"><div class="lbl">Glosa (% da medição)</div><div class="num" id="cardPct">—</div></div>'+
+       '<div class="sum-card green"><div class="lbl">Valor líquido a pagar</div><div class="num" id="cardLiq">—</div></div>'+
+     '</div>';
+  h+='<div id="alertaMes"></div>';
+
+  h+='<div class="sec-title"><span>EXECUÇÃO POR ITEM DA ATA — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="instrucao">Informe a <b>quantidade executada no mês</b> de cada item. O saldo contratual é <b>acumulado</b>: '+
+     'desconta de cada item tudo o que já foi lançado de '+MONTHS[0]+' até '+MONTHS[mi]+'.</div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl" id="itensTbl"><thead><tr>';
+  h+='<th style="min-width:200px">Grupo</th><th style="width:56px">Item ATA</th><th style="width:52px">Und.</th>'+
+     '<th style="min-width:330px">Especificação</th><th class="meas" style="width:70px">Qtde<br>no mês</th>'+
+     '<th style="width:86px">Valor<br>Unitário</th><th class="calc" style="width:100px">Total do Item<br>no mês (R$)</th>'+
+     '<th class="calc" style="width:118px">Saldo contratual<br>do item (R$)</th></tr></thead><tbody>';
+  let lastG=null;
+  ITENS.forEach((it,i)=>{
+    if(it.g!==lastG){ h+='<tr class="grprow"><td colspan="8">'+esc(it.g)+' — total contratado: '+fmtMoney(ITENS.reduce((a,x,k)=>a+(x.g===it.g?itemTotal(k):0),0))+'</td></tr>'; lastG=it.g; }
+    h+='<tr data-it="'+i+'">';
+    h+='<td class="base" style="text-align:left">'+esc(it.g)+'</td>';
+    h+='<td>'+it.item+'</td><td>'+esc(it.und)+'</td>';
+    h+='<td class="espec">'+esc(it.esp)+'</td>';
+    h+='<td><input class="ci qt" '+lk+' value="'+esc(state.months[mi].qt[i])+'" oninput="setQt('+mi+','+i+',this.value)"></td>';
+    h+='<td style="text-align:right">'+fmtMoney(it.vu)+'</td>';
+    h+='<td class="money" data-ival>—</td>';
+    h+='<td class="money" data-isaldo>—</td>';
+    h+='</tr>';
+  });
+  h+='</tbody><tfoot><tr class="subrow"><td colspan="6" style="text-align:right">TOTAL EXECUTADO NO MÊS</td>'+
+     '<td class="money" id="itTotMes">—</td><td class="money" id="itSaldoTot">—</td></tr>'+
+     '<tr class="subrow"><td colspan="6" style="text-align:right">TOTAL DO CONTRATO (estimado)</td>'+
+     '<td colspan="2" style="text-align:right">'+fmtMoney(TOTAL_CONTRATO)+'</td></tr></tfoot></table></div>';
+  h+='<div class="instrucao">O valor global é estimativo. Os pagamentos dependerão dos quantitativos efetivamente executados '+
+     '(Cláusula Quinta, itens 5.2 e 5.3, do Contrato nº 34/2026).</div>';
+
+  h+='<div class="sec-title"><span>REGISTRO DE OCORRÊNCIAS — MEMÓRIA DE CÁLCULO DO ATESTE</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl" id="ocTbl"><thead><tr>';
+  h+='<th style="width:84px">Data</th><th style="width:120px">Indicador</th><th style="min-width:230px">Descrição</th>'+
+     '<th style="min-width:190px">Providência</th><th style="width:140px">Responsável</th>'+
+     '<th style="width:130px">Evidência (doc. SEI)</th><th style="width:26px"></th></tr></thead><tbody>';
+  m.ocorr.forEach((o,ri)=>{ h+=ocorrRowHTML(mi,ri,o); });
+  h+='</tbody></table></div>';
+  h+='<button class="add-btn" '+lk+' onclick="addOcorr('+mi+')">+ Adicionar ocorrência</button>';
+
+  h+='<div class="sec-title"><span>OBSERVAÇÕES</span></div>';
+  h+='<textarea class="obs-box" '+lk+' oninput="setF('+mi+',\'obs\',this.value)" '+
+     'placeholder="Registre aqui as observações da Fiscalização relativas a esta medição.">'+esc(m.obs)+'</textarea>';
+  return h;
+}
+
+function ocorrRowHTML(mi,ri,o){
+  const lk=state.locked?'disabled':'';
+  let h='<tr data-oc="'+ri+'">';
+  h+='<td><input class="ci" type="date" '+lk+' value="'+esc(o.data)+'" oninput="setOc('+mi+','+ri+',\'data\',this.value)"></td>';
+  h+='<td><select class="ci" '+lk+' onchange="setOc('+mi+','+ri+',\'ind\',this.value)" style="width:100%;font-size:10px;border:none;border-bottom:1px solid #ccc;background:transparent;">';
+  h+='<option value=""'+(o.ind===''?' selected':'')+'>—</option>';
+  INDS.forEach(d=>{ h+='<option value="'+d.n+'"'+(o.ind===d.n?' selected':'')+'>'+d.n+'</option>'; });
+  h+='</select></td>';
+  ['desc','prov','resp','evid'].forEach(k=>{
+    h+='<td><input class="ci txt" '+lk+' value="'+esc(o[k])+'" oninput="setOc('+mi+','+ri+',\''+k+'\',this.value)"></td>';
+  });
+  h+='<td class="rm"><button class="rm-btn" '+lk+' onclick="delOcorr('+mi+','+ri+')" title="Remover">×</button></td>';
+  h+='</tr>';
+  return h;
+}
+
+function recalcMonth(mi){
+  const t=totaisMes(mi);
+  const tb=document.querySelector('#indTbl tbody');
+  if(tb){
+    [...tb.rows].forEach(tr=>{
+      const i=+tr.dataset.i; const l=linhaGlosa(mi,i);
+      const ta=tr.querySelector('[data-acum]');
+      ta.textContent = INDS[i].base==='C' ? String(l.acum) : '—';
+      ta.classList.toggle('warn', INDS[i].base==='C' && l.acum>1);
+      const tf=tr.querySelector('[data-faixa]');
+      tf.textContent=l.faixa; tf.classList.toggle('warn', l.aliq!==null && l.aliq>0);
+      const tq=tr.querySelector('[data-aliq]');
+      tq.textContent=fmtAliq(l.aliq); tq.classList.toggle('warn', l.aliq!==null && l.aliq>0);
+      const tv=tr.querySelector('[data-val]');
+      tv.textContent = l.valor===null?'—':fmtMoney(l.valor);
+      tv.classList.toggle('warn', l.valor!==null && l.valor>0);
+    });
+  }
+  const set=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
+  set('totAliq', t.aliq===''?'—':fmtAliq(t.aliq));
+  set('totGlosa', t.glosa===''?'—':fmtMoney(t.glosa));
+  set('totLiq', t.liquido===''?'—':fmtMoney(t.liquido));
+  set('cardBruto', t.bruto===''?'—':fmtMoney(t.bruto));
+  set('cardGlosa', t.glosa===''?'—':fmtMoney(t.glosa));
+  set('cardPct', t.aliq===''?'—':fmtAliq(t.aliq));
+  set('cardLiq', t.liquido===''?'—':fmtMoney(t.liquido));
+
+  // itens
+  const itb=document.querySelector('#itensTbl tbody');
+  if(itb){
+    let somaMes=0, somaSaldo=0;
+    [...itb.rows].forEach(tr=>{
+      if(!tr.dataset.it) return;
+      const i=+tr.dataset.it;
+      const q=parseNum(state.months[mi].qt[i]);
+      const tot=q===''?null:q*ITENS[i].vu;
+      if(tot!==null) somaMes+=tot;
+      tr.querySelector('[data-ival]').textContent = tot===null?'—':fmtMoney(tot);
+      const sal=saldoItem(mi,i); somaSaldo+=sal;
+      const ts=tr.querySelector('[data-isaldo]');
+      if(sal<0){ ts.textContent='SALDO CONTRATUAL EXTRAPOLADO'; ts.className='extrap'; }
+      else { ts.textContent=fmtMoney(sal); ts.className='money'; }
+    });
+    set('itTotMes', fmtMoney(somaMes));
+    set('itSaldoTot', fmtMoney(somaSaldo));
+  }
+
+  // alerta do mês
+  const al=document.getElementById('alertaMes');
+  if(al){
+    let h='';
+    if(t.aliq!==''&&t.aliq>=0.10){
+      h='<div class="alerta">⚠ Glosa total de '+fmtAliq(t.aliq)+' nesta medição — igual ou superior a 10%. '+
+        'Três ou mais medições consecutivas nesse patamar autorizam a rescisão contratual (item 16.14 do Termo de Referência).</div>';
+    }
+    const g=gatilhoRescisao();
+    if(g>-1){
+      h+='<div class="alerta">🚨 GATILHO DE RESCISÃO ATINGIDO: glosas ≥ 10% em 3 (três) medições consecutivas, encerrando em '+
+         MONTHS[g]+'. A CONTRATANTE poderá proceder com a rescisão contratual (item 16.14 do TR).</div>';
+    }
+    al.innerHTML=h;
+  }
+  renderTabs();
+}
+
+/* ═══════════════════ RENDER — CONSOLIDAÇÃO ═══════════════════ */
+function consHTML(){
+  const al=mesesAlerta(), g=gatilhoRescisao();
+  let h='<div class="sec-title"><span>CONSOLIDAÇÃO ANUAL DE MEDIÇÕES E GLOSAS — Contrato nº 34/2026</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl"><thead><tr>';
+  h+='<th style="width:90px">Mês</th><th style="width:130px">Valor Bruto (R$)</th><th style="width:130px">Total Glosa (R$)</th>'+
+     '<th style="width:90px">Glosa (%)</th><th style="width:130px">Líquido (R$)</th>'+
+     '<th style="width:90px">Alerta 10%?</th><th style="min-width:210px">Rescisão (3 meses consec. ≥ 10%)</th></tr></thead><tbody>';
+  let sb=0,sg=0,sl=0,anyB=false;
+  let run=0;
+  MONTHS.forEach((lbl,mi)=>{
+    const t=totaisMes(mi);
+    if(t.bruto!==''){ sb+=t.bruto; anyB=true; }
+    if(t.glosa!=='') sg+=t.glosa;
+    if(t.liquido!=='') sl+=t.liquido;
+    run = al[mi] ? run+1 : 0;
+    h+='<tr>';
+    h+='<td style="font-weight:bold;color:#1f3864">'+MONTHS_SHORT[mi]+'</td>';
+    h+='<td style="text-align:right">'+(t.bruto===''?'—':fmtMoney(t.bruto))+'</td>';
+    h+='<td class="money'+(al[mi]?' warn':'')+'">'+(t.glosa===''?'—':fmtMoney(t.glosa))+'</td>';
+    h+='<td class="c'+(al[mi]?' warn':'')+'">'+(t.aliq===''?'—':fmtAliq(t.aliq))+'</td>';
+    h+='<td class="money">'+(t.liquido===''?'—':fmtMoney(t.liquido))+'</td>';
+    h+='<td class="c'+(al[mi]?' warn':'')+'">'+(al[mi]?'SIM':(t.aliq===''?'—':'não'))+'</td>';
+    h+='<td class="faixa'+(run>=3?' warn':'')+'">'+(run>=3?'GATILHO ATINGIDO ('+run+' meses consecutivos)':(al[mi]?run+' mês(es) consecutivo(s) ≥ 10%':'—'))+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody><tfoot><tr class="totrow">';
+  h+='<td>TOTAL</td><td style="text-align:right">'+(anyB?fmtMoney(sb):'—')+'</td>';
+  h+='<td class="money">'+(anyB?fmtMoney(sg):'—')+'</td>';
+  h+='<td>'+(anyB&&sb>0?fmtAliq(sg/sb):'—')+'</td>';
+  h+='<td class="money">'+(anyB?fmtMoney(sl):'—')+'</td><td colspan="2"></td></tr></tfoot></table></div>';
+
+  h+='<div class="month-summary">'+
+     '<div class="sum-card"><div class="lbl">Bruto acumulado</div><div class="num">'+(anyB?fmtMoney(sb):'—')+'</div></div>'+
+     '<div class="sum-card red"><div class="lbl">Glosa acumulada</div><div class="num">'+(anyB?fmtMoney(sg):'—')+'</div></div>'+
+     '<div class="sum-card green"><div class="lbl">Líquido acumulado</div><div class="num">'+(anyB?fmtMoney(sl):'—')+'</div></div>'+
+     '<div class="sum-card"><div class="lbl">Total do contrato (estimado)</div><div class="num">'+fmtMoney(TOTAL_CONTRATO)+'</div></div>'+
+     '</div>';
+  h+= g>-1
+    ? '<div class="alerta">🚨 GATILHO DE RESCISÃO ATINGIDO em '+MONTHS[g]+': glosas ≥ 10% em 3 (três) medições consecutivas (item 16.14 do TR).</div>'
+    : '<div class="alerta ok">Item 16.14 do TR — Caso os somatórios finais e consecutivos (por três meses ou mais) das glosas apuradas totalizem ou ultrapassem 10% em cada uma das respectivas medições, a CONTRATANTE poderá proceder com a rescisão contratual. <b>Nenhum gatilho configurado até o momento.</b></div>';
+
+  // saldo contratual geral (até o último mês com lançamento)
+  h+='<div class="sec-title"><span>SALDO CONTRATUAL POR ITEM — acumulado em '+MONTHS[NUM_MONTHS-1]+'</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl"><thead><tr>'+
+     '<th style="min-width:200px">Grupo</th><th style="width:56px">Item</th><th style="width:70px">Qtde<br>contratada</th>'+
+     '<th style="width:70px">Qtde<br>executada</th><th style="width:110px">Total contratado</th>'+
+     '<th style="width:110px">Executado</th><th style="width:118px">Saldo (R$)</th></tr></thead><tbody>';
+  ITENS.forEach((it,i)=>{
+    let qex=0; for(let k=0;k<NUM_MONTHS;k++){ const q=parseNum(state.months[k].qt[i]); if(q!=='') qex+=q; }
+    const exe=consumoItem(NUM_MONTHS-1,i), sal=itemTotal(i)-exe;
+    h+='<tr><td class="base" style="text-align:left">'+esc(it.g)+'</td><td>'+it.item+'</td>'+
+       '<td>'+fmtQtd(it.qtd)+'</td><td class="c">'+fmtQtd(qex)+'</td>'+
+       '<td style="text-align:right">'+fmtMoney(itemTotal(i))+'</td>'+
+       '<td class="money">'+fmtMoney(exe)+'</td>'+
+       (sal<0?'<td class="extrap">EXTRAPOLADO</td>':'<td class="money">'+fmtMoney(sal)+'</td>')+'</tr>';
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+
+/* ═══════════════════ RENDER — COMPOSIÇÃO ═══════════════════ */
+function compHTML(){
+  let h='<div class="sec-title"><span>COMPOSIÇÃO DO CONTRATO — Anexo do Contrato nº 34/2026</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl"><thead><tr>'+
+     '<th style="min-width:200px">Grupo</th><th style="width:56px">Item ATA</th><th style="width:52px">Unidade</th>'+
+     '<th style="min-width:380px">Especificação</th><th style="width:60px">Qtde</th>'+
+     '<th style="width:92px">Valor Unitário</th><th style="width:110px">Total do Item</th></tr></thead><tbody>';
+  let lastG=null, sub=0;
+  const flushSub=()=>{ if(lastG!==null) h+='<tr class="subrow"><td colspan="6" style="text-align:right">Subtotal — '+esc(lastG)+'</td><td style="text-align:right">'+fmtMoney(sub)+'</td></tr>'; };
+  ITENS.forEach((it,i)=>{
+    if(it.g!==lastG){ flushSub(); sub=0; lastG=it.g; h+='<tr class="grprow"><td colspan="7">'+esc(it.g)+'</td></tr>'; }
+    sub+=itemTotal(i);
+    h+='<tr><td class="base" style="text-align:left">'+esc(it.g)+'</td><td>'+it.item+'</td><td>'+esc(it.und)+'</td>'+
+       '<td class="espec">'+esc(it.esp)+'</td><td>'+fmtQtd(it.qtd)+'</td>'+
+       '<td style="text-align:right">'+fmtMoney(it.vu)+'</td><td style="text-align:right;font-weight:bold">'+fmtMoney(itemTotal(i))+'</td></tr>';
+  });
+  flushSub();
+  h+='</tbody><tfoot><tr class="liqrow"><td colspan="6" style="text-align:right">TOTAL DO CONTRATO (estimado)</td>'+
+     '<td style="text-align:right">'+fmtMoney(TOTAL_CONTRATO)+'</td></tr></tfoot></table></div>';
+  h+='<div class="instrucao"><b>Nota:</b> o valor global é estimativo. Os pagamentos dependerão dos quantitativos efetivamente executados '+
+     '(Cláusula Quinta, itens 5.2 e 5.3, do Contrato nº 34/2026).</div>';
+  h+='<div class="sec-title"><span>DADOS DO CONTRATO</span></div>';
+  const linhas=[
+    ['Nº do Contrato','34/2026'],
+    ['Processo SEI','23079.249840/2026-16'],
+    ['SEI (nº do documento)','7085807'],
+    ['Modalidade','Pregão Eletrônico nº 90011/2026'],
+    ['Amparo Legal','Lei nº 14.133/2021'],
+    ['CONTRATANTE','Universidade Federal do Rio de Janeiro - UFRJ — CNPJ 33.663.683/0001-16'],
+    ['Unidade Demandante','Pró-Reitoria de Gestão e Governança (PR6) — atendimento à PR5/Extensão e ao Gabinete do Reitor'],
+    ['CONTRATADA','REMOVIP Serviço Médico Ltda. — CNPJ 16.637.920/0001-55'],
+    ['Objeto','Prestação, de forma presencial, de serviços elétricos; de sonorização, climatização e painel de LED; eletrônicos de multimídia; gráficos e gráficos especializados; confecções especializadas; alimentação; montagem e desmontagem de estruturas; mão de obra (serviços humanos); transportes; atendimentos médicos (UTI Móvel); e locação de estúdio, para a realização dos eventos da PR5/Extensão e do Gabinete do Reitor da UFRJ, conforme Termo de Referência.'],
+    ['Valor Global Estimado','R$ 76.500,00'],
+    ['Vigência','Outubro de 2026 a outubro de 2027 — 1 (um) ano contado da assinatura, prorrogável na forma do contrato'],
+    ['Dotação Orçamentária','Gestão 15236/153115 | Fonte 1000 | PT 230296 | ED 339039 | PI MSEEVQ01EVN | Notas de Empenho 2026NE000751 e 2026NE000754'],
+  ];
+  h+='<div class="ref-wrap" style="border-color:#1f3864"><div class="ref-head" style="background:#1f3864">IDENTIFICAÇÃO</div><div class="ind-body">';
+  linhas.forEach(([k,v])=>{ h+='<div class="k" style="color:#1f3864;background:#f4f8ff">'+esc(k)+'</div><div class="v">'+esc(v)+'</div>'; });
+  h+='</div></div>';
+  return h;
+}
+
+/* ═══════════════════ RENDER — CRITÉRIOS ═══════════════════ */
+const CRIT=[
+ {t:'INDICADOR 01 — PREPOSTO — Quantidade',
+  fin:'Garantir Preposto na gestão do contrato.',
+  meta:'Manter Preposto durante todo o período de execução contratual, atendendo a todos os critérios/exigências contratuais para a função, garantindo sua substituição eventual ou definitiva sempre que necessário (o substituto deverá atender integralmente aos mesmos critérios/exigências contratuais).',
+  calc:'Quantidade de OCORRÊNCIAS durante o período de contrato: de falta de preposto da CONTRATADA.',
+  gl:'• Até 1 Ocorrência no contrato = 2% do valor da medição mensal\n• Acima de 1 Ocorrência no contrato = 5% do valor da medição mensal (do respectivo mês de cada nova ocorrência)',
+  obs:'Se a pendência perdurar até o mês subsequente, aplicar-se-á a glosa de 5% do valor da medição de cada mês, até que seja sanada em definitivo.'},
+ {t:'INDICADOR 02 — PREPOSTO — Qualidade da Gestão',
+  fin:'Garantir Preposto com adequada gestão dos serviços.',
+  meta:'Morosidade ou ineficácia das ações do Preposto da Contratada.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de não conformidades contratuais constatadas e não sanadas pelo preposto, ou de reincidências de problemas já constatados anteriormente, ou ainda morosidade nas respostas do Preposto às solicitações da Fiscalização da CONTRATANTE.',
+  gl:'• Até 1 Ocorrência no mês = 0,10% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 0,20% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 0,50% do valor da medição mensal',
+  obs:'Caso os problemas contratuais persistam e gerem transtornos para a CONTRATANTE, sendo evidenciadas constantes falhas por parte da gestão da CONTRATADA, a CONTRATANTE se reserva o direito de exigir a substituição do profissional Preposto.'},
+ {t:'INDICADOR 03 — CUMPRIMENTO DE PRAZOS',
+  fin:'Garantir cumprimento dos prazos estipulados em contrato ou estabelecidos pela Fiscalização da CONTRATANTE.',
+  meta:'Garantir o pleno cumprimento dos prazos estipulados em contrato, assim como daqueles estabelecidos pela Fiscalização da CONTRATANTE ou acordados junto à mesma.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de descumprimentos de prazos.',
+  gl:'• Até 1 Ocorrência no mês = 0,50% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 1% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 2% do valor da medição mensal',
+  obs:'Se o descumprimento de eventual prazo gerar perdas ou prejuízos à CONTRATANTE, aplicar-se-ão outras penalidades contratuais cabíveis. Também se aplicam as glosas deste item aos casos de constatado atraso no horário de início da prestação dos serviços ou a antecipação de seu término, pelos funcionários da CONTRATADA.'},
+ {t:'INDICADOR 04 — GESTÃO DE RH — Qualificação do Pessoal',
+  fin:'Garantir atendimento integral às exigências contratuais e legais.',
+  meta:'Não permitir a atuação no contrato de profissionais que não atendam integralmente a todas as exigências contratuais, legais e normativas para cada função/cargo exercido.',
+  calc:'Quantidade de OCORRÊNCIAS durante o período de contrato: de não conformidade com os critérios e exigências legais ou contratuais.',
+  gl:'• Até 1 Ocorrência no contrato = 2% do valor da medição mensal\n• Acima de 1 Ocorrência no contrato = 5% do valor da medição mensal (do respectivo mês de cada nova ocorrência)',
+  obs:'Tal exigência aplica-se inclusive aos casos de executantes subcontratados, conforme contrato e anexos.'},
+ {t:'INDICADOR 05 — GESTÃO DE RH — Efetivo de Pessoal x Demandas',
+  fin:'Garantir adequado dimensionamento da mão-de-obra.',
+  meta:'Garantir e manter durante todo o período de execução contratual o adequado dimensionamento da mão-de-obra, efetuando os ajustes que se fizerem necessários, independente de cobrança da CONTRATANTE, e de modo a não permitir falhas ou atrasos por conta de quantidade inadequada.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de constatação de dimensionamento inadequado da mão-de-obra da CONTRATADA.',
+  gl:'• Até 1 Ocorrência no mês = 0,50% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 1% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 2% do valor da medição mensal',
+  obs:'Se o descumprimento gerar perdas ou prejuízos à CONTRATANTE, aplicar-se-ão outras penalidades contratuais cabíveis.'},
+ {t:'INDICADOR 06 — GESTÃO DE RH — Regularidade Legal/Fiscal/Tributos',
+  fin:'Garantir plena regularidade legal e o adimplemento de tributos, encargos, folha de pagamento, obrigações trabalhistas diversas, etc., cabíveis à CONTRATADA, não permitindo atrasos nos respectivos pagamentos.',
+  meta:'Manter plena regularidade legal e fiscal, adimplindo sem atrasos com suas obrigações de tributos, encargos, folha de pagamento, obrigações trabalhistas diversas, etc.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de constatação de não conformidades.',
+  gl:'• Até 1 Ocorrência no mês = 2% do valor da medição mensal\n• Acima de 1 Ocorrência no mês = 5% do valor da medição mensal',
+  obs:'A CONTRATADA deverá apresentar mensalmente à CONTRATANTE a lista de documentos e comprovantes exigidos em contrato e conforme orientações da IN nº 05, de 23 de maio de 2017, para o pagamento da medição, devendo ainda apresentar, para fins de verificação ou inspeções inopinadas, a qualquer tempo, quando solicitado.'},
+ {t:'INDICADOR 07 — EQUIPAMENTOS E FERRAMENTAS — Quantidade',
+  fin:'Garantir adequada quantidade dos recursos.',
+  meta:'Garantir e manter durante todo o período de execução contratual a adequada quantidade de recursos, equipamentos, veículos, ferramentas etc., independente de solicitação da CONTRATANTE.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de constatação de falta de recursos e itens necessários à execução dos serviços.',
+  gl:'• Até 1 Ocorrência no mês = 0,50% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 1% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 2% do valor da medição mensal',
+  obs:'Se a falta de recursos ou itens necessários vier a gerar atrasos nos serviços, perdas ou prejuízos à CONTRATANTE, aplicar-se-ão outras penalidades contratuais cabíveis.'},
+ {t:'INDICADOR 08 — EQUIPAMENTOS E FERRAMENTAS — Qualidade',
+  fin:'Garantir adequada qualidade dos recursos.',
+  meta:'Garantir e manter durante todo o período de execução contratual o uso e a manutenção de recursos com adequada qualidade, não permitindo o uso de equipamentos, veículos, ferramentas etc. de baixa qualidade, danificados e/ou com improvisos, devendo manter processos adequados de controle e monitoramento e garantir a substituição imediata daqueles que se encontrarem não conformes, independente de solicitação da CONTRATANTE.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de constatação de itens defeituosos, de baixa qualidade, com uso de improvisos etc.',
+  gl:'• Até 1 Ocorrência no mês = 0,50% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 1% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 2% do valor da medição mensal',
+  obs:'Se a qualidade ou defeitos dos recursos ou itens vier a gerar atrasos nos serviços, riscos, perdas ou prejuízos à CONTRATANTE, aplicar-se-ão outras penalidades contratuais cabíveis.'},
+ {t:'INDICADOR 09 — SMS — Segurança do Trabalho',
+  fin:'Garantir adequada gestão da Segurança do Trabalho em suas atividades.',
+  meta:'Garantir e manter durante todo o período de execução contratual adequada gestão e fiscalização dos seus empregados na execução dos serviços, cumprindo com todas as normas e legislações vigentes, além de eventuais orientações da CONTRATANTE, não permitindo a atuação insegura ou outras não conformidades, como: atuação sem uso de EPI’s ou de Uniformes, procedimentos etc. Além disso, deverá estabelecer e manter o uso de O.S. — Ordem de Serviço, garantir todos os treinamentos que se fizerem necessários aos serviços e o uso de boas práticas de SMS, inclusive com a realização de Diálogos de SMS, conforme previsão contratual.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de constatação de não conformidades.',
+  gl:'• Até 1 Ocorrência no mês = 0,50% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 2% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 5% do valor da medição mensal',
+  obs:'Se a não conformidade detectada vier a gerar atrasos nos serviços, riscos, perdas ou prejuízos à CONTRATANTE, a pessoas ou bens, aplicar-se-ão outras penalidades contratuais cabíveis.'},
+ {t:'INDICADOR 10 — SMS — Meio Ambiente',
+  fin:'Garantir adequada gestão ambiental em suas atividades.',
+  meta:'Garantir e manter durante todo o período de execução contratual adequada gestão e fiscalização dos seus processos na execução dos serviços, cumprindo com todas as normas e legislações vigentes, além de eventuais orientações da CONTRATANTE, não permitindo a atuação não conforme ou impactos ao Meio Ambiente, além de garantir todos os treinamentos que se fizerem necessários aos serviços e o uso de boas práticas de SMS.',
+  calc:'Quantidade de OCORRÊNCIAS no mês: de constatação de não conformidades.',
+  gl:'• Até 1 Ocorrência no mês = 0,50% do valor da medição mensal\n• De 2 a 3 Ocorrências no mês = 2% do valor da medição mensal\n• Acima de 3 Ocorrências no mês = 5% do valor da medição mensal',
+  obs:'Se a não conformidade detectada vier a gerar atrasos nos serviços, riscos, perdas ou prejuízos à CONTRATANTE, a pessoas ou bens, aplicar-se-ão outras penalidades contratuais cabíveis.'},
+];
+function critHTML(){
+  let h='<div class="ref-wrap"><div class="ref-head">CRITÉRIOS DO IMR — Indicadores 01 a 10 (item 16 do Termo de Referência)</div>';
+  CRIT.forEach(d=>{
+    h+='<div class="ind-block"><div class="ind-title">'+esc(d.t)+'</div><div class="ind-body">';
+    h+='<div class="k">Finalidade</div><div class="v">'+esc(d.fin)+'</div>';
+    h+='<div class="k">Meta a Cumprir</div><div class="v">'+esc(d.meta)+'</div>';
+    h+='<div class="k">Forma de Medição</div><div class="v">Fiscalização Contratual</div>';
+    h+='<div class="k">Periodicidade</div><div class="v">Mensal</div>';
+    h+='<div class="k">Cálculo</div><div class="v">'+esc(d.calc)+'</div>';
+    h+='<div class="k">Início de Vigência</div><div class="v">Data de assinatura do contrato</div>';
+    h+='<div class="k faixa-row">GLOSAS aplicáveis à<br>respectiva medição mensal</div><div class="v faixa-row">'+esc(d.gl)+'</div>';
+    h+='<div class="k">Sanções Contratuais</div><div class="v">Conforme previsto em contrato</div>';
+    h+='<div class="k">Observações</div><div class="v">'+esc(d.obs)+'</div>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="ref-wrap" style="border-color:#1f3864;margin-top:12px"><div class="ref-head" style="background:#1f3864">DISPOSIÇÕES GERAIS DO IMR</div><div class="ind-body">';
+  h+='<div class="k" style="color:#1f3864;background:#f4f8ff">16.13</div><div class="v">A Fiscalização da CONTRATANTE poderá convocar o Preposto da CONTRATADA para reuniões de avaliação dos resultados ou tratar do tema em outras reuniões operacionais, onde serão expostos os pontos de melhorias necessárias aos processos. Cabe à Contratada, independente de alertas ou cobranças, garantir gestão adequada de eventuais não conformidades, além da avaliação e monitoramento constante para que não voltem a ocorrer.</div>';
+  h+='<div class="k" style="color:#1f3864;background:#f4f8ff">16.14</div><div class="v">Caso os somatórios finais e consecutivos (por três meses ou mais) das glosas apuradas conforme critérios do presente Anexo totalizem ou ultrapassem o limite de 10% em cada uma das respectivas medições, a CONTRATANTE poderá proceder com a rescisão contratual, considerando o baixo resultado dos serviços prestados pela CONTRATADA.</div>';
+  h+='</div></div>';
+  return h;
+}
+
+/* ═══════════════════ EDIÇÃO ═══════════════════ */
+function onG(k,v){ state[k]=v; persist(); }
+function setF(mi,k,v){ state.months[mi][k]=v; persist(); }
+function setBruto(mi,v){ state.months[mi].bruto=v; persist(); recalcMonth(mi); }
+function brutoBlur(mi){
+  const m=state.months[mi], n=parseMoney(m.bruto);
+  if(n!==''){ m.bruto=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); persist();
+    const inp=document.querySelector('.med-cell input.money'); if(inp) inp.value=m.bruto; recalcMonth(mi); }
+}
+function setOcc(mi,i,v){ state.months[mi].occ[i]=v; persist(); recalcMonth(mi); }
+function setQt(mi,i,v){ state.months[mi].qt[i]=v; persist(); recalcMonth(mi); }
+function setOc(mi,ri,k,v){ state.months[mi].ocorr[ri][k]=v; persist(); }
+function addOcorr(mi){ if(state.locked) return; state.months[mi].ocorr.push(blankOcorr()); persist(); render(); }
+function delOcorr(mi,ri){
+  if(state.locked) return;
+  const a=state.months[mi].ocorr;
+  if(a.length<=1){ a[0]=blankOcorr(); } else { a.splice(ri,1); }
+  persist(); render();
+}
+
+/* ═══════════════════ TRAVA ═══════════════════ */
+function applyLockUI(){
+  const b=document.getElementById('lockBtn');
+  if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
+  else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
+  ['fiscal','fiscalSub','gestor','preposto'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=state.locked; });
+}
+function toggleLock(){
+  if(!state.locked){
+    const pwd=prompt('Defina uma senha para TRAVAR o formulário (deixe em branco para travar sem senha):');
+    if(pwd===null) return;
+    state.locked=true; state.pwd=pwd||'';
+  } else {
+    if(state.pwd){ const t=prompt('Digite a senha para DESTRAVAR:'); if(t===null) return; if(t!==state.pwd){ alert('Senha incorreta.'); return; } }
+    state.locked=false;
+  }
+  persist(); applyLockUI(); render();
+}
+
+/* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
+function collectData(){
+  return {v:1, fiscal:state.fiscal, fiscalSub:state.fiscalSub, gestor:state.gestor, preposto:state.preposto,
+          locked:state.locked, pwd:state.pwd, months:state.months};
+}
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
+function applyData(p){
+  if(!p) return;
+  state.fiscal=p.fiscal||''; state.fiscalSub=p.fiscalSub||''; state.gestor=p.gestor||''; state.preposto=p.preposto||'';
+  state.locked=!!p.locked; state.pwd=p.pwd||'';
+  if(Array.isArray(p.months)){
+    for(let i=0;i<NUM_MONTHS;i++){
+      const s=p.months[i]; if(!s) continue;
+      const m=blankMonth();
+      m.nf=s.nf||''; m.ateste=s.ateste||''; m.bruto=s.bruto||''; m.obs=s.obs||'';
+      if(Array.isArray(s.occ)) for(let k=0;k<NUM_INDS;k++) m.occ[k]=s.occ[k]==null?'':s.occ[k];
+      if(Array.isArray(s.qt))  for(let k=0;k<NUM_ITENS;k++) m.qt[k]=s.qt[k]==null?'':s.qt[k];
+      if(Array.isArray(s.ocorr)&&s.ocorr.length){
+        m.ocorr=s.ocorr.map(o=>({data:o.data||'',ind:o.ind||'',desc:o.desc||'',prov:o.prov||'',resp:o.resp||'',evid:o.evid||''}));
+      }
+      state.months[i]=m;
+    }
+  }
+  fillGlobals();
+}
+function fillGlobals(){
+  [['fiscal',state.fiscal],['fiscalSub',state.fiscalSub],['gestor',state.gestor],['preposto',state.preposto]]
+    .forEach(([id,v])=>{ const e=document.getElementById(id); if(e) e.value=v; });
+}
+function loadState(){
+  state=defaultState();
+  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+  fillGlobals();
+}
+
+/* ═══════════════════ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═══════════════════ */
+const FORM_ID='removip-34-26-pr5';
+const firebaseConfig={
+  apiKey:            "AIzaSyBwL87K4sGeVB1bAvqY1a8yv5otKLez8cw",
+  authDomain:        "imr-fiscalizacao.firebaseapp.com",
+  projectId:         "imr-fiscalizacao",
+  storageBucket:     "imr-fiscalizacao.firebasestorage.app",
+  messagingSenderId: "552588739135",
+  appId:             "1:552588739135:web:a43155ae2e7932da57ae8a"
+};
+let cloudDb=null, cloudDocRef=null, cloudReady=false;
+let applyingRemote=false, remotePending=null, cloudSaveTimer=null;
+function cloudEnabled(){ return (typeof firebase!=='undefined') && firebaseConfig.projectId && !/COLE_AQUI/.test(firebaseConfig.projectId); }
+function setCloudStatus(t){ const el=document.getElementById('cloudStatus'); if(el) el.textContent=t; }
+function initCloud(){
+  if(!cloudEnabled()){ setCloudStatus(''); return; }
+  try{
+    firebase.initializeApp(firebaseConfig);
+    cloudDb=firebase.firestore();
+    cloudDocRef=cloudDb.collection('imr_forms').doc(FORM_ID);
+    cloudReady=true;
+    setCloudStatus('☁ Conectando…');
+    cloudDocRef.onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;
+      if(!snap.exists){ pushCloud(); return; }
+      const data=snap.data(); if(!data||!data.payload) return;
+      let payload; try{ payload=JSON.parse(data.payload); }catch(e){ return; }
+      applyRemote(payload);
+    }, function(err){ setCloudStatus('⚠ Nuvem indisponível (usando cópia local)'); });
+  }catch(e){ cloudReady=false; setCloudStatus('⚠ Falha ao conectar à nuvem'); }
+}
+function applyRemote(payload){
+  const a=document.activeElement;
+  const editing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT');
+  if(editing){ remotePending=payload; return; }
+  applyingRemote=true;
+  applyData(payload);
+  applyLockUI();
+  render();
+  saveState();
+  applyingRemote=false;
+  setCloudStatus('☁ Atualizado de outro computador');
+}
+function pushCloud(){
+  if(!cloudReady||!cloudDocRef) return;
+  try{
+    cloudDocRef.set({ payload: JSON.stringify(collectData()), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    setCloudStatus('☁ Salvo na nuvem');
+  }catch(e){ setCloudStatus('⚠ Erro ao salvar na nuvem'); }
+}
+function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
+function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
+document.addEventListener('focusout', function(){ if(remotePending){ const p=remotePending; remotePending=null; setTimeout(()=>applyRemote(p),50); } });
+
+/* ═══════════════════ UTIL ═══════════════════ */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ═══════════════════ INIT ═══════════════════ */
+loadState();
+applyLockUI();
+render();
+initCloud();
+</script>
+</body>
+</html>

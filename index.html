@@ -3238,10 +3238,10 @@ function openModal(idx) {
     +row('Qtd. Itens', d['QTD ITEM'])
     +row('N° IMR', d['N° IMR'])
     +row('Objeto', (d['OBJETO']||'').trim(), true)
-    +row('Proc. Pagamento', d['PROCESSO PAGAMENTO'])
+    +row('Proc. Pagamento', seiProcLink(d['PROCESSO PAGAMENTO']))
     +row('Tipo de Contratação', (d['TIPO DE CONTRATAÇÃO']||'') + (d['N° CONTRATAÇÃO'] ? ' — N° '+d['N° CONTRATAÇÃO'] : ''))
-    +row('Proc. Contratação', d['PROCESSO CONTRATAÇÃO'])
-    +row('Proc. Conta Vinculada', d['PROCESSO CONTA VINCULADA'])
+    +row('Proc. Contratação', seiProcLink(d['PROCESSO CONTRATAÇÃO']))
+    +row('Proc. Conta Vinculada', seiProcLink(d['PROCESSO CONTA VINCULADA']))
     +row('ID Contratos.gov', govLink)
     +'</div>';
   var canEdit = canEditView('contratos');
@@ -3307,11 +3307,11 @@ function openContratoModal(num) {
       + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">' + esc2(title) + '</div>'
       + body + '</div>';
   }
-  function row2(l, v) {
+  function row2(l, v, isHtml) {
     if (v == null || v === '' || v === undefined) return '';
     return '<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px">'
       + '<span style="color:var(--muted);min-width:180px;flex-shrink:0">' + esc2(l) + '</span>'
-      + '<span style="color:var(--text);font-weight:500">' + esc2(String(v)) + '</span></div>';
+      + '<span style="color:var(--text);font-weight:500">' + (isHtml ? String(v) : esc2(String(v))) + '</span></div>';
   }
   function uniqNonEmpty(arr) {
     var seen = {}, out = [];
@@ -3331,7 +3331,30 @@ function openContratoModal(num) {
 
   // ── 1. Contrato ──
   var termoAtual = d['TERMO ATUAL'] || '—';
-  var objeto = (d['OBJETO'] || '').trim();
+  // O objeto exibido é SEMPRE o do TERMO DE CONTRATO (rótulo "TERMO DE CONTRATO"
+  // ou "CONTRATO"); aditivos/apostilas/erratas não redefinem o objeto.
+  var termoContrato = termos.find(function(t){
+    var s = (t['TERMO ATUAL'] || '').toUpperCase();
+    return s.indexOf('CONTRATO') !== -1 && s.indexOf('ADITIVO') === -1 && s.indexOf('APOSTILA') === -1 && s.indexOf('ERRATA') === -1;
+  }) || d;
+  var objeto = (termoContrato['OBJETO'] || '').trim();
+  // Todos os termos do contrato, em ordem cronológica (término asc), para listar os links.
+  var termosOrdenados = termos.slice().sort(function(a, b){
+    var at = String(a['TÉRMINO DA VIGÊNCIA'] || ''), bt = String(b['TÉRMINO DA VIGÊNCIA'] || '');
+    if (at !== bt) return at < bt ? -1 : 1;
+    return String(a['INÍCIO DO CONTRATO'] || '') < String(b['INÍCIO DO CONTRATO'] || '') ? -1 : 1;
+  });
+  var termosLinksHtml = '<div style="display:flex;gap:8px;margin-bottom:6px;font-size:13px">'
+    + '<span style="color:var(--muted);min-width:180px;flex-shrink:0">Termos do Contrato</span>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;min-width:0">'
+    + termosOrdenados.map(function(t){
+        var rotulo = t['TERMO ATUAL'] || '—';
+        var link = String(t['LINK DO TERMO'] || '').trim();
+        return link
+          ? '<a href="' + esc2(link) + '" target="_blank" rel="noopener" class="lnk">' + esc2(rotulo) + ' ↗</a>'
+          : '<span style="color:var(--text);font-weight:500">' + esc2(rotulo) + '</span>';
+      }).join('')
+    + '</div></div>';
   var contratoHtml = ''
     + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px">'
     + '<span class="badge ' + stBadgeCls(st) + '">' + esc2(st) + '</span>'
@@ -3346,10 +3369,11 @@ function openContratoModal(num) {
     + row2('N° de Unidades', d['N° DE UNIDADES'])
     + row2('N° de IMR', nImr)
     + (isDedExcl ? row2('N° de Funcionários', d['N° FUNCIONÁRIO']) : '')
-    + row2('Processo de Pagamento', d['PROCESSO PAGAMENTO'])
-    + row2('Processo de Contratação', d['PROCESSO CONTRATAÇÃO'])
-    + row2('Processo de Conta Vinculada', d['PROCESSO CONTA VINCULADA'])
-    + (objeto ? '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Objeto do Termo</div>'
+    + row2('Processo de Pagamento', seiProcLink(d['PROCESSO PAGAMENTO']), true)
+    + row2('Processo de Contratação', seiProcLink(d['PROCESSO CONTRATAÇÃO']), true)
+    + row2('Processo de Conta Vinculada', seiProcLink(d['PROCESSO CONTA VINCULADA']), true)
+    + termosLinksHtml
+    + (objeto ? '<div style="margin-top:10px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Objeto do Contrato</div>'
         + '<div style="font-size:13px;line-height:1.6;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">' + esc2(objeto) + '</div></div>' : '');
 
   // ── 2. Empresa ──
@@ -3398,11 +3422,7 @@ function openContratoModal(num) {
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.telefone || '—') + '</td>'
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">' + esc2(f.enderecoSei || '—') + '</td>'
         + '<td style="padding:7px 8px;font-family:\'DM Mono\',monospace">'
-          + (f.portaria
-              ? (fcPortariaDoc(f.portaria)
-                  ? '<span class="doc-ob" title="Clique para abrir a portaria no SEI" onclick="fcPortariaSei(' + JSON.stringify(String(f.portaria)) + ',event)">' + esc2(f.portaria) + '</span>'
-                  : esc2(f.portaria))
-              : '—')
+          + seiPortariaLink(f.portaria)
           + '</td>'
         + '</tr>';
     });
@@ -8400,6 +8420,31 @@ function docAbrirSei(num) {
   docToast(copiou
     ? 'SEI aberto e número ' + n + ' copiado — cole na Pesquisa (Ctrl+V) e tecle Enter.'
     : 'SEI aberto. Pesquise pelo número ' + n + '.');
+}
+
+// Número de PROCESSO do SEI como link clicável (Proc. Pagamento/Contratação/
+// Conta Vinculada). Reutiliza docAbrirSei: abre o SEI, copia o número e — com o
+// userscript instalado — preenche a Pesquisa Rápida (que aceita processo).
+// Vazio -> '' (cada chamador decide se mostra '—' ou esconde a linha).
+function seiProcLink(num) {
+  var n = String(num == null ? '' : num).trim();
+  if (!n) return '';
+  return '<span class="lnk" style="cursor:pointer" title="Abrir no SEI — copia o número e preenche a Pesquisa"'
+    + ' onclick="event.stopPropagation();docAbrirSei(\'' + n.replace(/['\\]/g, '') + '\')">'
+    + esc(n) + ' \u2197</span>';
+}
+
+// Portaria do fiscal como link clicável pro SEI (mesmo comportamento dos
+// processos). O número do documento é extraído por fcPortariaDoc; sem número
+// reconhecível, mostra só o texto. Vazio -> '—'.
+function seiPortariaLink(portaria) {
+  var p = String(portaria == null ? '' : portaria).trim();
+  if (!p) return '—';
+  var ndoc = fcPortariaDoc(p);
+  if (!ndoc) return esc(p);
+  return '<span class="lnk" style="cursor:pointer" title="Abrir a portaria no SEI — copia o número e preenche a Pesquisa"'
+    + ' onclick="event.stopPropagation();docAbrirSei(\'' + String(ndoc).replace(/['\\]/g, '') + '\')">'
+    + esc(p) + ' \u2197</span>';
 }
 
 function docFecharObMenu() {
