@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastrar conta vinculada — 31/20 Atlântica</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:12px;background:#e8e8e8;color:#000}
+.page{background:#fff;width:1100px;max-width:98vw;margin:10px auto;padding:16px 20px;box-shadow:0 0 10px rgba(0,0,0,.35)}
+.cab{border-bottom:2px solid #047857;padding-bottom:10px;margin-bottom:12px}
+.cab h1{font-size:15px;color:#047857;letter-spacing:.5px}
+.cab h2{font-size:12px;font-weight:normal;color:#555;margin-top:2px}
+.ident{display:flex;flex-wrap:wrap;gap:18px;margin-top:10px;font-size:12px}
+.ident div span{color:#777;text-transform:uppercase;font-size:10px;letter-spacing:.5px;display:block}
+.ident div b{font-size:13px;color:#047857}
+.tituloform{text-align:center;font-size:22px;font-weight:bold;color:#047857;letter-spacing:.5px;margin:6px 0 14px}
+.aviso{background:#fff8e1;border:1px solid #ffe08a;border-left:4px solid #f0ad00;border-radius:3px;padding:9px 12px;margin-bottom:12px;font-size:11.5px;line-height:1.5}
+.resumo{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.resumo div{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:4px;padding:8px 14px;min-width:160px}
+.resumo span{display:block;font-size:10px;color:#777;text-transform:uppercase;letter-spacing:.5px}
+.resumo b{font-size:14px;color:#047857}
+.objeto{font-size:11.5px;line-height:1.5;color:#444;background:#f7f7f7;border:1px solid #e2e2e2;border-radius:3px;padding:8px 10px;margin-bottom:12px}
+.barra{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.btn{border:none;border-radius:3px;padding:8px 15px;font-size:11.5px;font-weight:bold;cursor:pointer;font-family:Arial}
+.btn-cadastrar{background:#1e7e34;color:#fff}
+.btn-conferir{background:#0d9488;color:#fff}
+.btn-json{background:#6c757d;color:#fff}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:default}
+.op{font-size:11.5px;color:#444;display:flex;align-items:center;gap:5px}
+table{width:100%;border-collapse:collapse}
+#tabela table{max-width:640px;margin:0 auto}
+th{background:#047857;color:#fff;font-size:10px;padding:6px 4px;text-align:center;font-weight:bold;border:1px solid #064e3b}
+td{border:1px solid #c9c9c9;padding:3px 6px;text-align:center;font-size:11px}
+tr:nth-child(even) td{background:#f0fdf4}
+td.num{text-align:right;white-space:nowrap}
+tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;white-space:nowrap}
+.sec{font-size:12px;font-weight:bold;color:#047857;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+#log{background:#0f172a;color:#d1fae5;border-radius:3px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.6;max-height:240px;overflow:auto;white-space:pre-wrap;display:none}
+#log b{color:#6ee7b7}
+#log i{color:#fca5a5;font-style:normal}
+.link{font-size:11.5px;margin-top:8px}
+.link input{width:100%;font-family:'Courier New',monospace;font-size:11px;padding:5px 6px;border:1px solid #c9c9c9;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="cab">
+    <h1>UNIVERSIDADE FEDERAL DO RIO DE JANEIRO</h1>
+    <h2>Pró-Reitoria de Gestão e Governança &middot; PR6 — Conta Vinculada: cadastro da planilha mensal</h2>
+    <div class="ident">
+      <div><span>Contrato</span><b id="i-contrato">—</b></div>
+      <div><span>Empresa</span><b id="i-empresa">—</b></div>
+      <div><span>Incidência sobre o submódulo 4.1</span><b id="i-perc">—</b></div>
+    </div>
+  </div>
+
+  <div class="tituloform">CADASTRO DA CONTA VINCULADA MENSAL</div>
+
+  <div class="aviso">
+    Esta página lança no sistema o que já está na planilha totalizadora do contrato, <b>mês a mês</b>:
+    cria (ou reaproveita) o formulário de retenção do contrato na tela <b>Retenção e Retirada</b>, libera os
+    meses da planilha no formulário da empresa e grava os funcionários de cada mês. Os valores de 13º, férias,
+    rescisão, submódulo 4.1 e total depositado não são gravados: o sistema os recalcula a partir da
+    remuneração e da proporcionalidade, como na planilha.
+    <br><br>
+    <b>Rescisão e adicional do FGTS:</b> a planilha usa 5,00% e o sistema usa 4,00% (IN 05, Anexo XII).
+    Por isso o total recalculado pelo sistema fica abaixo do total da planilha — a diferença aparece no
+    quadro abaixo e não vem de dado perdido na importação.
+  </div>
+
+  <div class="resumo" id="resumo"></div>
+  <div class="objeto" id="objeto"></div>
+
+  <div class="barra">
+    <button class="btn btn-conferir" id="btn-conferir" onclick="conferir()">🔍 Conferir o que já está no sistema</button>
+    <button class="btn btn-cadastrar" id="btn-cadastrar" onclick="cadastrar()">✔ Cadastrar no sistema</button>
+    <button class="btn btn-json" onclick="baixarJson()">⬇ Baixar JSON</button>
+    <label class="op"><input type="checkbox" id="op-enviados" checked> marcar os meses da planilha como já enviados pela empresa</label>
+  </div>
+
+  <div id="log"></div>
+  <div class="link" id="link" style="display:none">
+    <label style="color:#777;text-transform:uppercase;font-size:10px;letter-spacing:.5px">Link do formulário mensal da empresa</label>
+    <input id="link-url" readonly onclick="this.select()">
+  </div>
+
+  <div class="sec">Lançamentos por mês</div>
+  <div id="tabela"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="conta-vinculada-31-20-atlantica.js"></script>
+<script>
+'use strict';
+
+// Cadastro de uma só vez da conta vinculada mensal do contrato 31/20
+// (Atlântica Serviços Gerais LTDA), a partir da planilha totalizadora.
+// Grava nos mesmos três ramos que o sistema usa:
+//   retencao                     — o registro do contrato na tela Retenção e Retirada
+//   retencao_empresa/<token>     — meses liberados e os funcionários de cada mês
+//   retencao_form/<id>           — a totalizadora da PR6 (objeto, percentual e as retiradas)
+// Rodar de novo não duplica nada: o registro é reaproveitado pelo contrato e os
+// lançamentos desta planilha são reconhecidos pelos ids (cv3120-… / cvret3120-…).
+
+var firebaseConfig = {
+  apiKey: "AIzaSyCTgZv2JVWs5yNw4T_WjxElGwrGApMk_sQ",
+  authDomain: "fiscalizacao-d9a39.firebaseapp.com",
+  databaseURL: "https://fiscalizacao-d9a39-default-rtdb.firebaseio.com",
+  projectId: "fiscalizacao-d9a39",
+  messagingSenderId: "287091891377",
+  appId: "1:287091891377:web:dc9e307af79504bebd5690"
+};
+
+// Percentuais do sistema (index.html e conta-vinculada.html)
+var PERC = {n: 0.0833, o: 0.121, p: 0.04};
+var MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var PREFIXO_RET = 'cv3120-';        // ids dos lançamentos de retenção desta planilha
+var PREFIXO_RTD = 'cvret3120-';     // ids das retiradas desta planilha
+
+var D = window.CV_CADASTRO;
+var fbdb = null;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function num(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  if (typeof v === 'number') return v;
+  var t = String(v).replace(/R\$/gi,'').replace(/\s/g,'');
+  if (t.indexOf(',') !== -1) t = t.replace(/\./g,'').replace(',','.');
+  var n = parseFloat(t);
+  return isNaN(n) ? null : n;
+}
+function moeda(v) {
+  if (v === '' || v === null || v === undefined || isNaN(v)) return '';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function pctTexto(p) {
+  return (p * 100).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%';
+}
+function log(txt, erro) {
+  var el = document.getElementById('log');
+  el.style.display = '';
+  el.innerHTML += (erro ? '<i>' : '<b>') + esc(txt) + (erro ? '</i>' : '</b>') + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+// Mesma conta do sistema: base = remuneração × dias/30.
+function totalLinha(l, percSub) {
+  var base = (num(l.remuneracao) || 0) * ((num(l.dias) === null ? 0 : num(l.dias)) / 30);
+  return base * (PERC.n + PERC.o + PERC.p + percSub);
+}
+function totalLinhaPlanilha(l, percSub) {
+  var base = (num(l.remuneracao) || 0) * ((num(l.dias) === null ? 0 : num(l.dias)) / 30);
+  return base * (D.percPlanilha.n + D.percPlanilha.o + D.percPlanilha.p + percSub);
+}
+function chaveMes(m) { return m.mes + '/' + m.ano; }
+function linhasDoMes(m) {
+  return D.linhas.filter(function(l) { return l.mes === m.mes && String(l.ano) === String(m.ano); });
+}
+function totalRetiradas() {
+  var t = 0;
+  D.retiradas.forEach(function(r) {
+    t += (num(r.s) || 0) + (num(r.t) || 0) + (num(r.u) || 0) + (num(r.v) || 0);
+  });
+  return t;
+}
+
+// ── Tela ──
+function montar() {
+  document.getElementById('i-contrato').textContent = D.contrato;
+  document.getElementById('i-empresa').textContent = D.empresa;
+  document.getElementById('i-perc').textContent = pctTexto(D.perc);
+  document.getElementById('objeto').innerHTML = '<b>Objeto:</b> ' + esc(D.objeto);
+
+  var totSist = 0, totPlan = 0;
+  D.linhas.forEach(function(l) {
+    totSist += totalLinha(l, D.perc);
+    totPlan += totalLinhaPlanilha(l, D.perc);
+  });
+  document.getElementById('resumo').innerHTML =
+      card('Meses da planilha', D.meses.length + ' (' + chaveMes(D.meses[0]) + ' a ' + chaveMes(D.meses[D.meses.length - 1]) + ')')
+    + card('Lançamentos de retenção', String(D.linhas.length))
+    + card('Retiradas', D.retiradas.length + ' · ' + moeda(totalRetiradas()))
+    + card('Total depositado (recalculado pelo sistema)', moeda(totSist))
+    + card('Total depositado (percentuais da planilha)', moeda(totPlan))
+    + card('Total informado na planilha', moeda(D.totalPlanilha.depositado));
+
+  var corpo = '', tot = 0;
+  D.meses.forEach(function(m) {
+    var ls = linhasDoMes(m), t = 0;
+    ls.forEach(function(l) { t += totalLinha(l, D.perc); });
+    tot += t;
+    corpo += '<tr><td>' + esc(chaveMes(m)) + '</td><td>' + ls.length
+      + '</td><td class="num">' + esc(moeda(t)) + '</td></tr>';
+  });
+  document.getElementById('tabela').innerHTML =
+    '<table><thead><tr><th style="width:140px">Competência</th><th style="width:140px">Funcionários</th>'
+    + '<th>Total do mês para depósito</th></tr></thead><tbody>' + corpo + '</tbody>'
+    + '<tfoot><tr><td>' + D.meses.length + ' meses</td><td>' + D.linhas.length
+    + '</td><td class="num">' + esc(moeda(tot)) + '</td></tr></tfoot></table>';
+}
+function card(rotulo, valor) {
+  return '<div><span>' + esc(rotulo) + '</span><b>' + esc(valor) + '</b></div>';
+}
+
+function baixarJson() {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(D, null, 2)], {type: 'application/json'}));
+  a.download = 'conta_vinculada_31-20_atlantica.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// ── Banco ──
+function novoToken() {
+  var s = '';
+  for (var i = 0; i < 4; i++) s += Math.random().toString(36).slice(2, 10);
+  return s.slice(0, 28);
+}
+function novoId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function linkUrl(token) {
+  var base = location.href.split('#')[0].split('?')[0];
+  base = base.slice(0, base.lastIndexOf('/') + 1);
+  return base + 'conta-vinculada.html?f=' + token;
+}
+function lista(val) {
+  if (!val) return [];
+  return Array.isArray(val) ? val.filter(function(x) { return !!x; }) : Object.keys(val).map(function(k) { return val[k]; });
+}
+// "31/20", "31/2020" e " 31 / 20 " são o mesmo contrato.
+function chaveContrato(c) {
+  var m = String(c || '').match(/(\d{1,3})\s*\/\s*(\d{2,4})/);
+  if (!m) return String(c || '').trim().toLowerCase();
+  return String(Number(m[1])) + '/' + m[2].slice(-2);
+}
+function achaRegistro(regs) {
+  var alvo = chaveContrato(D.contrato);
+  for (var i = 0; i < regs.length; i++) {
+    if (chaveContrato(regs[i].contrato) === alvo) return regs[i];
+  }
+  return null;
+}
+// Mantém o que não é desta planilha e repõe o que é (rodar de novo não duplica).
+function mesclaLinhas(existentes, novas, prefixo) {
+  var mantidas = existentes.filter(function(l) {
+    return String((l && l.id) || '').indexOf(prefixo) !== 0;
+  });
+  return mantidas.concat(novas);
+}
+// Posição do último mês da planilha na lista de meses liberados: é até aí que
+// o envio da empresa é considerado feito.
+function posicaoUltimoMes(meses) {
+  var u = D.meses[D.meses.length - 1], pos = 0;
+  meses.forEach(function(m, k) {
+    if (m.mes === u.mes && String(m.ano) === String(u.ano)) pos = k + 1;
+  });
+  return pos || meses.length;
+}
+function mesclaMeses(existentes, novos) {
+  var tem = {}, saida = [];
+  existentes.concat(novos).forEach(function(m) {
+    if (!m || !m.mes) return;
+    var k = m.mes + '/' + m.ano;
+    if (tem[k]) return;
+    tem[k] = 1;
+    saida.push({mes: m.mes, ano: String(m.ano)});
+  });
+  saida.sort(function(a, b) {
+    return (Number(a.ano) - Number(b.ano)) || (MESES.indexOf(a.mes) - MESES.indexOf(b.mes));
+  });
+  return saida;
+}
+
+function conferir() {
+  if (!fbdb) { log('Sem conexão com o banco.', true); return; }
+  log('Lendo o cadastro atual…');
+  fbdb.ref('retencao').once('value').then(function(snap) {
+    var regs = lista(snap.val());
+    var reg = achaRegistro(regs);
+    log('Formulários de retenção cadastrados: ' + regs.length);
+    if (!reg) { log('O contrato ' + D.contrato + ' ainda não tem formulário de retenção — será criado.'); return null; }
+    log('Contrato ' + D.contrato + ' já cadastrado (id ' + reg.id + ', empresa "' + (reg.empresa || '') + '")'
+        + (reg.token ? ', token ' + reg.token : ', ainda sem link da empresa'));
+    if (!reg.token) return null;
+    mostraLink(reg.token);
+    return fbdb.ref('retencao_empresa/' + reg.token).once('value').then(function(s2) {
+      var val = s2.val() || {};
+      var linhas = lista(val.linhas), meses = lista(val.meses);
+      var desta = linhas.filter(function(l) { return String((l && l.id) || '').indexOf(PREFIXO_RET) === 0; });
+      log('Formulário da empresa: ' + meses.length + ' mês(es) liberado(s), ' + linhas.length
+          + ' lançamento(s) — ' + desta.length + ' vindo(s) desta planilha.');
+      log('Meses já enviados pela empresa: ' + (val.enviadoAte || 0));
+    });
+  }).catch(function(e) { log('Não foi possível ler: ' + e.message, true); });
+}
+
+function mostraLink(token) {
+  document.getElementById('link').style.display = '';
+  document.getElementById('link-url').value = linkUrl(token);
+}
+
+function cadastrar() {
+  if (!fbdb) { log('Sem conexão com o banco.', true); return; }
+  var marcarEnviados = document.getElementById('op-enviados').checked;
+  if (!confirm('Cadastrar no sistema a conta vinculada do contrato ' + D.contrato + ' — ' + D.empresa + '?\n\n'
+      + D.meses.length + ' meses (' + chaveMes(D.meses[0]) + ' a ' + chaveMes(D.meses[D.meses.length - 1]) + ')\n'
+      + D.linhas.length + ' lançamentos de retenção\n'
+      + D.retiradas.length + ' retiradas na totalizadora da PR6\n\n'
+      + (marcarEnviados ? 'Os meses entram como já enviados pela empresa.'
+                        : 'Os meses entram abertos para a empresa preencher/enviar.'))) return;
+
+  var btn = document.getElementById('btn-cadastrar');
+  btn.disabled = true;
+  log('— cadastro iniciado em ' + new Date().toLocaleString('pt-BR') + ' —');
+
+  var reg = null, criou = false;
+  fbdb.ref('retencao').once('value').then(function(snap) {
+    var regs = lista(snap.val());
+    reg = achaRegistro(regs);
+    if (!reg) {
+      criou = true;
+      reg = {id: novoId(), contrato: D.contrato, empresa: D.empresa, unidade: D.unidade || '', link: ''};
+      regs.push(reg);
+      log('Registro do contrato criado (id ' + reg.id + ').');
+    } else {
+      log('Registro do contrato reaproveitado (id ' + reg.id + ').');
+      if (!reg.empresa) reg.empresa = D.empresa;
+    }
+    if (!reg.token) {
+      reg.token = novoToken();
+      log('Token do formulário da empresa gerado: ' + reg.token);
+    }
+    reg.link = linkUrl(reg.token);
+
+    // 1) formulário da empresa: meses liberados + funcionários de cada mês
+    return fbdb.ref('retencao_empresa/' + reg.token).once('value').then(function(s2) {
+      var val = s2.val() || {};
+      var meses = mesclaMeses(lista(val.meses), D.meses);
+      var linhas = mesclaLinhas(lista(val.linhas), D.linhas, PREFIXO_RET);
+      var pacote = {
+        contrato: D.contrato,
+        empresa: D.empresa,
+        unidade: reg.unidade || '',
+        perc: D.perc,
+        meses: meses,
+        linhas: linhas,
+        fechado: !!val.fechado,
+        atualizadoEm: new Date().toISOString()
+      };
+      // Meses da planilha entram como já enviados: a empresa não precisa
+      // reenviar o passado. O que já estiver liberado além do último mês da
+      // planilha continua aberto para ela preencher.
+      var jaEnviados = (typeof val.enviadoAte === 'number') ? val.enviadoAte : 0;
+      if (marcarEnviados) pacote.enviadoAte = Math.max(jaEnviados, posicaoUltimoMes(meses));
+      else if (jaEnviados) pacote.enviadoAte = jaEnviados;
+      return fbdb.ref('retencao_empresa/' + reg.token).update(pacote).then(function() {
+        log('Formulário da empresa gravado: ' + meses.length + ' mês(es) liberado(s), '
+            + linhas.length + ' lançamento(s) no total.');
+        if (typeof pacote.enviadoAte === 'number') {
+          log('Meses marcados como já enviados pela empresa: ' + pacote.enviadoAte
+              + ' de ' + meses.length + '.');
+        }
+      });
+    });
+  }).then(function() {
+    // 2) totalizadora da PR6: objeto, percentual e as retiradas da planilha
+    return fbdb.ref('retencao_form/' + reg.id).once('value').then(function(s3) {
+      var val = s3.val() || {};
+      var proprias = mesclaLinhas(lista(val.linhas), D.retiradas, PREFIXO_RTD);
+      return fbdb.ref('retencao_form/' + reg.id).update({
+        contrato: D.contrato,
+        objeto: D.objeto,
+        perc: D.perc,
+        linhas: proprias,
+        adotadas: lista(val.adotadas)
+      }).then(function() {
+        log('Totalizadora da PR6 gravada: ' + D.retiradas.length + ' retirada(s) ('
+            + moeda(totalRetiradas()) + ').');
+      });
+    });
+  }).then(function() {
+    // 3) por último a lista de registros, já com token e link
+    return fbdb.ref('retencao').once('value').then(function(s4) {
+      var regs = lista(s4.val());
+      var i = -1;
+      regs.forEach(function(r, k) { if (r && r.id === reg.id) i = k; });
+      if (i === -1) regs.push(reg); else regs[i] = reg;
+      return fbdb.ref('retencao').set(regs).then(function() {
+        log((criou ? 'Contrato cadastrado' : 'Cadastro atualizado')
+            + ' na tela Retenção e Retirada (' + regs.length + ' formulário(s) no total).');
+      });
+    });
+  }).then(function() {
+    mostraLink(reg.token);
+    log('— cadastro concluído —');
+    btn.disabled = false;
+    alert('Conta vinculada do contrato ' + D.contrato + ' cadastrada.\n\n'
+      + 'Tela Retenção e Retirada → "📝 Totalizadora" mostra todos os lançamentos;\n'
+      + '"📅 Mensal" abre o formulário da empresa, mês a mês.\n\n'
+      + 'Link do formulário da empresa:\n' + linkUrl(reg.token));
+  }).catch(function(e) {
+    btn.disabled = false;
+    log('Falhou: ' + e.message, true);
+    alert('Não foi possível concluir o cadastro: ' + e.message
+      + '\n\nSe a mensagem falar em permissão, os ramos "retencao", "retencao_empresa" e '
+      + '"retencao_form" precisam estar liberados nas regras do Firebase.');
+  });
+}
+
+function iniciar() {
+  if (!D) {
+    document.getElementById('resumo').innerHTML =
+      '<div style="color:#d9534f"><b>O arquivo conta-vinculada-31-20-atlantica.js não carregou.</b></div>';
+    return;
+  }
+  montar();
+  try {
+    firebase.initializeApp(firebaseConfig);
+    fbdb = firebase.database();
+  } catch (e) {
+    fbdb = null;
+  }
+  if (!fbdb) {
+    document.getElementById('btn-cadastrar').disabled = true;
+    document.getElementById('btn-conferir').disabled = true;
+    log('Sem conexão com o banco — a página só mostra a conferência da planilha. '
+        + 'Abra-a com internet (as bibliotecas do Firebase vêm da rede) para cadastrar.', true);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', iniciar);
+</script>
+</body>
+</html>
