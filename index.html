@@ -2418,42 +2418,45 @@ var currentTipoFilter = '';
 var currentSubtipoFilter = '';
 var currentEmpresaFilter = '';
 
-var SUBTIPOS = ['COM DEDICAÇÃO EXCLUSIVA', 'SEM DEDICAÇÃO EXCLUSIVA'];
+// Os cinco filtros do Dashboard (contrato, empresa, ano, tipo e subtipo) são
+// preenchidos juntos e de forma interdependente: cada lista só mostra o que
+// ainda existe nos termos que passam pelos outros quatro.
+function populateDashFilters() {
+  // Empresa que saiu da base por completo deixa de valer como filtro.
+  if (currentEmpresaFilter && !DADOS.some(function(d){
+    return String(d['EMPRESA'] || '').trim() === currentEmpresaFilter;
+  })) currentEmpresaFilter = '';
 
-function populateTipoFilter() {
-  var sel = document.getElementById('db-tipo-filter');
-  if (!sel) return;
-  var opts = '<option value="">Todos os tipos</option>';
-  TIPOS.forEach(function(t){ opts += '<option value="'+t+'">'+t+'</option>'; });
-  sel.innerHTML = opts;
-  sel.value = currentTipoFilter;
-}
+  fillCascadingFilters(DADOS, [
+    { id:'db-contrato-filter', placeholder:'Todos os contratos', valor:'',
+      get:function(d){ return d['CONTRATO']; },
+      // ano mais recente primeiro; dentro do ano, pelo número do contrato
+      sort:function(a, b) {
+        var ya = parseInt((anoDoContrato(a) || '0'), 10);
+        var yb = parseInt((anoDoContrato(b) || '0'), 10);
+        if (ya !== yb) return yb - ya;
+        return parseInt((a.split('/')[0] || '0'), 10) - parseInt((b.split('/')[0] || '0'), 10);
+      } },
+    { id:'db-empresa-filter', placeholder:'Todas as empresas', valor:currentEmpresaFilter,
+      get:function(d){ return d['EMPRESA']; } },
+    { id:'db-year-filter', placeholder:'Todos os anos', valor:currentYearFilter,
+      get:function(d){ return anoDoContrato(d['CONTRATO']); } },
+    { id:'db-tipo-filter', placeholder:'Todos os tipos', valor:currentTipoFilter,
+      get:function(d){ return d['TIPO']; } },
+    { id:'db-subtipo-filter', placeholder:'Todos os subtipos', valor:currentSubtipoFilter,
+      get:function(d){ return d['SUBTIPO']; } }
+  ]);
 
-function populateSubtipoFilter() {
-  var sel = document.getElementById('db-subtipo-filter');
-  if (!sel) return;
-  var opts = '<option value="">Todos os subtipos</option>';
-  SUBTIPOS.forEach(function(s){ opts += '<option value="'+s+'">'+s+'</option>'; });
-  sel.innerHTML = opts;
-  sel.value = currentSubtipoFilter;
+  // O filtro de ano é o único que não casa por igualdade na tabela
+  // (contratoDoAno aceita 22 e 2022): se o ano escolhido não sobrou na lista,
+  // ele continua valendo e fica visível.
+  var sy = document.getElementById('db-year-filter');
+  if (sy && currentYearFilter && sy.value !== currentYearFilter) sy.value = currentYearFilter;
 }
 
 function setTipoFilter(tipo) {
   currentTipoFilter = tipo;
   buildDashboard();
-}
-
-// Filtro de empresa do Dashboard (afeta KPIs e gráficos, como tipo/subtipo).
-function populateEmpresaFilter() {
-  var sel = document.getElementById('db-empresa-filter');
-  if (!sel) return;
-  var lista = distinctSorted(DADOS, function(d){ return d['EMPRESA']; });
-  var opts = '<option value="">Todas as empresas</option>';
-  lista.forEach(function(e){ opts += '<option value="'+esc(e)+'">'+esc(e)+'</option>'; });
-  sel.innerHTML = opts;
-  // Se a empresa filtrada sumiu dos dados, volta para "todas".
-  if (currentEmpresaFilter && lista.indexOf(currentEmpresaFilter) === -1) currentEmpresaFilter = '';
-  sel.value = currentEmpresaFilter;
 }
 
 function setEmpresaFilter(emp) {
@@ -2659,45 +2662,6 @@ function contratoDoAno(d, year) {
   return new RegExp('\\/' + yy + '(\\D|$)').test(c) || c.indexOf('/' + yyyy) !== -1;
 }
 
-function populateContratoFilter() {
-  var sel = document.getElementById('db-contrato-filter');
-  if (!sel) return;
-  var seen = {};
-  var lista = [];
-  DADOS.forEach(function(d) {
-    var c = (d['CONTRATO'] || '').trim();
-    if (!c || seen[c]) return;
-    seen[c] = true;
-    lista.push(c);
-  });
-  lista.sort(function(a, b) {
-    var ya = parseInt((anoDoContrato(a) || '0'), 10);
-    var yb = parseInt((anoDoContrato(b) || '0'), 10);
-    if (ya !== yb) return yb - ya;
-    var na = parseInt((a.split('/')[0] || '0'), 10);
-    var nb = parseInt((b.split('/')[0] || '0'), 10);
-    return na - nb;
-  });
-  var opts = '<option value="">Selecione um contrato…</option>';
-  lista.forEach(function(c) { opts += '<option value="' + c + '">' + c + '</option>'; });
-  sel.innerHTML = opts;
-}
-
-function populateYearFilter() {
-  var sel = document.getElementById('db-year-filter');
-  if (!sel) return;
-  var years = {};
-  DADOS.forEach(function(d) {
-    var y = anoDoContrato(d['CONTRATO']);
-    if (y) years[y] = true;
-  });
-  var sorted = Object.keys(years).sort();
-  var opts = '<option value="">Todos os anos</option>';
-  sorted.forEach(function(y) { opts += '<option value="'+y+'">'+y+'</option>'; });
-  sel.innerHTML = opts;
-  sel.value = currentYearFilter;
-}
-
 function setYearFilter(year) {
   currentYearFilter = year;
   buildDashboard();
@@ -2711,12 +2675,8 @@ function buildDashboard() {
   if (currentSubtipoFilter) base = base.filter(function(d){ return (d['SUBTIPO']||'') === currentSubtipoFilter; });
   if (currentEmpresaFilter) base = base.filter(function(d){ return (d['EMPRESA']||'').trim() === currentEmpresaFilter; });
 
-  populateContratoFilter();
-  populateEmpresaFilter();
+  populateDashFilters();
   populateDashBusca();
-  populateYearFilter();
-  populateTipoFilter();
-  populateSubtipoFilter();
   updateClearBtn();
 
   var vig = base.filter(function(d){ return d._st === 'VIGENTE'; });
@@ -2893,6 +2853,78 @@ function fillSelectFilter(id, valores, placeholder) {
   el.value = (atual && valores.indexOf(atual) !== -1) ? atual : '';
 }
 
+// Preenche os <select> de filtro de uma tela de forma INTERDEPENDENTE: as
+// opções de cada campo saem apenas das linhas que passam pelos OUTROS filtros
+// ativos. Filtrar a empresa reduz a lista de contratos; filtrar o ano reduz a
+// lista de empresas, e assim por diante.
+//
+// campos: [{ id, get, placeholder, sort?, valor?, popular? }]
+//   get(linha)  → valor do campo naquela linha (usado para montar as opções e
+//                 para cruzar os filtros entre si);
+//   sort(a, b)  → ordenação própria da lista (padrão: pt-BR, numérico);
+//   valor       → valor atual quando ele vive numa variável de estado (e não
+//                 no próprio <select>, como no Dashboard); é reaplicado ao
+//                 elemento depois de preencher;
+//   popular:false → o campo só CRUZA os outros (opções fixas no HTML, como
+//                 Status), sem ter sua própria lista reconstruída.
+// Assinatura do último preenchimento de cada tela que usa cache (ver 3º arg).
+var _cascadeSig = {};
+function invalidarCascadingFilters() { _cascadeSig = {}; }
+
+function fillCascadingFilters(rows, campos, cache) {
+  rows = rows || [];
+  var m = campos.length;
+  var vals = campos.map(function(c) {
+    return c.valor !== undefined ? String(c.valor || '') : fVal(c.id);
+  });
+  // Com cache, as listas só são recalculadas quando muda algum filtro (ou o
+  // tamanho da base): a busca por texto chama o build a cada tecla e, em bases
+  // de milhares de linhas, recalcular tudo à toa pesa. Quem edita a base chama
+  // invalidarCascadingFilters().
+  var chave = '';
+  if (cache) {
+    chave = campos.map(function(c){ return c.id; }).join(',');
+    var assin = vals.join('\u0001') + '|' + rows.length;
+    if (_cascadeSig[chave] === assin) return;
+    _cascadeSig[chave] = assin;
+  }
+  // Uma passada só calcula o valor de todos os campos em todas as linhas. As
+  // telas grandes (Documentos, com milhares de linhas) têm campos derivados
+  // (situação, responsável, status); cruzá-los recalculando sairia caro.
+  var tab = rows.map(function(r) {
+    var linha = new Array(m);
+    for (var j = 0; j < m; j++) linha[j] = String(campos[j].get(r) || '').trim();
+    return linha;
+  });
+  campos.forEach(function(c, i) {
+    if (c.popular === false) return;
+    var vistos = Object.create(null), lista = [];
+    for (var k = 0; k < tab.length; k++) {
+      var linha = tab[k], passa = true;
+      for (var j = 0; j < m; j++) {
+        if (j === i || !vals[j]) continue;
+        if (linha[j] !== vals[j]) { passa = false; break; }
+      }
+      if (!passa) continue;
+      var v = linha[i];
+      if (!v || vistos[v]) continue;
+      vistos[v] = 1;
+      lista.push(v);
+    }
+    // A opção já escolhida permanece na lista mesmo que nenhuma linha restante
+    // a use: nenhum filtro do usuário é apagado em silêncio.
+    if (vals[i] && !vistos[vals[i]]) lista.push(vals[i]);
+    lista.sort(c.sort || function(a, b) {
+      return a.localeCompare(b, 'pt-BR', {numeric:true});
+    });
+    fillSelectFilter(c.id, lista, c.placeholder);
+    if (c.valor !== undefined) {
+      var el = document.getElementById(c.id);
+      if (el) el.value = vals[i];
+    }
+  });
+}
+
 // Zera um conjunto de campos de filtro e chama o rebuild da tela.
 function clearFilterFields(ids, rebuild) {
   ids.forEach(function(id) {
@@ -2907,20 +2939,13 @@ var filtered = [], sortCol = '_st', sortDir = 1, page = 1;
 var PER = 20;
 
 function populateContratoFilters() {
-  fillSelectFilter('f-ct', distinctSorted(DADOS, function(d){ return d['CONTRATO']; }), 'Todos');
-  fillSelectFilter('f-em', distinctSorted(DADOS, function(d){ return d['EMPRESA']; }), 'Todas');
-  // Responsável: usa distintos dos DADOS ∪ RESPS (mesmo que ninguém ainda esteja com aquele nome)
-  var setResp = {};
-  DADOS.forEach(function(d){ var v = String(d['RESPONSÁVEL NO FATURAMENTO']||'').trim(); if (v) setResp[v] = 1; });
-  (typeof RESPS !== 'undefined' ? RESPS : []).forEach(function(v){ if (v) setResp[v] = 1; });
-  var listaResp = Object.keys(setResp).sort(function(a, b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
-  fillSelectFilter('f-re', listaResp, 'Todos');
-  // Tipo: usa TIPOS canônicos ∪ distintos dos DADOS
-  var setTi = {};
-  (typeof TIPOS !== 'undefined' ? TIPOS : []).forEach(function(v){ if (v) setTi[v] = 1; });
-  DADOS.forEach(function(d){ var v = String(d['TIPO']||'').trim(); if (v) setTi[v] = 1; });
-  var listaTi = Object.keys(setTi).sort(function(a, b){ return a.localeCompare(b, 'pt-BR', {sensitivity:'base'}); });
-  fillSelectFilter('f-ti', listaTi, 'Todos');
+  fillCascadingFilters(DADOS, [
+    { id:'f-ct', placeholder:'Todos', get:function(d){ return d['CONTRATO']; } },
+    { id:'f-em', placeholder:'Todas', get:function(d){ return d['EMPRESA']; } },
+    { id:'f-re', placeholder:'Todos', get:function(d){ return d['RESPONSÁVEL NO FATURAMENTO']; } },
+    { id:'f-ti', placeholder:'Todos', get:function(d){ return d['TIPO']; } },
+    { id:'f-st', popular:false,       get:function(d){ return d._st; } }
+  ]);
 }
 
 function applyFilters() {
@@ -4017,10 +4042,13 @@ var SITUACOES = ['Titular','Substituto','Presidente','Presidente substituto','Me
 var fcFiltered = [], fcPage = 1, fcPer = 50;
 
 function populateFiscalFilters() {
-  fillSelectFilter('fisc-f-nome', distinctSorted(FISCAIS, function(f){ return f.nome; }), 'Todos');
-  fillSelectFilter('fisc-f-contrato', distinctSorted(FISCAIS, function(f){ return f.contrato; }), 'Todos');
-  fillSelectFilter('fisc-f-empresa', distinctSorted(FISCAIS, function(f){ return f.empresa; }), 'Todas');
-  fillSelectFilter('fisc-f-unidade', distinctSorted(FISCAIS, function(f){ return f.unidade; }), 'Todas');
+  fillCascadingFilters(FISCAIS, [
+    { id:'fisc-f-nome',     placeholder:'Todos', get:function(f){ return f.nome; } },
+    { id:'fisc-f-contrato', placeholder:'Todos', get:function(f){ return f.contrato; } },
+    { id:'fisc-f-empresa',  placeholder:'Todas', get:function(f){ return f.empresa; } },
+    { id:'fisc-f-unidade',  placeholder:'Todas', get:function(f){ return f.unidade; } },
+    { id:'fisc-f-status',   popular:false,       get:function(f){ return fiscalStatus(f); } }
+  ]);
 }
 
 function clearFiscalFilters() {
@@ -5175,8 +5203,10 @@ function loadUnidadesFromStorage() { /* migrado para loadAllFromFirebase */ }
 var unFiltered = [], unPage = 1, unPer = 50;
 
 function populateUnidadeFilters() {
-  fillSelectFilter('un-f-unidade', distinctSorted(UNIDADES, function(u){ return u.unidade; }), 'Todas');
-  fillSelectFilter('un-f-sigla', distinctSorted(UNIDADES, function(u){ return u.sigla; }), 'Todas');
+  fillCascadingFilters(UNIDADES, [
+    { id:'un-f-unidade', placeholder:'Todas', get:function(u){ return u.unidade; } },
+    { id:'un-f-sigla',   placeholder:'Todas', get:function(u){ return u.sigla; } }
+  ]);
 }
 
 function clearUnidadeFilters() {
@@ -5420,11 +5450,10 @@ function saveImrToStorage() {
 var imrFiltered = [], imrPage = 1, imrPer = 50;
 
 function populateImrFilters() {
-  fillSelectFilter('imr-f-contrato', distinctSorted(IMR, function(r){ return r.contrato; }), 'Todos');
-  var resps = {};
-  IMR.forEach(function(r){ var x = retRespDoContrato(r.contrato); if (x) resps[x] = 1; });
-  var lista = Object.keys(resps).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); });
-  fillSelectFilter('imr-f-resp', lista, 'Todos');
+  fillCascadingFilters(IMR, [
+    { id:'imr-f-contrato', placeholder:'Todos', get:function(r){ return r.contrato; } },
+    { id:'imr-f-resp',     placeholder:'Todos', get:function(r){ return retRespDoContrato(r.contrato); } }
+  ]);
 }
 
 function buildImrTable() {
@@ -6027,11 +6056,10 @@ function saveCrecheToStorage() {
 var crecheFiltered = [], crechePage = 1, crechePer = 50;
 
 function populateCrecheFilters() {
-  fillSelectFilter('creche-f-contrato', distinctSorted(CRECHE, function(r){ return r.contrato; }), 'Todos');
-  var resps = {};
-  CRECHE.forEach(function(r){ var x = retRespDoContrato(r.contrato); if (x) resps[x] = 1; });
-  var lista = Object.keys(resps).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); });
-  fillSelectFilter('creche-f-resp', lista, 'Todos');
+  fillCascadingFilters(CRECHE, [
+    { id:'creche-f-contrato', placeholder:'Todos', get:function(r){ return r.contrato; } },
+    { id:'creche-f-resp',     placeholder:'Todos', get:function(r){ return retRespDoContrato(r.contrato); } }
+  ]);
 }
 
 function buildCrecheTable() {
@@ -6401,10 +6429,12 @@ function loadContasFromStorage() { /* migrado para loadAllFromFirebase */ }
 var cvFiltered = [], cvPage = 1, cvPer = 50;
 
 function populateContaFilters() {
-  fillSelectFilter('ct-f-contrato', distinctSorted(CONTAS, function(c){ return c.contrato; }), 'Todos');
-  fillSelectFilter('ct-f-empresa', distinctSorted(CONTAS, function(c){ return c.empresa; }), 'Todas');
-  fillSelectFilter('ct-f-resp', distinctSorted(CONTAS, function(c){ return c.responsavel; }), 'Todos');
-  fillSelectFilter('ct-f-sit', distinctSorted(CONTAS, function(c){ return contaSituacaoAuto(c); }), 'Todas');
+  fillCascadingFilters(CONTAS, [
+    { id:'ct-f-contrato', placeholder:'Todos', get:function(c){ return c.contrato; } },
+    { id:'ct-f-empresa',  placeholder:'Todas', get:function(c){ return c.empresa; } },
+    { id:'ct-f-resp',     placeholder:'Todos', get:function(c){ return c.responsavel; } },
+    { id:'ct-f-sit',      placeholder:'Todas', get:function(c){ return contaSituacaoAuto(c); } }
+  ]);
 }
 
 function clearContaFilters() {
@@ -7220,9 +7250,13 @@ function loadAllFromFirebase(callback) {
 var rrFiltered = [], rrPage = 1, rrPer = 50;
 
 function populateReajusteFilters() {
-  fillSelectFilter('rj-f-contrato', distinctSorted(REAJUSTES, function(r){ return r.contrato; }), 'Todos');
-  fillSelectFilter('rj-f-empresa', distinctSorted(REAJUSTES, function(r){ return r.empresa; }), 'Todas');
-  fillSelectFilter('rj-f-resp', distinctSorted(REAJUSTES, function(r){ return r.responsavel; }), 'Todos');
+  fillCascadingFilters(REAJUSTES, [
+    { id:'rj-f-contrato', placeholder:'Todos', get:function(r){ return r.contrato; } },
+    { id:'rj-f-empresa',  placeholder:'Todas', get:function(r){ return r.empresa; } },
+    { id:'rj-f-resp',     placeholder:'Todos', get:function(r){ return r.responsavel; } },
+    { id:'rj-f-memoria',  popular:false,       get:function(r){ return reajusteMemoriaAuto(r); } },
+    { id:'rj-f-sitnf',    popular:false,       get:function(r){ return reajusteSitNfAuto(r); } }
+  ]);
 }
 
 function clearReajusteFilters() {
@@ -7897,6 +7931,7 @@ function docRebuild() {
     if (ov && !ov._del) out.push(docNormalizaSimbolos(ov));
   });
   DOCUMENTOS = out;
+  invalidarCascadingFilters();
   // mantém a lista filtrada apontando para os registros novos, sem perder a ordem/página
   if (docFiltered && docFiltered.length) {
     var porId = {};
@@ -8857,36 +8892,10 @@ function docDistinct(k) {
   return out;
 }
 
-function docFillSelect(id, valores, placeholder) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  var atual = el.value;
-  el.innerHTML = '<option value="">' + placeholder + '</option>'
-    + valores.map(function(v) { return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
-  if (atual && valores.indexOf(atual) !== -1) el.value = atual;
-}
-
 function initDocumentos() {
   if (!DOCUMENTOS.length) docRebuild();
   docInvalidarContratos();
-  var anos = docDistinct('ano').sort(function(a, b) { return b.localeCompare(a); });
-  var meses = docDistinct('mes').sort(function(a, b) {
-    var ia = MESES_ORDEM.indexOf(a), ib = MESES_ORDEM.indexOf(b);
-    if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    return a.localeCompare(b, 'pt-BR', {numeric:true});
-  });
-  var sits = docDistinctCalc(DOC_FIELD_MAP.situacao).sort();
-  var resps = docDistinctCalc(DOC_FIELD_MAP.responsavel).sort();
-  var empresas = docDistinct('empresa').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
-  var contratos = docDistinct('contrato').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
-  var unidades = docDistinct('unidade').sort(function(a, b) { return a.localeCompare(b, 'pt-BR', {numeric:true}); });
-  docFillSelect('doc-f-ano', anos, 'Todos');
-  docFillSelect('doc-f-mes', meses, 'Todos');
-  docFillSelect('doc-f-sit', sits, 'Todas');
-  docFillSelect('doc-f-resp', resps, 'Todos');
-  docFillSelect('doc-f-empresa', empresas, 'Todas');
-  docFillSelect('doc-f-contrato', contratos, 'Todos');
-  docFillSelect('doc-f-unidade', unidades, 'Todas');
+  populateDocFilters();
   if (!_docInit) {
     var cont = document.getElementById('doc-table');
     if (cont) cont.addEventListener('dblclick', function(e) {
@@ -8928,8 +8937,30 @@ function docVal(id) {
   return el ? el.value : '';
 }
 
+// Filtros da tela de Documentos, interdependentes: escolher a empresa reduz os
+// contratos, as unidades, os meses…, e o mesmo vale em qualquer ordem.
+function populateDocFilters() {
+  fillCascadingFilters(DOCUMENTOS, [
+    { id:'doc-f-empresa',  placeholder:'Todas', get:function(r){ return r.empresa; } },
+    { id:'doc-f-contrato', placeholder:'Todos', get:function(r){ return r.contrato; } },
+    { id:'doc-f-unidade',  placeholder:'Todas', get:function(r){ return r.unidade; } },
+    { id:'doc-f-ano',      placeholder:'Todos', get:function(r){ return r.ano; },
+      sort:function(a, b){ return b.localeCompare(a, 'pt-BR', {numeric:true}); } },
+    { id:'doc-f-mes',      placeholder:'Todos', get:function(r){ return r.mes; },
+      sort:function(a, b) {
+        var ia = MESES_ORDEM.indexOf(a), ib = MESES_ORDEM.indexOf(b);
+        if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        return a.localeCompare(b, 'pt-BR', {numeric:true});
+      } },
+    { id:'doc-f-sit',      placeholder:'Todas', get:function(r){ return docSituacao(r); } },
+    { id:'doc-f-resp',     placeholder:'Todos', get:function(r){ return docResponsavel(r); } },
+    { id:'doc-f-status',   popular:false,       get:function(r){ return docStatusContrato(r); } }
+  ], true);
+}
+
 function buildDocumentosTable(manterPagina) {
   if (!DOCUMENTOS.length) docRebuild();
+  populateDocFilters();
   var q = docVal('doc-q').toLowerCase().trim();
   var fAno = docVal('doc-f-ano'), fMes = docVal('doc-f-mes'), fSit = docVal('doc-f-sit'),
       fResp = docVal('doc-f-resp'), fSt = docVal('doc-f-status'), fEmp = docVal('doc-f-empresa'),
@@ -9960,9 +9991,6 @@ function cvMontarTela(reg) {
     var anos = [];
     for (var a = 2019; a <= new Date().getFullYear() + 3; a++) anos.push(String(a));
     CV_COLS.find(function(c){ return c.k === 'ano'; }).opts = anos;
-    cvPreencher('cv-f-mes', CV_MESES, 'Todos');
-    cvPreencher('cv-f-ano', anos, 'Todos');
-    cvPreencher('cv-f-unidade', CV_UNIDADES.map(function(u){ return u.sigla; }), 'Todas');
     _cvInit = true;
   }
   var podeEditar = canEditKey('contavinculada');
@@ -9972,13 +10000,6 @@ function cvMontarTela(reg) {
   });
   cvPreencherContratos();
   cvRender();
-}
-
-function cvPreencher(id, valores, placeholder) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = '<option value="">' + placeholder + '</option>'
-    + valores.map(function(v){ return '<option value="'+esc(v)+'">'+esc(v)+'</option>'; }).join('');
 }
 
 function cvCampoCab() {
@@ -10164,6 +10185,22 @@ function cvCampoHtml(col, l, podeEditar) {
   return '<input class="cv-inp" value="'+esc(v)+'"'+dis+ev+'>';
 }
 
+// Mês, ano e unidade do formulário saem das próprias linhas e se cruzam entre
+// si (e com o tipo): escolher o ano deixa só os meses lançados nele.
+function cvPreencherFiltros() {
+  fillCascadingFilters((CV_ATUAL ? CV_ATUAL.linhas : []), [
+    { id:'cv-f-tipo',    popular:false,       get:function(l){ return l.tipo; } },
+    { id:'cv-f-mes',     placeholder:'Todos', get:function(l){ return l.mes; },
+      sort:function(a, b) {
+        var ia = CV_MESES.indexOf(a), ib = CV_MESES.indexOf(b);
+        if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        return a.localeCompare(b, 'pt-BR', {numeric:true});
+      } },
+    { id:'cv-f-ano',     placeholder:'Todos', get:function(l){ return l.ano; } },
+    { id:'cv-f-unidade', placeholder:'Todas', get:function(l){ return l.unidade; } }
+  ]);
+}
+
 // ── Tabela ──
 function cvFiltrar() {
   var q = (document.getElementById('cv-q')||{}).value || '';
@@ -10184,6 +10221,7 @@ function cvFiltrar() {
 
 function cvRender() {
   if (!CV_ATUAL) return;
+  cvPreencherFiltros();
   cvFiltrar();
   var podeEditar = canEditKey('contavinculada');
   var wrap = document.getElementById('cv-tabela');
