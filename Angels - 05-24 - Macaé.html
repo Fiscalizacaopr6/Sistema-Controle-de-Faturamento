@@ -146,6 +146,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 .approval-cell{flex:1;border:1.5px solid #1f3864;padding:6px 10px;}
 .approval-cell label{font-weight:bold;color:#1f3864;display:block;margin-bottom:2px;font-size:11px;}
 .approval-cell input{width:100%;border:none;border-bottom:1.5px solid #999;font-size:11px;font-family:Arial;outline:none;padding:2px 0;}
+.carimbo{border:2px solid #1b5e20;border-radius:5px;background:#eafbe9;color:#1b5e20;font-weight:bold;font-size:10px;line-height:1.4;padding:6px 8px;margin-top:2px;text-align:center;transform:rotate(-1.2deg);}
 
 /* ── BUTTONS ── */
 .btn-bar{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
@@ -539,8 +540,12 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <div class="approval-row">
   <div class="approval-cell">
     <label>Fiscal Operacional</label>
-    <input type="text" id="assFiscalOp" placeholder="Nome completo">
-    <input type="text" id="assFiscalOpMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
+    <div id="fiscalOpInputs">
+      <input type="text" id="assFiscalOp" placeholder="Nome completo">
+      <input type="text" id="assFiscalOpMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
+    </div>
+    <div id="fiscalOpCarimbo" class="carimbo" style="display:none"></div>
+    <input type="hidden" id="assOpCarimbo">
   </div>
   <div class="approval-cell">
     <label>Fiscal Administrativo <em style="font-weight:normal;font-size:10px">(¹)</em></label>
@@ -552,9 +557,9 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
     <input type="text" id="assContratada" placeholder="Nome completo">
     <input type="text" id="assContratadaCargo" placeholder="Cargo" style="margin-top:4px;font-size:10px;">
   </div>
-  <div class="approval-cell" style="flex:0 0 160px;">
-    <label>Data</label>
-    <input type="date" id="dataAprov" readonly style="background:#f0f0f0;color:#333;cursor:default;border-bottom:1px solid #bbb;">
+  <div class="approval-cell" style="flex:0 0 200px;">
+    <label>Data e hora</label>
+    <input type="text" id="dataAprov" readonly placeholder="—" style="background:#f0f0f0;color:#333;cursor:default;border-bottom:1px solid #bbb;">
   </div>
 </div>
 
@@ -567,13 +572,30 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <!-- ══ BOTÕES ══ -->
 <div class="btn-bar">
   <button class="btn btn-reset" id="btnLimpar" onclick="resetForm()">🗑 Limpar Tudo</button>
-  <button class="btn btn-print" onclick="salvarPDFAba(this)">📤 Enviar</button>
+  <button class="btn btn-print" onclick="abrirAssinatura()">✍️ Assinar e enviar</button>
 </div>
 <p style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;">
   (¹) Campos do Grupo 3 – Salários/Benefícios e Nota Final preenchidos pelo Fiscal Administrativo. |
   Formulário gerado a partir do Modelo IMR Vigilância Definitivo V2 Com CRECHE – PR6. | Versão 60 períodos.
 </p>
 </div><!-- /page -->
+
+<!-- ══ MODAL DE ASSINATURA ══ -->
+<div id="assModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:2px solid #1f3864;border-radius:8px;width:360px;max-width:92vw;padding:18px 20px;font-family:Arial;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+    <div style="font-size:14px;font-weight:bold;color:#1f3864;margin-bottom:4px;">✍️ Assinatura do Fiscal Operacional</div>
+    <div style="font-size:11px;color:#555;margin-bottom:12px;">Informe seu <b>SIAPE</b> e a <b>senha</b> cadastrada na tela de Assinaturas.</div>
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">SIAPE</label>
+    <input type="text" id="assSiapeInp" inputmode="numeric" autocomplete="off" style="width:100%;margin:2px 0 10px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">Senha</label>
+    <input type="password" id="assSenhaInp" autocomplete="off" onkeydown="if(event.key==='Enter')confirmarAssinatura()" style="width:100%;margin:2px 0 6px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <div id="assMsg" style="font-size:11px;min-height:16px;margin:4px 0;color:#555;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="fecharAssinatura()" style="padding:7px 14px;border:1px solid #999;background:#eee;border-radius:4px;cursor:pointer;font-family:Arial;">Cancelar</button>
+      <button id="assBtn" onclick="confirmarAssinatura()" style="padding:7px 18px;border:none;background:#1f3864;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Assinar</button>
+    </div>
+  </div>
+</div>
 
 <!-- SDK do Firebase (sincronização entre computadores) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -712,7 +734,7 @@ function defaultState(){
     periodo:'', headerUpdate:'Atualizado conforme Valor Unitário Contratado inicial',
     notas, postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}],
     diasTrab:'30', crecheRetido:'0', crecheAprovados:'0', crechemBDI:'0',
-    justif:'', dataAprov: todayISO()
+    justif:'', dataAprov:'', opCarimbo:''
   };
   ASS_IDS.forEach(id=>s[id]='');
   return s;
@@ -805,7 +827,7 @@ function snapshotDOM(){
     periodo:val('periodo'), headerUpdate:val('headerUpdate'), notas, postos,
     diasTrab:val('diasTrab'), crecheRetido:val('crecheRetido'),
     crecheAprovados:val('crecheAprovados'), crechemBDI:val('crechemBDI'),
-    justif:val('justifGeral'), dataAprov:val('dataAprov')
+    justif:val('justifGeral'), dataAprov:val('dataAprov'), opCarimbo:val('assOpCarimbo')
   };
   ASS_IDS.forEach(id=>s[id]=val(id));
   return s;
@@ -822,7 +844,9 @@ function applyPeriodToDOM(s){
   setVal('crechemBDI', s.crechemBDI||'0');
   setVal('justifGeral', s.justif||'');
   ASS_IDS.forEach(id=>setVal(id, s[id]||''));
-  setVal('dataAprov', s.dataAprov||todayISO());
+  setVal('assOpCarimbo', s.opCarimbo||'');
+  renderCarimboOp(s.opCarimbo||'');
+  setVal('dataAprov', s.dataAprov||'');
 }
 
 // ─── ABAS ────────────────────────────────────────────────────────
@@ -1255,7 +1279,7 @@ function normalizePeriod(p){
   d.postos=(Array.isArray(p.postos)&&p.postos.length)
     ? p.postos.map(x=>({item:(x&&x.item!=null?x.item:''), posto:(x&&x.posto)||'', qtde:(x&&x.qtde)||'', vlrUnit:(x&&x.vlrUnit)||'', semCob:(x&&x.semCob)||''}))
     : d.postos;
-  ['diasTrab','crecheRetido','crecheAprovados','crechemBDI','justif','dataAprov'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
+  ['diasTrab','crecheRetido','crecheAprovados','crechemBDI','justif','dataAprov','opCarimbo'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
   if(p.diasTrab==null) d.diasTrab=String(diasNoMes(d.periodo));
   ASS_IDS.forEach(id=>{ if(p[id]!=null) d[id]=p[id]; });
   return d;
@@ -1275,7 +1299,7 @@ function applyData(data){
 }
 
 // ─── INIT ────────────────────────────────────────────────────────
-document.getElementById('dataAprov').value = todayISO();
+document.getElementById('dataAprov').value = '';
 
 // 1) Base padrão
 periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
@@ -1309,6 +1333,74 @@ function fitToPage(){var pg=document.querySelector('.page');if(!pg)return;pg.sty
 function resetFit(){var pg=document.querySelector('.page');if(pg)pg.style.zoom='';}
 window.addEventListener('beforeprint',fitToPage);
 window.addEventListener('afterprint',resetFit);
+
+/* ═══ ASSINATURA ELETRÔNICA (valida SIAPE + senha no nó /assinaturas) ═══ */
+// A senha nunca trafega: compara-se o mesmo hash gravado pela tela de Assinaturas
+// (SHA-256 de 'pr6:'+SIAPE+':'+senha; fallback FNV em contexto não seguro).
+const ASSINATURAS_URL='https://fiscalizacao-d9a39-default-rtdb.firebaseio.com/assinaturas.json';
+function hashSenha(senha, siape){
+  var txt='pr6:'+siape+':'+senha;
+  if(window.crypto&&window.crypto.subtle&&window.TextEncoder){
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  var h1=0x811c9dc5, h2=0x01000193;
+  for(var i=0;i<txt.length;i++){ h1=((h1^txt.charCodeAt(i))*16777619)>>>0; h2=((h2+txt.charCodeAt(i)*(i+7))*2246822519)>>>0; }
+  return Promise.resolve('fnv:'+('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8));
+}
+function renderCarimboOp(txt){
+  var box=document.getElementById('fiscalOpCarimbo'), inps=document.getElementById('fiscalOpInputs');
+  if(!box||!inps) return;
+  if(txt){ box.innerHTML=esc(txt).replace(/\n/g,'<br>'); box.style.display='block'; inps.style.display='none'; }
+  else { box.style.display='none'; inps.style.display='block'; }
+}
+function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
+function abrirAssinatura(){
+  if(globalLocked){ alert('Formulário travado. Desbloqueie para assinar.'); return; }
+  document.getElementById('assSiapeInp').value='';
+  document.getElementById('assSenhaInp').value='';
+  setAssMsg('','');
+  document.getElementById('assModal').style.display='flex';
+  setTimeout(function(){ var el=document.getElementById('assSiapeInp'); if(el) el.focus(); },50);
+}
+function fecharAssinatura(){ var m=document.getElementById('assModal'); if(m) m.style.display='none'; }
+function confirmarAssinatura(){
+  var siape=(document.getElementById('assSiapeInp').value||'').trim();
+  var senha=document.getElementById('assSenhaInp').value||'';
+  if(!siape||!senha){ setAssMsg('err','Preencha SIAPE e senha.'); return; }
+  var btn=document.getElementById('assBtn'); var ol=btn.textContent; btn.disabled=true; btn.textContent='Verificando…';
+  setAssMsg('','Verificando…');
+  Promise.all([ fetch(ASSINATURAS_URL,{cache:'no-store'}).then(function(r){ return r.json(); }), hashSenha(senha,siape) ])
+    .then(function(res){
+      var data=res[0]||{}, hash=res[1], achou=null;
+      Object.keys(data||{}).forEach(function(k){
+        var r=data[k]; if(!r) return;
+        if(String(r.siape||'').trim()===siape && r.senhaHash && r.senhaHash===hash) achou=r;
+      });
+      if(!achou){ setAssMsg('err','SIAPE ou senha incorretos (ou SIAPE sem assinatura cadastrada).'); btn.disabled=false; btn.textContent=ol; return; }
+      aplicarAssinatura(achou); btn.disabled=false; btn.textContent=ol;
+    })
+    .catch(function(e){ console.error('assinatura:',e); setAssMsg('err','Não foi possível verificar a assinatura. Verifique a conexão.'); btn.disabled=false; btn.textContent=ol; });
+}
+function aplicarAssinatura(r){
+  var agora=new Date();
+  var dh=agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var carimbo='Serviço atestado por '+(r.nome||'')+'\nSIAPE '+(r.siape||'')+' — '+(r.cargo||'');
+  var p=periods[currentPeriod];
+  p.opCarimbo=carimbo;
+  p.assFiscalOp=r.nome||'';
+  p.assFiscalOpMat='SIAPE '+(r.siape||'')+' — '+(r.cargo||'');
+  p.dataAprov=dh;
+  setVal('assFiscalOp', p.assFiscalOp);
+  setVal('assFiscalOpMat', p.assFiscalOpMat);
+  setVal('assOpCarimbo', carimbo);
+  renderCarimboOp(carimbo);
+  setVal('dataAprov', dh);
+  persist();
+  fecharAssinatura();
+  setCloudStatus('✍️ Assinado por '+(r.nome||'')+' em '+dh);
+}
 
 /* Gera o PDF da ABA ATUAL direto no navegador (1 folha A4), sem abrir o diálogo de impressão. */
 async function salvarPDFAba(btn){
