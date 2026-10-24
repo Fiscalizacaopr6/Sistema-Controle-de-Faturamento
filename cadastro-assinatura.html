@@ -115,23 +115,42 @@ function cadastrar(ev) {
   btn.disabled = true;
   btn.textContent = 'Cadastrando…';
 
-  hashSenha(senha, siape).then(function(hash) {
-    return fbdb.ref('assinaturas').push({
-      nome: nome,
-      siape: siape,
-      cargo: cargo,
-      senhaHash: hash,
-      criadoEm: new Date().toISOString()
+  function liberar() { btn.disabled = false; btn.textContent = 'Cadastrar'; }
+
+  // Um SIAPE só pode ter uma assinatura: antes de gravar, confere se já existe.
+  // Compara apenas os dígitos, para ignorar zeros à esquerda ou formatação.
+  var siapeKey = siape.replace(/\D/g, '');
+  fbdb.ref('assinaturas').once('value').then(function(snap) {
+    var existe = false;
+    snap.forEach(function(ch) {
+      var v = ch.val() || {};
+      if (String(v.siape == null ? '' : v.siape).replace(/\D/g, '') === siapeKey) existe = true;
     });
-  }).then(function() {
-    document.getElementById('form').style.display = 'none';
-    aviso('ok', '<b>Assinatura cadastrada.</b><br>' + nome.replace(/</g,'&lt;') + ' — SIAPE ' + siape.replace(/</g,'&lt;')
-      + '. O registro já aparece na tela de Assinaturas do sistema. Você pode fechar esta página.');
+    if (existe) {
+      liberar();
+      aviso('err', 'Este SIAPE já possui assinatura cadastrada. Se precisar alterá-la, procure o administrador do sistema.');
+      return;
+    }
+    hashSenha(senha, siape).then(function(hash) {
+      return fbdb.ref('assinaturas').push({
+        nome: nome,
+        siape: siape,
+        cargo: cargo,
+        senhaHash: hash,
+        criadoEm: new Date().toISOString()
+      });
+    }).then(function() {
+      document.getElementById('form').style.display = 'none';
+      aviso('ok', '<b>Assinatura cadastrada.</b><br>Você pode fechar esta página.');
+    }).catch(function(e) {
+      console.error('cadastro de assinatura:', e);
+      liberar();
+      aviso('err', 'Não foi possível gravar o cadastro. Verifique a conexão e tente de novo.');
+    });
   }).catch(function(e) {
-    console.error('cadastro de assinatura:', e);
-    btn.disabled = false;
-    btn.textContent = 'Cadastrar';
-    aviso('err', 'Não foi possível gravar o cadastro. Verifique a conexão e tente de novo.');
+    console.error('verificação de SIAPE:', e);
+    liberar();
+    aviso('err', 'Não foi possível verificar o cadastro. Verifique a conexão e tente de novo.');
   });
 }
 </script>
