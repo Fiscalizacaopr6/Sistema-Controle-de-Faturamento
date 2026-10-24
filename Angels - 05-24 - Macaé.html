@@ -652,6 +652,11 @@ let currentPeriod = 0;
 let postoCount = 0;
 let globalLocked = false;
 let globalPwd = '';
+// Trava automática: o formulário abre SEMPRE travado (senha 123456) e é
+// retravado ao sair da página. Vira false só se o usuário destravar de
+// propósito nesta sessão (assim uma atualização remota não o retrava).
+const SENHA_PADRAO = '123456';
+let manterTravado = true;
 let saveTimer = null;
 const STORAGE_KEY = 'IMR60_' + (location.pathname || 'form');
 
@@ -701,6 +706,8 @@ function applyRemote(payload){
   const keepTab=currentPeriod;                   // cada usuário mantém sua própria aba
   applyingRemote=true;
   applyData(payload);
+  // Mantém travado por padrão, a não ser que o usuário tenha destravado nesta sessão
+  if(manterTravado){ globalLocked=true; globalPwd=SENHA_PADRAO; }
   currentPeriod=Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
   applyPeriodToDOM(periods[currentPeriod]);
   applyGlobalLock(); toggleLockBtns();
@@ -1091,14 +1098,14 @@ function toggleLockBtns(){
 function lockAll(){
   const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
   if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
-  globalPwd=pwd; globalLocked=true;
+  globalPwd=pwd; globalLocked=true; manterTravado=true;
   applyGlobalLock(); toggleLockBtns(); persist();
   alert('✅ Formulário travado com sucesso em TODAS as abas!');
 }
 function unlockAll(){
   const pwd=prompt('Digite a senha para desbloquear:');
   if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
-  globalLocked=false; globalPwd='';
+  globalLocked=false; globalPwd=''; manterTravado=false;
   applyGlobalLock(); toggleLockBtns(); persist();
   alert('🔓 Formulário desbloqueado em TODAS as abas.');
 }
@@ -1306,6 +1313,10 @@ if(INIT_LOCKED && INIT_DATA){
 const saved = loadState();
 if(saved){ applyData(saved); }
 
+// 4) Trava por padrão: toda abertura começa travada (senha 123456), para que
+// qualquer pessoa que abrir encontre o formulário bloqueado.
+globalLocked=true; globalPwd=SENHA_PADRAO; manterTravado=true;
+
 applyPeriodToDOM(periods[currentPeriod]);
 applyGlobalLock(); toggleLockBtns();
 renderTabs();
@@ -1318,6 +1329,17 @@ document.addEventListener('input', function(){ if(applyingRemote||!periods.lengt
 document.addEventListener('change', function(){ if(applyingRemote||!periods.length) return; periods[currentPeriod]=snapshotDOM(); persist(); });
 // Ao sair do campo, aplica uma atualização remota que ficou pendente enquanto digitava
 document.addEventListener('focusout', function(){ const p=remotePending; if(p){ remotePending=null; setTimeout(function(){ applyRemote(p); }, 80); } });
+
+// Retrava ao sair da página (senha 123456), para a próxima abertura já vir travada.
+function autoLockOnExit(){
+  if(globalLocked && globalPwd===SENHA_PADRAO) return; // já travado com a senha padrão
+  globalLocked=true; globalPwd=SENHA_PADRAO; manterTravado=true;
+  try{ applyGlobalLock(); }catch(e){}
+  try{ saveState(); }catch(e){}      // local (síncrono) — garante retravar nesta máquina
+  try{ pushCloud(); }catch(e){}      // nuvem (melhor esforço)
+}
+window.addEventListener('pagehide', autoLockOnExit);
+window.addEventListener('beforeunload', autoLockOnExit);
 
 // Inicia a sincronização na nuvem (só age se firebaseConfig estiver preenchida)
 /* Ajuste de impressao: o PDF sempre cabe em 1 folha A4 (calcula o zoom no beforeprint) */
