@@ -548,18 +548,9 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
     <input type="hidden" id="assOpCarimbo">
   </div>
   <div class="approval-cell">
-    <label>Fiscal Administrativo <em style="font-weight:normal;font-size:10px">(¹)</em></label>
-    <input type="text" id="assFiscalAdm" placeholder="Nome completo">
-    <input type="text" id="assFiscalAdmMat" placeholder="Matrícula" style="margin-top:4px;font-size:10px;">
-  </div>
-  <div class="approval-cell">
     <label>Representante da Contratada</label>
     <input type="text" id="assContratada" placeholder="Nome completo">
     <input type="text" id="assContratadaCargo" placeholder="Cargo" style="margin-top:4px;font-size:10px;">
-  </div>
-  <div class="approval-cell" style="flex:0 0 200px;">
-    <label>Data e hora</label>
-    <input type="text" id="dataAprov" readonly placeholder="—" style="background:#f0f0f0;color:#333;cursor:default;border-bottom:1px solid #bbb;">
   </div>
 </div>
 
@@ -573,6 +564,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <div class="btn-bar">
   <button class="btn btn-reset" id="btnLimpar" onclick="resetForm()">🗑 Limpar Tudo</button>
   <button class="btn btn-print" onclick="abrirAssinatura()">✍️ Assinar e enviar</button>
+  <button class="btn btn-print" id="btnPDFaba" onclick="salvarPDFAba(this)">⬇️ Baixar PDF</button>
 </div>
 <p style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;">
   (¹) Campos do Grupo 3 – Salários/Benefícios e Nota Final preenchidos pelo Fiscal Administrativo. |
@@ -628,7 +620,7 @@ const GROUPS = {
 };
 const ALL_IDS = Object.values(GROUPS).reduce((a,b)=>a.concat(b),[]);
 const PCT_MAP = {A:1.00,B:0.95,C:0.90,D:0.85,E:0.80,F:0.75};
-const ASS_IDS = ['assFiscalOp','assFiscalOpMat','assFiscalAdm','assFiscalAdmMat','assContratada','assContratadaCargo'];
+const ASS_IDS = ['assFiscalOp','assFiscalOpMat','assContratada','assContratadaCargo'];
 
 const MESES     = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const MESES_CAP = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1126,7 +1118,7 @@ function applyGlobalLock(){
   // Botões
   const addb=document.getElementById('btnAddPosto');
   if(addb){ addb.disabled=globalLocked; addb.style.opacity=globalLocked?.4:1; }
-  ['btnLimpar','btnExportLocked'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=globalLocked?'none':'inline-block'; });
+  ['btnLimpar','btnExportLocked','btnPDFaba'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=globalLocked?'none':'inline-block'; });
 }
 
 // ─── RESET ───────────────────────────────────────────────────────
@@ -1299,7 +1291,7 @@ function applyData(data){
 }
 
 // ─── INIT ────────────────────────────────────────────────────────
-document.getElementById('dataAprov').value = '';
+setVal('dataAprov', '');
 
 // 1) Base padrão
 periods=[]; for(let i=0;i<NUM_PERIODS;i++) periods.push(defaultState());
@@ -1386,7 +1378,7 @@ function confirmarAssinatura(){
 function aplicarAssinatura(r){
   var agora=new Date();
   var dh=agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  var carimbo='Serviço atestado por '+(r.nome||'')+'\nSIAPE '+(r.siape||'')+' — '+(r.cargo||'');
+  var carimbo='Serviço atestado por '+(r.nome||'')+'\nSIAPE '+(r.siape||'')+' — '+(r.cargo||'')+'\nEm '+dh;
   var p=periods[currentPeriod];
   p.opCarimbo=carimbo;
   p.assFiscalOp=r.nome||'';
@@ -1396,7 +1388,6 @@ function aplicarAssinatura(r){
   setVal('assFiscalOpMat', p.assFiscalOpMat);
   setVal('assOpCarimbo', carimbo);
   renderCarimboOp(carimbo);
-  setVal('dataAprov', dh);
   persist();
   fecharAssinatura();
   setCloudStatus('✍️ Assinado por '+(r.nome||'')+' em '+dh);
