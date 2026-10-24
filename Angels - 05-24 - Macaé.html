@@ -1349,7 +1349,8 @@ function renderCarimboOp(txt){
 }
 function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
 function abrirAssinatura(){
-  if(globalLocked){ alert('Formulário travado. Desbloqueie para assinar.'); return; }
+  // Assinar funciona mesmo com o formulário travado (a assinatura não altera
+  // os campos travados — só estampa o carimbo do Fiscal Operacional).
   document.getElementById('assSiapeInp').value='';
   document.getElementById('assSenhaInp').value='';
   setAssMsg('','');
