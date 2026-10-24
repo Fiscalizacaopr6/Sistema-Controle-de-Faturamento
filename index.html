@@ -2217,7 +2217,18 @@ function funcDoTermo(d){ var v = +d['FUNCIONÁRIOS VIGENTES']; if (v > 0) return
 // Valor global de um termo; na falta dele, o anual calculado.
 function valGlobal(d){ var v = +d['TOTAL GLOBAL']; if (v > 0) return v; var a = calcAnual(d); return a > 0 ? a : 0; }
 
-function dataDe(d, campo){ var v = d[campo] ? new Date(d[campo]) : null; return (v && !isNaN(v)) ? v : null; }
+// 'AAAA-MM-DD' deve ser interpretado em horário LOCAL. new Date('AAAA-MM-DD')
+// parseia como UTC (meia-noite Z); como as datas de referência da reconstrução
+// (último dia do mês) são criadas em horário local, um término no último dia do
+// mês virava "< referência" por causa do fuso (UTC-3) e sumia da conta — zerando
+// o mês no gráfico de evolução quando o termo seguinte só começa no mês seguinte.
+function dataDe(d, campo){
+  var s = d[campo];
+  if (!s) return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  var v = m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(s);
+  return (v && !isNaN(v)) ? v : null;
+}
 
 // Termos que estavam vigentes numa data de referência.
 function vigentesEm(base, ref) {
