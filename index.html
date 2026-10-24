@@ -133,6 +133,17 @@ html.light[data-tela="imr"]{--accent:#15803d;--accent-rgb:21,128,61}
 html[data-tela="creche"]{--accent:#d9ab3c;--accent-rgb:217,171,60}
 html.light[data-tela="creche"]{--accent:#a16207;--accent-rgb:161,98,7}
 
+/* Assinaturas: caixa do link do formulário público */
+.asg-link{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin-bottom:18px}
+.asg-link-h{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--accent)}
+.asg-link-p{font-size:11.5px;color:var(--muted);margin:4px 0 10px;line-height:1.5}
+.asg-link-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.asg-link-r input{flex:1;min-width:220px;text-transform:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:11.5px;padding:8px 10px;outline:none}
+
+/* Assinaturas · laranja-terracota */
+html[data-tela="assinaturas"]{--accent:#e08a5f;--accent-rgb:224,138,95}
+html.light[data-tela="assinaturas"]{--accent:#c2410c;--accent-rgb:194,65,12}
+
 /* IC · ciano-escuro */
 html[data-tela="ic"]{--accent:#45b3cc;--accent-rgb:69,179,204}
 html.light[data-tela="ic"]{--accent:#0e7490;--accent-rgb:14,116,144}
@@ -912,6 +923,7 @@ html .bar-plot .bar-track{background:transparent}
       <div class="nav-item" id="nav-unidades" title="Unidades" onclick="showView('unidades')"><span class="sb-ic">🏢</span><span class="sb-tx">Unidades</span></div>
       <div class="nav-item" id="nav-imr" title="INSTRUMENTO DE MEDIÇÃO DE RESULTADO" onclick="showView('imr')"><span class="sb-ic">📋</span><span class="sb-tx">IMR</span></div>
       <div class="nav-item" id="nav-creche" title="Reembolso Creche" onclick="showView('creche')"><span class="sb-ic">🏠</span><span class="sb-tx">Reembolso Creche</span></div>
+      <div class="nav-item" id="nav-assinaturas" title="Assinaturas" onclick="showView('assinaturas')" style="display:none"><span class="sb-ic">✍️</span><span class="sb-tx">Assinaturas</span></div>
       <div class="nav-item" id="nav-ic" title="IC" onclick="showView('ic')" style="display:none"><span class="sb-ic">🛸</span><span class="sb-tx">IC</span></div>
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
     </nav>
@@ -1332,6 +1344,24 @@ html .bar-plot .bar-track{background:transparent}
       </div>
       <div id="creche-table"></div>
     </div>
+<!-- ASSINATURAS -->
+    <div class="view" id="view-assinaturas">
+      <div class="asg-link">
+        <div class="asg-link-h">Link do formulário de cadastro</div>
+        <div class="asg-link-p">Envie este link aos fiscais. Cada cadastro feito por lá aparece na lista abaixo.</div>
+        <div class="asg-link-r">
+          <input id="asg-url" readonly data-nocaps style="text-transform:none" onclick="this.select()">
+          <button class="btn-new" onclick="copyImrLink(this, assinaturaFormUrl())" style="white-space:nowrap">Copiar link</button>
+          <button class="btn-doc" onclick="window.open(assinaturaFormUrl(),'_blank')" style="white-space:nowrap">Abrir</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
+          <input id="asg-q" type="text" placeholder="Buscar por nome, SIAPE ou cargo..." oninput="buildAssinaturasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+      </div>
+      <div id="asg-table"></div>
+    </div>
 <!-- IC -->
     <div class="view" id="view-ic">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
@@ -1629,7 +1659,7 @@ var VIEW_EDIT_KEY = {
   contratos:'contratos', documentos:'documentos', fiscais:'fiscais',
   reajustes:'reajustes', contas:'contavinculada', retencao:'contavinculada',
   cvform:'contavinculada', empresas:'empresas', unidades:'unidades',
-  imr:'imr', creche:'imr', usuarios:'usuarios'
+  imr:'imr', creche:'imr', assinaturas:'assinaturas', usuarios:'usuarios'
 };
 
 // O que cada nível pode EDITAR ('*' = tudo, inclusive telas futuras)
@@ -1907,7 +1937,8 @@ function applyPermissionsUI() {
     'nav-dashboard':'dashboard', 'nav-contratos':'contratos', 'nav-documentos':'documentos',
     'nav-fiscais':'fiscais', 'nav-reajustes':'reajustes', 'nav-contas':'contas',
     'nav-retencao':'retencao', 'nav-empresas':'empresas', 'nav-unidades':'unidades',
-    'nav-imr':'imr', 'nav-creche':'creche', 'nav-ic':'ic', 'nav-usuarios':'usuarios'
+    'nav-imr':'imr', 'nav-creche':'creche', 'nav-assinaturas':'assinaturas',
+    'nav-ic':'ic', 'nav-usuarios':'usuarios'
   };
   Object.keys(navMap).forEach(function(id) {
     var el = document.getElementById(id);
@@ -2043,6 +2074,11 @@ function setupRealtimeListeners() {
     CRECHE.length = 0; arr.forEach(function(d){ if(d) CRECHE.push(d); });
     if (document.getElementById('view-creche') && document.getElementById('view-creche').classList.contains('active')) buildCrecheTable();
   });
+  fbdb.ref('assinaturas').on('value', function(snap) {
+    if (_suppressRefresh) return;
+    setAssinaturas(snap.val());
+    if (document.getElementById('view-assinaturas') && document.getElementById('view-assinaturas').classList.contains('active')) buildAssinaturasTable();
+  });
   fbdb.ref('documentos_edits').on('value', function(snap) {
     if (_suppressRefresh) return;
     DOC_OVERRIDES = snap.val() || {};
@@ -2092,6 +2128,7 @@ var TELAS = {
   'unidades':  {ico:'🏢', k:'CADASTRO',        t:'Unidades',                    s:'Unidades da UFRJ atendidas pelos contratos'},
   'imr':       {ico:'📋', k:'MEDIÇÃO',         t:'IMR',                         s:'Instrumento de Medição de Resultado'},
   'creche':    {ico:'🏠', k:'BENEFÍCIO',       t:'Reembolso Creche',            s:'Reembolso de auxílio-creche por contrato'},
+  'assinaturas':{ico:'✍️', k:'FISCALIZAÇÃO', t:'Assinaturas',       s:'Assinaturas cadastradas pelos fiscais'},
   'ic':        {ico:'🛸', k:'COBRANÇA',        t:'IC',                          s:'Instrumento de Cobrança'},
   'usuarios':  {ico:'👥', k:'ADMINISTRAÇÃO',   t:'Usuários',                    s:'Contas de acesso e níveis de permissão'}
 };
@@ -2131,6 +2168,7 @@ function showView(v) {
   if (v === 'unidades') buildUnidadesTable();
   if (v === 'imr') buildImrTable();
   if (v === 'creche') buildCrecheTable();
+  if (v === 'assinaturas') buildAssinaturasTable();
   if (v === 'ic') buildIC();
   if (v === 'empresas') buildEmpresasTable();
   if (v === 'contas') buildContasTable();
@@ -6203,6 +6241,127 @@ function confirmDeleteCreche(id) {
   buildCrecheTable();
 }
 
+// ══════════════════════════════
+//  ASSINATURAS — cadastros feitos pelos fiscais
+//  O formulário público (cadastro-assinatura.html) faz push em /assinaturas,
+//  então aqui o nó é lido como mapa e cada registro guarda a própria chave
+//  (_k): é por ela que se exclui, sem reescrever o nó inteiro — dois fiscais
+//  cadastrando ao mesmo tempo não se sobrepõem. A senha fica só no Firebase,
+//  cifrada (SHA-256); esta tela nem a lê.
+// ══════════════════════════════
+var ASSINATURAS = [];
+var ASSINATURA_FORM = 'cadastro-assinatura.html';
+var ASSINATURA_BASE = 'https://fiscalizacaopr6.github.io/Sistema-Controle-de-Faturamento/';
+
+// Link que vai para os fiscais: relativo à página quando ela está publicada, e
+// o endereço do GitHub Pages quando o sistema está aberto local (file:// ou
+// localhost), onde o caminho da máquina não serviria para enviar a ninguém.
+function assinaturaFormUrl() {
+  var h = location.hostname;
+  var publicada = /^https?:$/.test(location.protocol) && h && h !== 'localhost' && h !== '127.0.0.1';
+  try {
+    return publicada ? new URL(ASSINATURA_FORM, location.href).href : ASSINATURA_BASE + ASSINATURA_FORM;
+  } catch (e) {
+    return ASSINATURA_BASE + ASSINATURA_FORM;
+  }
+}
+
+function setAssinaturas(val) {
+  ASSINATURAS.length = 0;
+  if (!val) return;
+  Object.keys(val).forEach(function(k) {
+    var r = val[k];
+    if (!r || typeof r !== 'object') return;
+    ASSINATURAS.push({ _k:k, nome:r.nome||'', siape:r.siape||'', cargo:r.cargo||'', criadoEm:r.criadoEm||'' });
+  });
+  // mais recentes primeiro
+  ASSINATURAS.sort(function(a, b) { return String(b.criadoEm).localeCompare(String(a.criadoEm)); });
+}
+
+var asgFiltered = [], asgPage = 1, asgPer = 50;
+
+function buildAssinaturasTable() {
+  var urlEl = document.getElementById('asg-url');
+  if (urlEl) urlEl.value = assinaturaFormUrl();
+  var q = (document.getElementById('asg-q') ? document.getElementById('asg-q').value : '').toLowerCase().trim();
+  asgFiltered = ASSINATURAS.filter(function(r) {
+    if (!q) return true;
+    return (r.nome||'').toLowerCase().indexOf(q) !== -1
+        || (r.siape||'').toLowerCase().indexOf(q) !== -1
+        || (r.cargo||'').toLowerCase().indexOf(q) !== -1;
+  });
+  asgPage = 1;
+  renderAssinaturasTable();
+}
+
+function asgDataBr(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  function p(n){ return ('0'+n).slice(-2); }
+  return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
+function renderAssinaturasTable() {
+  var canEdit = canEditView('assinaturas');
+  var wrap = document.getElementById('asg-table');
+  if (!wrap) return;
+  if (!ASSINATURAS.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhuma assinatura cadastrada. Envie o link acima aos fiscais.</div>'; return; }
+  if (!asgFiltered.length) { wrap.innerHTML = '<div class="fiscais-empty">Nenhum cadastro encontrado.</div>'; return; }
+  var totalPages = Math.ceil(asgFiltered.length / asgPer);
+  var start = (asgPage - 1) * asgPer;
+  var slice = asgFiltered.slice(start, start + asgPer);
+  var rows = slice.map(function(r) {
+    var acoes = canEdit
+      ? '<button class="btn-usr-del" onclick="confirmDeleteAssinatura(\'' + r._k + '\')">Excluir</button>'
+      : '';
+    return '<tr>'
+      +'<td style="font-size:13px;font-weight:500">'+esc(r.nome)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+esc(r.siape)+'</td>'
+      +'<td style="font-size:12px">'+esc(r.cargo)+'</td>'
+      +'<td style="font-size:11px;color:var(--muted);white-space:nowrap">'+asgDataBr(r.criadoEm)+'</td>'
+      +(canEdit ? '<td style="white-space:nowrap">'+acoes+'</td>' : '')
+      +'</tr>';
+  }).join('');
+  wrap.innerHTML = '<div class="table-wrap">'
+    +'<div class="table-info"><span>'+asgFiltered.length+' cadastro(s)</span><span>Página '+asgPage+' de '+totalPages+'</span></div>'
+    +'<div style="overflow-x:auto"><table>'
+    +'<thead><tr><th>Nome</th><th>SIAPE</th><th>Cargo</th><th>Cadastrado em</th>'+(canEdit?'<th>Ações</th>':'')+'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table></div>'
+    +asgPaginationHtml(totalPages)+'</div>';
+}
+
+function asgPaginationHtml(total) {
+  if (total <= 1) return '';
+  var h = '<div class="pagination">';
+  h += '<button class="pg" onclick="asgGoPage('+(asgPage-1)+')" '+(asgPage===1?'disabled':'')+'>&#8249;</button>';
+  var s = Math.max(1, asgPage-2), e = Math.min(total, asgPage+2);
+  if (s > 1) h += '<button class="pg" onclick="asgGoPage(1)">1</button>'+(s>2?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'');
+  for (var i=s; i<=e; i++) h += '<button class="pg'+(i===asgPage?' act':'')+'" onclick="asgGoPage('+i+')">'+i+'</button>';
+  if (e < total) h += (e<total-1?'<span style="color:var(--muted);padding:0 4px">&hellip;</span>':'')+'<button class="pg" onclick="asgGoPage('+total+')">'+total+'</button>';
+  h += '<button class="pg" onclick="asgGoPage('+(asgPage+1)+')" '+(asgPage===total?'disabled':'')+'>&#8250;</button></div>';
+  return h;
+}
+
+function asgGoPage(p) {
+  var total = Math.ceil(asgFiltered.length / asgPer);
+  if (p < 1 || p > total) return;
+  asgPage = p; renderAssinaturasTable();
+}
+
+function confirmDeleteAssinatura(k) {
+  var r = ASSINATURAS.find(function(x){ return x._k === k; });
+  if (!r) return;
+  if (!confirm('Excluir a assinatura de ' + (r.nome || 'cadastro sem nome') + (r.siape ? ' (SIAPE ' + r.siape + ')' : '') + '?')) return;
+  ASSINATURAS = ASSINATURAS.filter(function(x){ return x._k !== k; });
+  buildAssinaturasTable();
+  fbdb.ref('assinaturas/' + k).remove().catch(function(e) {
+    console.error('excluir assinatura:', e);
+    alert('Não foi possível excluir. Tente de novo.');
+  });
+}
+
 var EMPRESAS = [];
 
 function saveEmpresasToStorage() {
@@ -7142,7 +7301,8 @@ function loadAllFromFirebase(callback) {
     safeRead(fbdb.ref('imr')),
     safeRead(fbdb.ref('documentos_edits')),
     safeRead(fbdb.ref('retencao')),
-    safeRead(fbdb.ref('creche'))
+    safeRead(fbdb.ref('creche')),
+    safeRead(fbdb.ref('assinaturas'))
   ]).then(function(snaps) {
     // dados
     var dadosVal = snaps[0].val();
@@ -7225,6 +7385,8 @@ function loadAllFromFirebase(callback) {
       var arrCr = Array.isArray(crecheVal) ? crecheVal : Object.values(crecheVal);
       arrCr.forEach(function(x){ if(x) CRECHE.push(x); });
     }
+    // assinaturas dos fiscais
+    setAssinaturas(snaps[10].val());
     // retenção de conta vinculada
     var retVal = snaps[8].val();
     RETENCAO.length = 0;

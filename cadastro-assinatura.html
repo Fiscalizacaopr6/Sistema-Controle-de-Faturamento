@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro de Assinatura — PR6 / UFRJ</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',system-ui,sans-serif;background:#0b1020;color:#e6e9f2;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px 16px}
+.card{background:#141a2e;border:1px solid #273150;border-radius:14px;width:520px;max-width:100%;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.cab{background:linear-gradient(135deg,rgba(124,196,160,.14),rgba(124,196,160,.04));border-bottom:1px solid #273150;padding:20px 24px}
+.cab img{height:38px;display:block;margin-bottom:12px}
+.cab .k{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#7cc4a0;font-weight:600}
+.cab h1{font-size:18px;font-weight:600;margin-top:4px}
+.cab p{font-size:12px;color:#95a0bd;margin-top:6px;line-height:1.55}
+.body{padding:22px 24px 26px}
+.f{margin-bottom:15px}
+.f label{display:block;font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:#95a0bd;font-weight:600;margin-bottom:6px}
+.f input{width:100%;background:#0f1527;border:1px solid #273150;border-radius:8px;color:#e6e9f2;font-family:'Sora',sans-serif;font-size:13px;padding:10px 12px;outline:none;transition:border-color .15s}
+.f input:focus{border-color:#7cc4a0}
+.f input#siape{font-family:'DM Mono',monospace;letter-spacing:1px}
+.f .hint{font-size:10.5px;color:#6b768f;margin-top:5px;line-height:1.5}
+button.go{width:100%;margin-top:6px;background:#7cc4a0;color:#0b1020;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;transition:filter .15s}
+button.go:hover{filter:brightness(1.08)}
+button.go:disabled{opacity:.5;cursor:default}
+.msg{display:none;margin-top:16px;border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.55}
+.msg.ok{display:block;background:rgba(124,196,160,.12);border:1px solid rgba(124,196,160,.4);color:#a9dcc3}
+.msg.err{display:block;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.4);color:#fca5a5}
+.pe{font-size:10.5px;color:#6b768f;text-align:center;margin-top:16px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="cab">
+    <img src="ufrj-logo.png" alt="UFRJ" onerror="this.style.display='none'">
+    <div class="k">PR6 · Fiscalização de Contratos</div>
+    <h1>Cadastro de Assinatura</h1>
+    <p>Preencha os dados abaixo para registrar sua assinatura eletrônica no sistema de fiscalização de contratos da PR6.</p>
+  </div>
+  <div class="body">
+    <form id="form" onsubmit="cadastrar(event)">
+      <div class="f"><label for="nome">Nome completo *</label><input id="nome" required maxlength="120" autocomplete="name"></div>
+      <div class="f"><label for="siape">SIAPE *</label><input id="siape" required maxlength="20" inputmode="numeric" autocomplete="off"></div>
+      <div class="f"><label for="cargo">Cargo *</label><input id="cargo" required maxlength="120" autocomplete="organization-title"></div>
+      <div class="f">
+        <label for="senha">Senha *</label>
+        <input id="senha" type="password" required minlength="4" maxlength="60" autocomplete="new-password">
+        <div class="hint">Mínimo de 4 caracteres. A senha é gravada de forma cifrada e não fica visível para ninguém — guarde-a, é com ela que você assina.</div>
+      </div>
+      <button class="go" id="btn" type="submit">Cadastrar</button>
+    </form>
+    <div class="msg" id="msg"></div>
+    <div class="pe">Universidade Federal do Rio de Janeiro<br>Pró-Reitoria de Gestão e Governança — PR6</div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+'use strict';
+
+// Formulário público de cadastro de assinatura dos fiscais.
+// Grava um registro novo em /assinaturas (push, nunca set no nó inteiro) para
+// que dois fiscais cadastrando ao mesmo tempo não se sobreponham — e para que
+// a tela de Assinaturas possa excluir um registro pela chave.
+var firebaseConfig = {
+  apiKey: "AIzaSyCTgZv2JVWs5yNw4T_WjxElGwrGApMk_sQ",
+  authDomain: "fiscalizacao-d9a39.firebaseapp.com",
+  databaseURL: "https://fiscalizacao-d9a39-default-rtdb.firebaseio.com",
+  projectId: "fiscalizacao-d9a39",
+  messagingSenderId: "287091891377",
+  appId: "1:287091891377:web:dc9e307af79504bebd5690"
+};
+firebase.initializeApp(firebaseConfig);
+var fbdb = firebase.database();
+
+// A senha nunca é gravada em texto puro: vai o hash SHA-256 (com o SIAPE como
+// sal), que é o que uma verificação futura precisa comparar.
+function hashSenha(senha, siape) {
+  var txt = 'pr6:' + siape + ':' + senha;
+  if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function(b) {
+        return ('0' + b.toString(16)).slice(-2);
+      }).join('');
+    });
+  }
+  // Navegador sem WebCrypto (contexto não seguro): hash simples, só para não
+  // guardar a senha legível.
+  var h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (var i = 0; i < txt.length; i++) {
+    h1 = ((h1 ^ txt.charCodeAt(i)) * 16777619) >>> 0;
+    h2 = ((h2 + txt.charCodeAt(i) * (i + 7)) * 2246822519) >>> 0;
+  }
+  return Promise.resolve('fnv:' + ('0000000' + h1.toString(16)).slice(-8) + ('0000000' + h2.toString(16)).slice(-8));
+}
+
+function aviso(classe, html) {
+  var el = document.getElementById('msg');
+  el.className = 'msg ' + classe;
+  el.innerHTML = html;
+}
+
+function cadastrar(ev) {
+  ev.preventDefault();
+  var nome  = document.getElementById('nome').value.trim();
+  var siape = document.getElementById('siape').value.trim();
+  var cargo = document.getElementById('cargo').value.trim();
+  var senha = document.getElementById('senha').value;
+  if (!nome || !siape || !cargo || !senha) { aviso('err', 'Preencha todos os campos.'); return; }
+
+  var btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = 'Cadastrando…';
+
+  hashSenha(senha, siape).then(function(hash) {
+    return fbdb.ref('assinaturas').push({
+      nome: nome,
+      siape: siape,
+      cargo: cargo,
+      senhaHash: hash,
+      criadoEm: new Date().toISOString()
+    });
+  }).then(function() {
+    document.getElementById('form').style.display = 'none';
+    aviso('ok', '<b>Assinatura cadastrada.</b><br>' + nome.replace(/</g,'&lt;') + ' — SIAPE ' + siape.replace(/</g,'&lt;')
+      + '. O registro já aparece na tela de Assinaturas do sistema. Você pode fechar esta página.');
+  }).catch(function(e) {
+    console.error('cadastro de assinatura:', e);
+    btn.disabled = false;
+    btn.textContent = 'Cadastrar';
+    aviso('err', 'Não foi possível gravar o cadastro. Verifique a conexão e tente de novo.');
+  });
+}
+</script>
+</body>
+</html>
