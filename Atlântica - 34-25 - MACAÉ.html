@@ -1474,12 +1474,12 @@ function renderIMRForm(){
         style="width:130px;text-align:center;"
         onchange="setIMRField('${period}',${u},'creche.aprovServ',+this.value||0)"></td>
     </tr>
-    <tr><td>Valor Reembolso Encarregado (R$)</td>
+    <tr><td>Reembolso por dependente — Encarregado (R$)</td>
       <td><input class="mi r" type="number" step="0.01" value="${valEnc||''}" placeholder="0" ${lk}
         style="width:130px;text-align:right;"
         onchange="setIMRField('${period}',${u},'creche.valEnc',+this.value||0)"></td>
     </tr>
-    <tr><td>Valor Reembolso Servente (R$)</td>
+    <tr><td>Reembolso por dependente — Servente (R$)</td>
       <td><input class="mi r" type="number" step="0.01" value="${valServ||''}" placeholder="0" ${lk}
         style="width:130px;text-align:right;"
         onchange="setIMRField('${period}',${u},'creche.valServ',+this.value||0)"></td>

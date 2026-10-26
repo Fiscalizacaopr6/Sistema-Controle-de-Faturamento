@@ -220,11 +220,11 @@ function renderCreche(){
       + '<tr><td>Reembolsos Aprovados</td>'
       +   '<td><input class="c" type="number" value="'+aprov+'" placeholder="0" '
       +     'onchange="setField(\'' + period + '\',\'aprov' + sfx + '\',+this.value||0)"></td></tr>'
-      + '<tr><td>Valor Reembolso (R$)</td>'
+      + '<tr><td>Reembolso por dependente (R$)</td>'
       +   '<td><input type="text" inputmode="decimal" value="'+(val===''?'':BRL(val))+'" placeholder="'+BRL(hVal)+'"'+lk+' '
       +     'onchange="setField(\'' + period + '\',\'val' + sfx + '\',parseBRL(this.value))"></td></tr>';
   }
-  h += '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Valor Reembolso)</small></td>'
+  h += '<tr class="calc-row"><td>Valor total dos Reembolsos (R$) <small>(Aprovados × Reembolso por dependente)</small></td>'
     +   '<td>'+BRL(total)+'</td></tr>'
     + '<tr class="saldo-row'+(saldo<0?' neg':'')+'"><td>Saldo de Reembolso (R$) <small>(acumulado: saldo anterior + Retido – Total)</small></td>'
     +   '<td>'+BRL(saldo)+'</td></tr>'

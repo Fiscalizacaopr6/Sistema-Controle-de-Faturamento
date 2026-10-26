@@ -1209,10 +1209,14 @@ function renderIMR(){
   const contratadoMensal=totalPostosMensal(period);
   const insumos=totalMatMes(period);
   const aprov=+(d.creche?.aprovados||0);
-  const bdi=fl2(d.creche?.valorBDI||0);
+  // Carry: Retido e 'Reembolso por dependente' repetem o ultimo valor informado ate serem alterados.
+  const _ci=MESES.indexOf(period);
+  const _carryAt=(key,upto)=>{ for(let i=upto;i>=0;i--){ const c=(db.imr[MESES[i]]||{}).creche; const v=c?fl2(c[key]):0; if(v) return v; } return 0; };
+  const bdi=(_ci>=0)?_carryAt('valorBDI',_ci):fl2(d.creche?.valorBDI||0);
+  const retido=(_ci>=0)?_carryAt('retido',_ci):fl2(d.creche?.retido||0);
   const reembolsoAprov=fl2(aprov*bdi);
-  const retido=fl2(d.creche?.retido||0);
-  const saldoCreche=fl2(retido-reembolsoAprov);
+  let saldoCreche=fl2(retido-reembolsoAprov);
+  if(_ci>=0){ saldoCreche=0; for(let i=0;i<=_ci;i++){ const ci=(db.imr[MESES[i]]||{}).creche||{}; saldoCreche=fl2(saldoCreche + _carryAt('retido',i) - fl2((+(ci.aprovados||0))*_carryAt('valorBDI',i))); } }
 
   // Valor postos efetivo = Σ(Qtd × ValUnit × Dias/30 - SemCob × ValHora) × Grade_Pct (grade applied after)
   let valPostosBase=0;
@@ -1407,13 +1411,13 @@ function renderIMR(){
         <td class="val"><input class="mi r" type="number" min="0" value="${aprov||''}" placeholder="0"
           style="width:80px;text-align:center;border:1px solid #ccc;border-radius:3px;padding:3px 6px;"
           onchange="setIMRCreche('${period}','aprovados',+this.value||0)"></td></tr>
-      <tr><td class="lbl">Valor Reembolso + BDI (R$) <i style="font-size:9px;">por colaborador</i></td>
+      <tr><td class="lbl">Reembolso por dependente (R$)</td>
         <td class="val"><input class="mi r" type="number" step="0.01" value="${bdi||''}" placeholder="0"
           style="width:120px;text-align:right;border:1px solid #ccc;border-radius:3px;padding:3px 6px;" ${lk}
           onchange="setIMRCreche('${period}','valorBDI',+this.value||0)"></td></tr>
-      <tr><td class="lbl">Valor Total dos Reembolsos (R$)</td>
+      <tr><td class="lbl">Valor Total dos Reembolsos (R$) <i style="font-size:9px;">(Aprovados × Reembolso por dependente)</i></td>
         <td class="val">${BRL(reembolsoAprov)}</td></tr>
-      <tr><td class="lbl" style="background:#145214;">Saldo de Reembolso (R$)</td>
+      <tr><td class="lbl" style="background:#145214;">Saldo de Reembolso (R$) <i style="font-size:9px;">(acumulado: saldo anterior + Retido – Total)</i></td>
         <td class="val" style="font-size:13px;">${BRL(saldoCreche)}</td></tr>
     </table>
 
