@@ -529,7 +529,7 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
         </tbody>
       </table>
       <div class="creche-warn" id="crecheWarn">
-        ⚠ ATENÇÃO: Saldo negativo — será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!
+        ⚠ ATENÇÃO: Saldo negativo — se houver mais de uma unidade neste contrato favor somar o saldo de todas unidades, se permanecer negativo será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!
       </div>
     </div>
   </div>
@@ -1121,7 +1121,8 @@ function applyGlobalLock(){
     const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=globalLocked; rb.style.opacity=globalLocked?.4:1; }
   });
   // Creche
-  ['crecheRetido','crechemBDI','diasTrab'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
+  ['crecheRetido','crechemBDI'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
+  const _dt=document.getElementById('diasTrab'); if(_dt) _dt.disabled=false; // Nº de dias trabalhados sempre editável, mesmo travado
   // Botões
   const addb=document.getElementById('btnAddPosto');
   if(addb){ addb.disabled=globalLocked; addb.style.opacity=globalLocked?.4:1; }
