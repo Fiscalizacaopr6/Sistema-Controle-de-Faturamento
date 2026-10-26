@@ -503,10 +503,14 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
       <table class="creche-table">
         <tbody>
           <tr>
-            <td class="lbl">Valor Reembolso Creche Retido (R$)</td>
+            <td class="lbl">Valor estimado unitário (R$)</td>
             <td class="val">
-              <input type="number" class="ci" id="crecheRetido" value="0" step="0.01" min="0" oninput="recalcAll();propagateCrecheRetido()" style="width:100%;text-align:right;">
+              <input type="number" class="ci" id="crecheEstUnit" value="0" step="0.01" min="0" oninput="recalcAll();propagateCrecheEstUnit()" style="width:100%;text-align:right;">
             </td>
+          </tr>
+          <tr>
+            <td class="lbl">Valor Reembolso Creche Retido (R$)<br><small style="font-weight:normal">(Valor estimado unitário × qtde contratada)</small></td>
+            <td class="res" id="crecheRetidoCalc">R$ 0,00</td>
           </tr>
           <tr>
             <td class="lbl">Reembolsos Aprovados (quantidade)</td>
@@ -732,7 +736,7 @@ function defaultState(){
   const s={
     periodo:'', headerUpdate:'Atualizado conforme Valor Unitário Contratado inicial',
     notas, postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}],
-    diasTrab:'30', crecheRetido:'0', crecheAprovados:'0', crechemBDI:'0',
+    diasTrab:'30', crecheEstUnit:'0', crecheAprovados:'0', crechemBDI:'0',
     justif:'', dataAprov:'', opCarimbo:''
   };
   ASS_IDS.forEach(id=>s[id]='');
@@ -824,7 +828,7 @@ function snapshotDOM(){
   }
   const s={
     periodo:val('periodo'), headerUpdate:val('headerUpdate'), notas, postos,
-    diasTrab:val('diasTrab'), crecheRetido:val('crecheRetido'),
+    diasTrab:val('diasTrab'), crecheEstUnit:val('crecheEstUnit'),
     crecheAprovados:val('crecheAprovados'), crechemBDI:val('crechemBDI'),
     justif:val('justifGeral'), dataAprov:val('dataAprov'), opCarimbo:val('assOpCarimbo')
   };
@@ -838,7 +842,7 @@ function applyPeriodToDOM(s){
   renderPostos((s.postos&&s.postos.length)?s.postos:[{item:'1',posto:'',qtde:'',vlrUnit:'',semCob:''}]);
   setVal('diasTrab', (s.diasTrab!=null&&s.diasTrab!=='')?s.diasTrab:String(diasNoMes(s.periodo)));
   syncDiasTrabMax();
-  setVal('crecheRetido', s.crecheRetido||'0');
+  setVal('crecheEstUnit', s.crecheEstUnit||'0');
   setVal('crecheAprovados', s.crecheAprovados||'0');
   setVal('crechemBDI', s.crechemBDI||'0');
   setVal('justifGeral', s.justif||'');
@@ -877,10 +881,10 @@ function prevPeriod(){ switchPeriod(currentPeriod-1); }
 function nextPeriod(){ switchPeriod(currentPeriod+1); }
 
 // ─── PROPAGAÇÃO PARA AS ABAS SEGUINTES ───────────────────────────
-function propagateCrecheRetido(){
-  // Retido cascateia para frente: aparece em todos os meses; ao mudar, vale daquele mes em diante.
-  const v=val('crecheRetido');
-  for(let k=currentPeriod;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].crecheRetido=v; }
+function propagateCrecheEstUnit(){
+  // Valor estimado unitário cascateia para frente: ao mudar, vale daquele mês em diante.
+  const v=val('crecheEstUnit');
+  for(let k=currentPeriod;k<NUM_PERIODS;k++){ if(periods[k]) periods[k].crecheEstUnit=v; }
 }
 function propagateCrecheUnit(){
   // Reembolso por dependente cascateia para frente (mesma regra do Retido).
@@ -948,12 +952,15 @@ function computeDerived(s){
   });
   const glosado=floor2(somaMensal-somaMensal*pct);
 
-  const retido=parseFloat(s.crecheRetido)||0, aprov=parseFloat(s.crecheAprovados)||0, bdi=parseFloat(s.crechemBDI)||0;
+  const estUnit=parseFloat(s.crecheEstUnit)||0;
+  const qtdContratada=(s.postos||[]).reduce((n,p)=>n+(parseFloat(p.qtde)||0),0);
+  const retido=floor2(estUnit*qtdContratada);
+  const aprov=parseFloat(s.crecheAprovados)||0, bdi=parseFloat(s.crechemBDI)||0;
   const crecheTotal=floor2(aprov*bdi);
   const crecheSaldo=floor2(retido-crecheTotal);
   const aprovado=floor2(somaDesc+crecheTotal);
 
-  return {notaFinal,conceito,pct,subs,groupTotals,somaDesc,somaMensal,glosado,postoCalc,crecheTotal,crecheSaldo,aprovado};
+  return {notaFinal,conceito,pct,subs,groupTotals,somaDesc,somaMensal,glosado,postoCalc,retido,estUnit,qtdContratada,crecheTotal,crecheSaldo,aprovado};
 }
 
 // ─── PINTURA DO DOM ──────────────────────────────────────────────
@@ -1004,7 +1011,9 @@ function crecheSaldoAcumulado(upto){
   let acc=0;
   for(let k=0;k<=upto;k++){
     const p=periods[k]; if(!p) continue;
-    const retido=parseFloat(p.crecheRetido)||0;
+    const estUnit=parseFloat(p.crecheEstUnit)||0;
+    const qtd=(p.postos||[]).reduce((n,x)=>n+(parseFloat(x.qtde)||0),0);
+    const retido=floor2(estUnit*qtd);
     const aprov=parseFloat(p.crecheAprovados)||0;
     const bdi=parseFloat(p.crechemBDI)||0;
     acc=floor2(acc + (retido - floor2(aprov*bdi)));
@@ -1012,6 +1021,7 @@ function crecheSaldoAcumulado(upto){
   return acc;
 }
 function paintCreche(d){
+  setTxt('crecheRetidoCalc', BRcur(d.retido));
   setTxt('crecheTotalReemb', BRcur(d.crecheTotal));
   const saldo=crecheSaldoAcumulado(currentPeriod); // acumula dos meses anteriores
   const saldoEl=document.getElementById('crecheSaldo');
@@ -1121,7 +1131,7 @@ function applyGlobalLock(){
     const rb=tr.querySelector('.rm-btn'); if(rb){ rb.disabled=globalLocked; rb.style.opacity=globalLocked?.4:1; }
   });
   // Creche
-  ['crecheRetido','crechemBDI'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
+  ['crecheEstUnit','crechemBDI'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=globalLocked; });
   const _dt=document.getElementById('diasTrab'); if(_dt) _dt.disabled=false; // Nº de dias trabalhados sempre editável, mesmo travado
   // Botões
   const addb=document.getElementById('btnAddPosto');
@@ -1232,7 +1242,8 @@ function exportCSV(){
     l.push('Valor Aprovado;'+BRcur(Math.max(0,d.aprovado)));
     l.push('');
     l.push('REEMBOLSO CRECHE');
-    l.push('Valor Retido;'+s.crecheRetido);
+    l.push('Valor estimado unitário;'+(s.crecheEstUnit||0));
+    l.push('Valor Retido;'+d.retido);
     l.push('Reembolsos Aprovados;'+s.crecheAprovados);
     l.push('Valor Reembolso+BDI;'+s.crechemBDI);
     l.push('Total Reembolsos;'+BRcur(d.crecheTotal));
@@ -1279,7 +1290,7 @@ function normalizePeriod(p){
   d.postos=(Array.isArray(p.postos)&&p.postos.length)
     ? p.postos.map(x=>({item:(x&&x.item!=null?x.item:''), posto:(x&&x.posto)||'', qtde:(x&&x.qtde)||'', vlrUnit:(x&&x.vlrUnit)||'', semCob:(x&&x.semCob)||''}))
     : d.postos;
-  ['diasTrab','crecheRetido','crecheAprovados','crechemBDI','justif','dataAprov','opCarimbo'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
+  ['diasTrab','crecheEstUnit','crecheAprovados','crechemBDI','justif','dataAprov','opCarimbo'].forEach(k=>{ if(p[k]!=null) d[k]=p[k]; });
   if(p.diasTrab==null) d.diasTrab=String(diasNoMes(d.periodo));
   ASS_IDS.forEach(id=>{ if(p[id]!=null) d[id]=p[id]; });
   return d;
