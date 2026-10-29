@@ -444,7 +444,7 @@ function monthHTML(mi){
   h+='<div class="instrucao">Marque na coluna <b>"Avaliação correspondente"</b> sua análise sobre o serviço prestado '+
      '(<b>Bom</b> = 100 pontos · <b>Regular</b> = 80 · <b>Ruim</b> = 30 · não avaliado = 0). '+
      'Na mão de obra, informe apenas a <b>Qtd. de faltas</b> em horas contratadas; os demais valores são calculados.'+
-     (state.locked?' <b>Com o formulário travado</b> seguem editáveis: fiscal, avaliação, qtd. de faltas, dias trabalhados e valor dos serviços.':'')+'</div>';
+     (state.locked?' <b>Com o formulário travado</b> seguem editáveis: fiscal, avaliação, qtd. de faltas, dias trabalhados, valor dos serviços, ocorrências e datas de assinatura.':'')+'</div>';
 
   /* ── AVALIAÇÃO ── */
   h+='<div class="sec-title"><span>AVALIAÇÃO DOS SERVIÇOS — '+esc(per)+'</span></div>';
@@ -552,16 +552,16 @@ function monthHTML(mi){
   h+='<div class="sec-title"><span>OCORRÊNCIAS OBSERVADAS EM RELAÇÃO À CONTRATADA – JUSTIFICATIVAS DA AVALIAÇÃO</span></div>';
   h+='<div class="instrucao">Este relatório resumo é obrigatório principalmente nos casos em que a fiscalização apontar falhas na execução do contrato. '+
      'Deve ser usado para relatar todas as falhas ocorridas durante a execução do objeto.</div>';
-  h+='<textarea class="oco" '+lk+' placeholder="Descreva as ocorrências do período…" oninput="setOco('+mi+',this.value)">'+esc(mo.ocorrencias)+'</textarea>';
+  h+='<textarea class="oco" placeholder="Descreva as ocorrências do período…" oninput="setOco('+mi+',this.value)">'+esc(mo.ocorrencias)+'</textarea>';
 
   /* ── ASSINATURAS ── */
   h+='<div class="sign-grid">';
   h+= '<div class="sign-box"><h4>CIENTE DO DIRETOR DA UNIDADE</h4>'+
         '<div class="sign-area"><span>assinatura e carimbo</span></div>'+
-        '<div class="sign-foot"><label>DATA:</label><input '+lk+' value="'+esc(mo.dataDir)+'" placeholder="__/__/____" oninput="setSign('+mi+',\'dataDir\',this.value)"></div></div>';
+        '<div class="sign-foot"><label>DATA:</label><input value="'+esc(mo.dataDir)+'" placeholder="__/__/____" oninput="setSign('+mi+',\'dataDir\',this.value)"></div></div>';
   h+= '<div class="sign-box"><h4>CIENTE DO FISCAL DO CONTRATO</h4>'+
         '<div class="sign-area"><span>assinatura e carimbo</span></div>'+
-        '<div class="sign-foot"><label>DATA:</label><input '+lk+' value="'+esc(mo.dataFisc)+'" placeholder="__/__/____" oninput="setSign('+mi+',\'dataFisc\',this.value)"></div></div>';
+        '<div class="sign-foot"><label>DATA:</label><input value="'+esc(mo.dataFisc)+'" placeholder="__/__/____" oninput="setSign('+mi+',\'dataFisc\',this.value)"></div></div>';
   h+='</div>';
   return h;
 }
@@ -687,9 +687,9 @@ function delCargo(ci){
 }
 
 /* ═══════════════════ TRAVA ═══════════════════
-   Travado congela os dados do contrato (cabeçalho, cargos, valores da planilha,
-   ocorrências e datas). Seguem editáveis: fiscal, avaliação, qtd. de faltas,
-   dias trabalhados e valor dos serviços — os campos da medição do mês.          */
+   Travado congela os dados do contrato (cabeçalho, cargos e valores da planilha).
+   Seguem editáveis os campos de preenchimento do mês: fiscal, avaliação, qtd. de
+   faltas, dias trabalhados, valor dos serviços, ocorrências e datas de assinatura. */
 function applyLockUI(){
   const b=document.getElementById('lockBtn');
   if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
