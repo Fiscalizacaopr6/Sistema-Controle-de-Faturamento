@@ -35,6 +35,20 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .header-title .sub{font-size:10px;color:#555;margin-top:2px;font-style:italic;}
 .header-badge{width:80px;border-left:1.5px solid #1f3864;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1f3864;color:#fff;font-weight:bold;font-size:16px;letter-spacing:2px;}
 .header-badge small{font-size:9px;letter-spacing:0;font-weight:normal;margin-top:2px;}
+.header-badge .badge-inp{width:44px;margin-top:3px;border:none;border-bottom:1.5px solid #fff;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:bold;font-family:Arial;text-align:center;letter-spacing:0;outline:none;padding:1px 2px;border-radius:2px;}
+.header-badge .badge-inp:disabled{background:rgba(255,255,255,.07);color:#cfd8e6;border-bottom-color:#8ea3c4;cursor:not-allowed;}
+
+/* ── INSTRUMENTO DE COBRANÇA (tabela verde) ── */
+.ic-wrap{border:2px solid #556b2f;border-radius:4px;margin-top:8px;overflow:hidden;}
+.ic-hdr{background:#556b2f;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.ic-table{width:100%;border-collapse:collapse;font-size:10px;}
+.ic-table th{background:#6b8e23;color:#fff;border:1px solid #556b2f;padding:4px 6px;text-align:center;}
+.ic-table td{border:1px solid #b5cc7a;padding:3px 6px;text-align:center;background:#f9fce8;}
+.ic-table td.ic-desc{text-align:left;background:#f3f7e0;font-weight:bold;color:#33450f;}
+.ic-table td.ic-calc{background:#e8f0c8;font-weight:bold;color:#33450f;}
+.ic-table input.ici{width:100%;border:none;border-bottom:1px solid #9ab36a;background:#fffde7;font-size:10px;font-family:Arial;text-align:center;outline:none;padding:1px 2px;}
+.ic-table input.ici:disabled{background:#f0f0f0;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.ic-nota{font-size:9px;color:#556b2f;padding:4px 8px;background:#f6f9ee;border-top:1px solid #d3ddb8;}
 
 /* ── INFO GRID ── */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #1f3864;border-top:none;}
@@ -166,18 +180,17 @@ textarea.oco:disabled{background:#f0f0f0;color:#555;}
       <div class="header-title">
         <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
         <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
-        <div class="sub">Serviço de manutenção de áreas externas e verdes no Campus Cidade Universitária</div>
       </div>
-      <div class="header-badge">IMR<small>Nº 01</small></div>
+      <div class="header-badge">IMR<input id="hdImrNo" class="badge-inp" oninput="setHdr('imrNo',this.value)"></div>
     </div>
     <div class="info-grid">
-      <div class="info-cell full"><label>OBJETO</label><span class="fixed">Serviço de manutenção de áreas externas e verdes no Campus Cidade Universitária</span></div>
-      <div class="info-cell"><label>EMPRESA</label><span class="fixed">RODOCON CONSTRUÇÕES RODOVIÁRIAS LTDA.</span></div>
-      <div class="info-cell"><label>CONTRATO</label><span class="fixed">04/2023</span></div>
-      <div class="info-cell"><label>UNIDADE</label><span class="fixed">PREFEITURA UNIVERSITÁRIA</span></div>
-      <div class="info-cell"><label>TERMO</label><span class="fixed">TERMO ADITIVO N° 06/26</span></div>
-      <div class="info-cell"><label>MÊS/ANO</label><span class="fixed" id="hdMes">Outubro/2026</span></div>
-      <div class="info-cell"><label>FISCAL</label><input id="fiscal" placeholder="Nome do fiscal responsável" oninput="onFiscal(this.value)"></div>
+      <div class="info-cell full"><label>OBJETO</label><input id="hdObjeto" oninput="setHdr('objeto',this.value)"></div>
+      <div class="info-cell"><label>EMPRESA</label><input id="hdEmpresa" oninput="setHdr('empresa',this.value)"></div>
+      <div class="info-cell"><label>CONTRATO</label><input id="hdContrato" oninput="setHdr('contrato',this.value)"></div>
+      <div class="info-cell"><label>UNIDADE</label><input id="hdUnidade" oninput="setHdr('unidade',this.value)"></div>
+      <div class="info-cell"><label>TERMO</label><input id="hdTermo" oninput="setHdr('termo',this.value)"></div>
+      <div class="info-cell"><label>MÊS/ANO</label><input id="hdMes" placeholder="Ex.: Outubro/2026" title="Ao confirmar, as abas seguintes são renumeradas em sequência" oninput="onPeriodoInput(this.value)" onchange="onPeriodoCommit(this.value)"></div>
+      <div class="info-cell"><label>FISCAL</label><input id="hdFiscal" placeholder="Nome do fiscal responsável" oninput="setFiscal(this.value)"></div>
     </div>
   </div>
 
@@ -192,11 +205,24 @@ textarea.oco:disabled{background:#f0f0f0;color:#555;}
 /* ═══════════════════ PERÍODOS ═══════════════════ */
 const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MESES_ABR=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-// 24 meses: Outubro/2026 (início do TA 06/26) → Setembro/2028
-const MONTHS=[], MONTHS_SHORT=[];
-for(let k=0;k<24;k++){ const t=9+k; const y=2026+Math.floor(t/12); const m=((t%12)+12)%12;
-  MONTHS.push(MESES_CAP[m]+'/'+y); MONTHS_SHORT.push(MESES_ABR[m]+'/'+String(y).slice(2)); }
-const NUM_MONTHS=MONTHS.length;
+// 24 abas mensais; a 1ª começa em Outubro/2026 (início do TA 06/26) e pode ser trocada —
+// ao confirmar o MÊS/ANO de uma aba, as seguintes são re-sequenciadas automaticamente.
+const NUM_MONTHS=24;
+function periodLabel(m,y){ return MESES_CAP[m]+'/'+y; }
+function defaultPeriodo(idx){ const t=9+idx; const y=2026+Math.floor(t/12); const m=((t%12)+12)%12; return periodLabel(m,y); }
+function parsePeriodo(str){
+  if(!str) return null; str=String(str).trim();
+  let mm=str.match(/^([A-Za-zÀ-ÿ]+)[\s\/\-]+(\d{4})$/);
+  if(mm){ const mi=MESES_CAP.findIndex(x=>x.toLowerCase()===mm[1].toLowerCase()); if(mi>=0) return {m:mi,y:+mm[2]}; }
+  mm=str.match(/^(\d{1,2})[\/\-](\d{2,4})$/);
+  if(mm){ const mi=(+mm[1])-1; let y=+mm[2]; if(y<100) y+=2000; if(mi>=0&&mi<12) return {m:mi,y}; }
+  return null;
+}
+function periodoDe(i){ return (state&&state.months[i]&&state.months[i].periodo)||defaultPeriodo(i); }
+function periodoCurto(i){
+  const p=parsePeriodo(periodoDe(i));
+  return p ? MESES_ABR[p.m]+'/'+String(p.y).slice(2) : String(periodoDe(i)).slice(0,8);
+}
 
 /* ═══════════════════ MÓDULOS E INDICADORES ═══════════════════
    Réplica das fórmulas da planilha: pontos = SE(aval=1;100; SE(aval=2;80; SE(aval=3;30; 0)))
@@ -246,17 +272,34 @@ const CARGOS_PADRAO=[
 ];
 const QTD_TOTAL_PADRAO='10152712.7675';
 const VLR_UNIT_PADRAO='0.69657774';   // (qtd × unit)/12 = R$ 589.346,14/mês
-const VLR_SERVICOS_PADRAO='514274.84';// mensal − total mensal dos postos (R$ 75.071,30)
+const VLR_SERVICOS_PADRAO='R$ 514.274,84'; // mensal − total mensal dos postos (R$ 75.071,30)
 const CRECHE_UNIT_PADRAO='129.29';    // retenção por colaborador/mês
 const HORAS_POR_POSTO=200;            // 40h semanais (TA 06/26); era 220 com 44h
+
+/* Cabeçalho: editável enquanto o formulário está destravado e cascateado para as abas
+   seguintes (cada aba herda a anterior). O FISCAL é o único campo próprio de cada aba. */
+const HDR_PADRAO={
+  objeto:'Serviço de manutenção de áreas externas e verdes no Campus Cidade Universitária',
+  empresa:'RODOCON CONSTRUÇÕES RODOVIÁRIAS LTDA.',
+  contrato:'04/2023',
+  unidade:'PREFEITURA UNIVERSITÁRIA',
+  termo:'TERMO ADITIVO N° 06/26',
+  imrNo:'01'
+};
+const HDR_KEYS=Object.keys(HDR_PADRAO);
+const IC_DESC_PADRAO='Manutenção de áreas externas e verdes no campus da Cidade Universitária';
 
 const STORAGE_KEY='IMR_RODOCON_0423_PU';
 let state=null;
 let currentTab=0;   // 0..NUM_MONTHS-1 = mês ; 'ref' = referência
 
 function blankCargos(){ return CARGOS_PADRAO.map(c=>({cargo:c.cargo,postos:c.postos,vlrUnit:c.vlrUnit,faltas:''})); }
-function blankMonth(){
+function blankMonth(idx){
   return {
+    periodo:defaultPeriodo(idx),
+    hdr:Object.assign({},HDR_PADRAO),
+    icDesc:IC_DESC_PADRAO,
+    fiscal:'',
     avals:Array(NUM_IND).fill(''),
     cargos:blankCargos(),
     qtdTotal:QTD_TOTAL_PADRAO,
@@ -269,8 +312,8 @@ function blankMonth(){
   };
 }
 function defaultState(){
-  const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankMonth());
-  return {fiscal:'',locked:false,pwd:'',months};
+  const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankMonth(i));
+  return {locked:false,pwd:'',months};
 }
 
 /* ═══════════════════ PARSE / FORMATO ═══════════════════ */
@@ -350,14 +393,15 @@ function calcMonth(mi){
 /* ═══════════════════ RENDER ═══════════════════ */
 function renderTabs(){
   const bar=document.getElementById('tabbar'); bar.innerHTML='';
-  MONTHS_SHORT.forEach((lbl,i)=>{
+  for(let i=0;i<NUM_MONTHS;i++){
+    const lbl=periodoCurto(i), parts=lbl.split('/');
     const b=document.createElement('button');
     b.className='tab-btn'+(currentTab===i?' active':'');
-    b.innerHTML='<b>'+lbl.split('/')[0]+'</b><span>/'+lbl.split('/')[1]+'</span>';
-    b.title=MONTHS[i];
+    b.innerHTML='<b>'+esc(parts[0])+'</b><span>'+(parts[1]?'/'+esc(parts[1]):'')+'</span>';
+    b.title=periodoDe(i);
     b.onclick=()=>{ currentTab=i; render(); };
     bar.appendChild(b);
-  });
+  }
   const r=document.createElement('button');
   r.className='tab-btn special'+(currentTab==='ref'?' active':'');
   r.textContent='📑 Referência';
@@ -365,32 +409,45 @@ function renderTabs(){
   bar.appendChild(r);
 }
 
+/* preenche os campos do cabeçalho com os dados da aba atual */
+function renderHeader(){
+  const ref=(currentTab==='ref');
+  const mo=ref?null:state.months[currentTab];
+  const set=(id,val,editavelTravado)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.value=ref?'':val;
+    el.disabled=ref||(state.locked&&!editavelTravado);
+  };
+  HDR_KEYS.forEach(k=>set('hd'+k.charAt(0).toUpperCase()+k.slice(1), mo?mo.hdr[k]:''));
+  set('hdMes', mo?mo.periodo:'');
+  set('hdFiscal', mo?mo.fiscal:'', true);   // fiscal segue editável com o formulário travado
+}
+
 function render(){
   renderTabs();
+  renderHeader();
   const info=document.getElementById('tabInfo');
-  const hd=document.getElementById('hdMes');
   const content=document.getElementById('content');
   if(currentTab==='ref'){
     info.textContent='Critérios de avaliação (Referência)';
-    if(hd) hd.textContent='—';
     content.innerHTML=refHTML();
     return;
   }
-  info.textContent=MONTHS[currentTab];
-  if(hd) hd.textContent=MONTHS[currentTab];
+  info.textContent=periodoDe(currentTab);
   content.innerHTML=monthHTML(currentTab);
   recalc(currentTab);
 }
 
 function monthHTML(mi){
-  const mo=state.months[mi], lk=state.locked?'disabled':'';
+  const mo=state.months[mi], lk=state.locked?'disabled':'', per=periodoDe(mi);
   let h='';
   h+='<div class="instrucao">Marque na coluna <b>"Avaliação correspondente"</b> sua análise sobre o serviço prestado '+
      '(<b>Bom</b> = 100 pontos · <b>Regular</b> = 80 · <b>Ruim</b> = 30 · não avaliado = 0). '+
-     'Na mão de obra, informe apenas a <b>Qtd. de faltas</b> em horas contratadas; os demais valores são calculados.</div>';
+     'Na mão de obra, informe apenas a <b>Qtd. de faltas</b> em horas contratadas; os demais valores são calculados.'+
+     (state.locked?' <b>Com o formulário travado</b> seguem editáveis: fiscal, avaliação, qtd. de faltas, dias trabalhados e valor dos serviços.':'')+'</div>';
 
   /* ── AVALIAÇÃO ── */
-  h+='<div class="sec-title"><span>AVALIAÇÃO DOS SERVIÇOS — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="sec-title"><span>AVALIAÇÃO DOS SERVIÇOS — '+esc(per)+'</span></div>';
   h+='<table class="tbl"><thead><tr>'+
      '<th style="width:40px">Cód.</th><th>Indicador</th>'+
      '<th style="width:170px">Avaliação correspondente</th>'+
@@ -400,7 +457,7 @@ function monthHTML(mi){
     h+='<tr class="modhead"><td colspan="3">'+esc(mod.t)+'</td><td style="text-align:center">Peso '+PESO_MODULO+'</td></tr>';
     mod.inds.forEach(ind=>{
       h+='<tr><td class="cod">'+ind.c+'</td><td class="desc">'+esc(ind.d)+'</td>';
-      h+='<td><select class="cs" '+lk+' onchange="setAval('+mi+','+idx+',this.value)">';
+      h+='<td><select class="cs" onchange="setAval('+mi+','+idx+',this.value)">';
       h+='<option value=""'+(mo.avals[idx]===''?' selected':'')+'>— não avaliado —</option>';
       AVALS.forEach(a=>{ h+='<option value="'+a.v+'"'+(String(mo.avals[idx])===a.v?' selected':'')+'>'+a.t+' ('+a.p+')</option>'; });
       h+='</select></td>';
@@ -437,22 +494,20 @@ function monthHTML(mi){
   h+='<button class="add-btn" '+lk+' onclick="addCargo()">+ Adicionar cargo</button>';
 
   /* ── FATURAMENTO ── */
-  h+='<div class="sec-title"><span>APURAÇÃO DO VALOR A FATURAR — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="sec-title"><span>APURAÇÃO DO VALOR A FATURAR — '+esc(per)+'</span></div>';
   h+='<div class="fat-wrap">';
   h+= '<div class="fat-box"><h4>MEDIÇÃO DOS SERVIÇOS</h4>'+
-        '<div class="fat-row"><label>QTD TOTAL <i>(planilha orçamentária)</i></label>'+
-          '<input '+lk+' value="'+esc(mo.qtdTotal)+'" oninput="setFat('+mi+',\'qtdTotal\',this.value)"></div>'+
-        '<div class="fat-row"><label>VALOR UNITÁRIO</label>'+
+        '<div class="fat-row"><label>VALOR UNITÁRIO <i>(planilha orçamentária)</i></label>'+
           '<input '+lk+' value="'+esc(mo.vlrUnitario)+'" oninput="setFat('+mi+',\'vlrUnitario\',this.value)"></div>'+
         '<div class="fat-row"><label>Dias Trabalhados no mês</label>'+
-          '<input '+lk+' value="'+esc(mo.diasTrab)+'" oninput="setDias('+mi+',this.value)"></div>'+
+          '<input value="'+esc(mo.diasTrab)+'" oninput="setDias('+mi+',this.value)"></div>'+
         '<div class="fat-row strong"><label>Serviço de mão-de-obra <i>(total mensal ÷ 30 × dias)</i></label><div class="v" id="fMao">—</div></div>'+
         '<div class="fat-row strong"><label>Serviço de engenharia <i>((qtd × unit.) ÷ 12 − mão-de-obra)</i></label><div class="v" id="fEng">—</div></div>'+
-        '<div class="fat-row"><label>Valor Unitário Faturado</label><div class="v blue" id="fVuFat">—</div></div>'+
+        '<div class="fat-row"><label>Valor mensal do contrato <i>(qtd × unit. ÷ 12)</i></label><div class="v blue" id="fMensal">—</div></div>'+
       '</div>';
   h+= '<div class="fat-box"><h4>VALOR LIBERADO PARA FATURAMENTO</h4>'+
         '<div class="fat-row"><label>Valor dos serviços</label>'+
-          '<input '+lk+' value="'+esc(mo.vlrServicos)+'" oninput="setFat('+mi+',\'vlrServicos\',this.value)"></div>'+
+          '<input value="'+esc(mo.vlrServicos)+'" oninput="setFat('+mi+',\'vlrServicos\',this.value)" onblur="fmtServBlur('+mi+')"></div>'+
         '<div class="fat-row"><label>Percentual de liberação <i>(nota obtida)</i></label><div class="v blue" id="fPct">—</div></div>'+
         '<div class="fat-row"><label>Subtotal dos serviços</label><div class="v" id="fSub">—</div></div>'+
         '<div class="fat-row"><label>Valor do desconto <i>(nota)</i></label><div class="v neg" id="fDescNota">—</div></div>'+
@@ -474,6 +529,23 @@ function monthHTML(mi){
   h+= '<div class="instrucao" style="margin:0">O reembolso-creche é <b>provisionado no valor mensal do contrato e retido na fatura</b>. '+
       'Seu pagamento à contratada depende da comprovação mensal do desembolso em favor dos trabalhadores beneficiários '+
       '(nota fiscal, recibo ou declaração de quitação da instituição de educação infantil), e é vedada à contratada a apropriação de saldo não utilizado.</div>';
+  h+='</div>';
+
+  /* ── INSTRUMENTO DE COBRANÇA (tabela verde) ── */
+  h+='<div class="ic-wrap">';
+  h+= '<div class="ic-hdr">📋 INSTRUMENTO DE COBRANÇA — '+esc(per)+'</div>';
+  h+= '<table class="ic-table"><thead><tr>'+
+        '<th style="width:60px">Item</th><th>Descrição</th>'+
+        '<th style="width:160px">Qtde Faturada</th>'+
+        '<th style="width:160px">Valor Unit. Faturado (R$)</th>'+
+      '</tr></thead><tbody><tr>'+
+        '<td>1</td>'+
+        '<td class="ic-desc"><input class="ici" style="text-align:left" '+lk+' value="'+esc(mo.icDesc)+'" oninput="setFat('+mi+',\'icDesc\',this.value)"></td>'+
+        '<td><input class="ici" '+lk+' value="'+esc(mo.qtdTotal)+'" oninput="setFat('+mi+',\'qtdTotal\',this.value)"></td>'+
+        '<td class="ic-calc" id="fVuFat">—</td>'+
+      '</tr></tbody></table>';
+  h+= '<div class="ic-nota">Qtde Faturada = QTD TOTAL da planilha orçamentária · Valor Unit. Faturado = valor dos serviços ÷ Qtde Faturada. '+
+      'São estes dois valores que alimentam o instrumento de cobrança.</div>';
   h+='</div>';
 
   /* ── OCORRÊNCIAS ── */
@@ -502,7 +574,7 @@ function cargoRowHTML(mi,ci,c){
   h+='<td><input class="ci val" '+lk+' value="'+esc(c.vlrUnit)+'" oninput="setCargo('+mi+','+ci+',\'vlrUnit\',this.value)"></td>';
   h+='<td class="calc" data-mensal>—</td>';
   h+='<td class="calc" data-horas>—</td>';
-  h+='<td><input class="ci" '+lk+' value="'+esc(c.faltas)+'" oninput="setFaltas('+mi+','+ci+',this.value)"></td>';
+  h+='<td><input class="ci" value="'+esc(c.faltas)+'" oninput="setFaltas('+mi+','+ci+',this.value)"></td>';
   h+='<td class="calc" data-hora>—</td>';
   h+='<td class="calc" data-desc>—</td>';
   h+='<td class="rm"><button class="rm-btn" '+lk+' onclick="delCargo('+ci+')" title="Remover cargo">×</button></td>';
@@ -541,6 +613,7 @@ function recalc(mi){
   // faturamento
   setTxt('fMao',fmtMoney(r.maoObra));
   setTxt('fEng',fmtMoney(r.engenharia));
+  setTxt('fMensal',(r.qtd===''||r.vu==='')?'—':fmtMoney(r.qtd*r.vu/12));
   setTxt('fVuFat',(r.vuFat===''?'—':fmtNum(r.vuFat,8)));
   setTxt('fPct',fmtPct(r.nota.pct));
   setTxt('fSub',fmtMoney(r.subtotal));
@@ -564,6 +637,41 @@ function setCargo(mi,ci,k,v){
 function setFaltas(mi,ci,v){ state.months[mi].cargos[ci].faltas=v; persist(); recalc(mi); }
 function setDias(mi,v){ state.months[mi].diasTrab=v; persist(); recalc(mi); }
 function setFat(mi,k,v){ for(let m=mi;m<NUM_MONTHS;m++) state.months[m][k]=v; persist(); recalc(mi); }
+/* valor dos serviços: formato moeda ao sair do campo */
+function fmtServBlur(mi){
+  const n=parseMoney(state.months[mi].vlrServicos);
+  if(n==='') return;
+  const txt=fmtMoney(n);
+  for(let m=mi;m<NUM_MONTHS;m++) state.months[m].vlrServicos=txt;
+  const inp=document.querySelector('.fat-box input[onblur^="fmtServBlur"]'); if(inp) inp.value=txt;
+  persist(); recalc(mi);
+}
+
+/* cabeçalho: cascata para as abas seguintes (cada aba herda a anterior) */
+function setHdr(k,v){
+  if(currentTab==='ref') return;
+  for(let m=currentTab;m<NUM_MONTHS;m++) state.months[m].hdr[k]=v;
+  persist();
+}
+/* fiscal: próprio de cada aba, não é herdado */
+function setFiscal(v){ if(currentTab==='ref') return; state.months[currentTab].fiscal=v; persist(); }
+
+/* mês/ano: ao confirmar, re-sequencia as abas seguintes (as anteriores ficam como estão) */
+function onPeriodoInput(v){ if(currentTab==='ref') return; state.months[currentTab].periodo=v; persist(); }
+function onPeriodoCommit(v){
+  if(currentTab==='ref') return;
+  state.months[currentTab].periodo=v;
+  resequenceFrom(currentTab);
+  persist(); render();
+}
+function resequenceFrom(i){
+  const base=parsePeriodo(state.months[i].periodo); if(!base) return;
+  state.months[i].periodo=periodLabel(base.m,base.y);
+  for(let k=i+1;k<NUM_MONTHS;k++){
+    const t=base.m+(k-i); const y=base.y+Math.floor(t/12); const m=((t%12)+12)%12;
+    state.months[k].periodo=periodLabel(m,y);
+  }
+}
 function setOco(mi,v){ state.months[mi].ocorrencias=v; persist(); }
 function setSign(mi,k,v){ state.months[mi][k]=v; persist(); }
 function addCargo(){
@@ -577,14 +685,15 @@ function delCargo(ci){
   for(let m=0;m<NUM_MONTHS;m++) state.months[m].cargos.splice(ci,1);
   persist(); render();
 }
-function onFiscal(v){ state.fiscal=v; persist(); }
 
-/* ═══════════════════ TRAVA ═══════════════════ */
+/* ═══════════════════ TRAVA ═══════════════════
+   Travado congela os dados do contrato (cabeçalho, cargos, valores da planilha,
+   ocorrências e datas). Seguem editáveis: fiscal, avaliação, qtd. de faltas,
+   dias trabalhados e valor dos serviços — os campos da medição do mês.          */
 function applyLockUI(){
   const b=document.getElementById('lockBtn');
   if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
   else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
-  const f=document.getElementById('fiscal'); if(f) f.disabled=state.locked;
 }
 function toggleLock(){
   if(!state.locked){
@@ -599,30 +708,30 @@ function toggleLock(){
 }
 
 /* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
-function collectData(){ return {v:1, fiscal:state.fiscal, locked:state.locked, pwd:state.pwd, months:state.months}; }
+function collectData(){ return {v:2, locked:state.locked, pwd:state.pwd, months:state.months}; }
 function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
 function applyData(p){
   if(!p) return;
-  state.fiscal=p.fiscal||'';
   state.locked=!!p.locked; state.pwd=p.pwd||'';
   if(Array.isArray(p.months)){
     for(let i=0;i<NUM_MONTHS;i++){
       const src=p.months[i]; if(!src) continue;
       const d=state.months[i];
+      if(src.periodo) d.periodo=src.periodo;
+      if(src.hdr) HDR_KEYS.forEach(k=>{ if(src.hdr[k]!==undefined&&src.hdr[k]!==null) d.hdr[k]=src.hdr[k]; });
+      d.fiscal=(src.fiscal!==undefined&&src.fiscal!==null)?src.fiscal:(p.fiscal||'');  // v1 guardava um fiscal global
       if(Array.isArray(src.avals)) d.avals=src.avals.slice(0,NUM_IND).concat(Array(Math.max(0,NUM_IND-src.avals.length)).fill(''));
       if(Array.isArray(src.cargos)&&src.cargos.length)
         d.cargos=src.cargos.map(c=>({cargo:c.cargo||'',postos:c.postos||'',vlrUnit:c.vlrUnit||'',faltas:c.faltas||''}));
-      ['qtdTotal','vlrUnitario','vlrServicos','crecheUnit','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
+      ['icDesc','qtdTotal','vlrUnitario','vlrServicos','crecheUnit','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
         if(src[k]!==undefined&&src[k]!==null) d[k]=src[k];
       });
     }
   }
-  const f=document.getElementById('fiscal'); if(f) f.value=state.fiscal;
 }
 function loadState(){
   state=defaultState();
   try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
-  const f=document.getElementById('fiscal'); if(f) f.value=state.fiscal;
 }
 
 /* ═══════════════════ SINCRONIZAÇÃO NA NUVEM (Firebase Firestore) ═══════════════════ */
