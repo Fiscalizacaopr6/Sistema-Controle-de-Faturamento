@@ -229,7 +229,13 @@ const NOTAS=[
 ];
 function notaDe(p){ return NOTAS.find(x=>p>=x.min) || NOTAS[NOTAS.length-1]; }
 
-/* ═══════════════════ VALORES DO CONTRATO (planilha TA 06/26) ═══════════════════ */
+/* ═══════════════════ VALORES DO CONTRATO (TA 06/26, a partir de 01/10/2026) ═══════════════════
+   Jornada semanal reduzida de 44h para 40h sem prejuízo da remuneração (IN SEGES/MGI 190/2024
+   com a redação da IN 148/2026): o preço mensal do posto permanece inalterado e apenas o custo
+   hora-homem muda — por isso as horas contratadas passam de 220 para 200 por posto/mês.
+   Valor mensal do contrato: R$ 589.346,14 · anual R$ 7.072.153,63.
+   Reembolso-creche (IN SEGES/MGI 147/2026): R$ 129,29 por colaborador/mês retidos na fatura
+   (12 colaboradores = R$ 1.551,48 → valor líquido mensal R$ 587.794,66).                      */
 const CARGOS_PADRAO=[
   {cargo:'Paisagista',          postos:'2', vlrUnit:'9105.67'},
   {cargo:'Encarregado Geral',   postos:'1', vlrUnit:'4780.40'},
@@ -239,9 +245,10 @@ const CARGOS_PADRAO=[
   {cargo:'Jardineiro',          postos:'3', vlrUnit:'6391.83'},
 ];
 const QTD_TOTAL_PADRAO='10152712.7675';
-const VLR_UNIT_PADRAO='0.69499008';
-const VLR_SERVICOS_PADRAO='512931.59';
-const HORAS_POR_POSTO=220;
+const VLR_UNIT_PADRAO='0.69657774';   // (qtd × unit)/12 = R$ 589.346,14/mês
+const VLR_SERVICOS_PADRAO='514274.84';// mensal − total mensal dos postos (R$ 75.071,30)
+const CRECHE_UNIT_PADRAO='129.29';    // retenção por colaborador/mês
+const HORAS_POR_POSTO=200;            // 40h semanais (TA 06/26); era 220 com 44h
 
 const STORAGE_KEY='IMR_RODOCON_0423_PU';
 let state=null;
@@ -255,6 +262,7 @@ function blankMonth(){
     qtdTotal:QTD_TOTAL_PADRAO,
     vlrUnitario:VLR_UNIT_PADRAO,
     vlrServicos:VLR_SERVICOS_PADRAO,
+    crecheUnit:CRECHE_UNIT_PADRAO,
     diasTrab:'25',
     ocorrencias:'',
     dataDir:'', dataFisc:''
@@ -332,7 +340,11 @@ function calcMonth(mi){
   const glosa=-somaDesc;
   const totDesc=(descNota==='')?glosa:descNota+glosa;
   const liberado=(vlrServ==='')?'':vlrServ*nota.pct+glosa;
-  return {cs,somaMensal,somaHoras,somaDesc,maoObra,engenharia,qtd,vu,vlrServ,vuFat,pontos:p,nota,subtotal,descNota,glosa,totDesc,liberado};
+  const colab=cs.reduce((a,c)=>a+(c.postos===''?0:c.postos),0);
+  const cUnit=parseMoney(mo.crecheUnit);
+  const creche=(cUnit==='')?0:colab*cUnit;
+  const liquido=(liberado==='')?'':liberado-creche;
+  return {cs,somaMensal,somaHoras,somaDesc,maoObra,engenharia,qtd,vu,vlrServ,vuFat,pontos:p,nota,subtotal,descNota,glosa,totDesc,liberado,colab,creche,liquido};
 }
 
 /* ═══════════════════ RENDER ═══════════════════ */
@@ -450,6 +462,20 @@ function monthHTML(mi){
       '</div>';
   h+='</div>';
 
+  /* ── REEMBOLSO-CRECHE (retenção na fatura, IN SEGES/MGI 147/2026) ── */
+  h+='<div class="fat-wrap" style="margin-top:12px">';
+  h+= '<div class="fat-box"><h4>RETENÇÃO DO REEMBOLSO-CRECHE (IN SEGES/MGI 147/2026)</h4>'+
+        '<div class="fat-row"><label>Nº de colaboradores <i>(soma dos postos)</i></label><div class="v blue" id="fColab">—</div></div>'+
+        '<div class="fat-row"><label>Valor estimado unitário <i>(por colaborador/mês)</i></label>'+
+          '<input '+lk+' value="'+esc(mo.crecheUnit)+'" oninput="setFat('+mi+',\'crecheUnit\',this.value)"></div>'+
+        '<div class="fat-row"><label>Valor retido mensal</label><div class="v neg" id="fCreche">—</div></div>'+
+        '<div class="fat-row final"><label>Valor líquido a faturar <i>(liberado − retenção)</i></label><div class="v" id="fLiquido">—</div></div>'+
+      '</div>';
+  h+= '<div class="instrucao" style="margin:0">O reembolso-creche é <b>provisionado no valor mensal do contrato e retido na fatura</b>. '+
+      'Seu pagamento à contratada depende da comprovação mensal do desembolso em favor dos trabalhadores beneficiários '+
+      '(nota fiscal, recibo ou declaração de quitação da instituição de educação infantil), e é vedada à contratada a apropriação de saldo não utilizado.</div>';
+  h+='</div>';
+
   /* ── OCORRÊNCIAS ── */
   h+='<div class="sec-title"><span>OCORRÊNCIAS OBSERVADAS EM RELAÇÃO À CONTRATADA – JUSTIFICATIVAS DA AVALIAÇÃO</span></div>';
   h+='<div class="instrucao">Este relatório resumo é obrigatório principalmente nos casos em que a fiscalização apontar falhas na execução do contrato. '+
@@ -522,6 +548,9 @@ function recalc(mi){
   setTxt('fGlosa',fmtMoney(r.glosa));
   setTxt('fTotDesc',fmtMoney(r.totDesc));
   setTxt('fLib',fmtMoney(r.liberado));
+  setTxt('fColab',fmtNum(r.colab,0));
+  setTxt('fCreche',fmtMoney(-r.creche));
+  setTxt('fLiquido',fmtMoney(r.liquido));
 }
 function setTxt(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
 
@@ -583,7 +612,7 @@ function applyData(p){
       if(Array.isArray(src.avals)) d.avals=src.avals.slice(0,NUM_IND).concat(Array(Math.max(0,NUM_IND-src.avals.length)).fill(''));
       if(Array.isArray(src.cargos)&&src.cargos.length)
         d.cargos=src.cargos.map(c=>({cargo:c.cargo||'',postos:c.postos||'',vlrUnit:c.vlrUnit||'',faltas:c.faltas||''}));
-      ['qtdTotal','vlrUnitario','vlrServicos','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
+      ['qtdTotal','vlrUnitario','vlrServicos','crecheUnit','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
         if(src[k]!==undefined&&src[k]!==null) d[k]=src[k];
       });
     }
@@ -672,6 +701,12 @@ function refHTML(){
   h+='<div class="k">Engenharia</div><div class="v">(QTD TOTAL × VALOR UNITÁRIO) ÷ 12 − serviço de mão-de-obra.</div>';
   h+='<div class="k">Glosa por faltas</div><div class="v">Para cada cargo: valor da hora (valor mensal ÷ horas contratadas, sendo horas = postos × '+HORAS_POR_POSTO+') × qtd. de faltas, com sinal negativo.</div>';
   h+='<div class="k">Valor liberado</div><div class="v">Valor dos serviços × percentual de liberação + glosa de mão-de-obra.</div>';
+  h+='<div class="k faixa">Reembolso-creche</div><div class="v faixa">Retenção de R$ 129,29 por colaborador/mês (20% de R$ 526,64 = R$ 105,33 + custos indiretos + lucro + tributos), deduzida do valor liberado.</div>';
+  h+='</div></div>';
+  h+='<div class="ind-block"><div class="ind-title">Termo Aditivo nº 06/2026 — vigente a partir de 01/10/2026</div><div class="ind-body">';
+  h+='<div class="k">Jornada</div><div class="v">Redução da jornada semanal de 44h para 40h sem prejuízo da remuneração (art. 4º do Decreto 12.174/2024; IN SEGES/MGI 190/2024, com a redação da IN 148/2026). O preço mensal do posto permanece inalterado — muda apenas o custo hora-homem, por isso as horas contratadas passam de 220 para '+HORAS_POR_POSTO+' por posto/mês.</div>';
+  h+='<div class="k">Reembolso-creche</div><div class="v">Instituído pela IN SEGES/MGI 147/2026: R$ 526,64 por dependente de até 5 anos e 11 meses, com percentual de incidência de 20% sobre 12 postos alcançados.</div>';
+  h+='<div class="k">Valores</div><div class="v">Valor mensal R$ 589.346,14 e anual R$ 7.072.153,63 (antes R$ 588.002,90 e R$ 7.056.034,76). Retenção do reembolso-creche de R$ 1.551,48/mês → valor líquido mensal R$ 587.794,66 e anual R$ 7.053.535,87.</div>';
   h+='</div></div>';
   h+='</div>';
   return h;
