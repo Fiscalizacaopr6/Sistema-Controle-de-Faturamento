@@ -143,6 +143,11 @@ textarea.oco:disabled{background:#f0f0f0;color:#555;}
 .lock-btn:hover{opacity:.8;}
 .print-btn{font-size:10px;padding:4px 12px;background:#455a64;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
 .print-btn:hover{opacity:.85;}
+.carimbo{border:2px solid #1b5e20;border-radius:5px;background:#eafbe9;color:#1b5e20;font-weight:bold;font-size:10px;line-height:1.4;padding:6px 8px;text-align:center;transform:rotate(-1.2deg);}
+.btn-bar{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+.btn{padding:7px 20px;font-size:12px;border:none;border-radius:4px;cursor:pointer;font-family:Arial;font-weight:bold;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-print{background:#1f3864;color:#fff;}
 .add-btn{margin:6px 0;font-size:10px;padding:4px 12px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
 .add-btn:hover{background:#2e74b5;}
 .add-btn:disabled{background:#ccc;cursor:not-allowed;}
@@ -210,10 +215,36 @@ textarea.oco:disabled{background:#f0f0f0;color:#555;}
   <!-- conteúdo -->
   <div id="content"></div>
 
+  <!-- botões -->
+  <div class="btn-bar no-print">
+    <button class="btn btn-print" onclick="abrirAssinatura()">✍️ Assinar e enviar</button>
+    <button class="btn btn-print" id="btnPDFaba" onclick="salvarPDFAba(this)">⬇️ Baixar PDF</button>
+  </div>
+
+</div>
+
+<!-- ══ MODAL DE ASSINATURA ══ -->
+<div id="assModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:2px solid #1f3864;border-radius:8px;width:360px;max-width:92vw;padding:18px 20px;font-family:Arial;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+    <div style="font-size:14px;font-weight:bold;color:#1f3864;margin-bottom:4px;">✍️ Assinatura do Fiscal do Contrato</div>
+    <div style="font-size:11px;color:#555;margin-bottom:12px;">Informe seu <b>SIAPE</b> e a <b>senha</b> cadastrada na tela de Assinaturas.</div>
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">SIAPE</label>
+    <input type="text" id="assSiapeInp" inputmode="numeric" autocomplete="off" style="width:100%;margin:2px 0 10px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">Senha</label>
+    <input type="password" id="assSenhaInp" autocomplete="off" onkeydown="if(event.key==='Enter')confirmarAssinatura()" style="width:100%;margin:2px 0 6px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <div id="assMsg" style="font-size:11px;min-height:16px;margin:4px 0;color:#555;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="fecharAssinatura()" style="padding:7px 14px;border:1px solid #999;background:#eee;border-radius:4px;cursor:pointer;font-family:Arial;">Cancelar</button>
+      <button id="assBtn" onclick="confirmarAssinatura()" style="padding:7px 18px;border:none;background:#1f3864;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Assinar</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<!-- Geração de PDF no navegador (aba atual, sem diálogo de impressão) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ═══════════════════ PERÍODOS ═══════════════════ */
 const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -324,7 +355,7 @@ function blankMonth(idx){
     crecheReembDep:CRECHE_DEP_PADRAO,
     diasTrab:'25',
     ocorrencias:'',
-    dataDir:'', dataFisc:''
+    dataDir:'', dataFisc:'', fiscCarimbo:''
   };
 }
 function defaultState(){
@@ -602,7 +633,10 @@ function monthHTML(mi){
         '<div class="sign-area"><span>assinatura e carimbo</span></div>'+
         '<div class="sign-foot"><label>DATA:</label><input value="'+esc(mo.dataDir)+'" placeholder="__/__/____" oninput="setSign('+mi+',\'dataDir\',this.value)"></div></div>';
   h+= '<div class="sign-box"><h4>CIENTE DO FISCAL DO CONTRATO</h4>'+
-        '<div class="sign-area"><span>assinatura e carimbo</span></div>'+
+        '<div class="sign-area">'+(mo.fiscCarimbo
+            ? '<div class="carimbo">'+esc(mo.fiscCarimbo).replace(/\n/g,'<br>')
+              +'</div>'
+            : '<span>assinatura e carimbo</span>')+'</div>'+
         '<div class="sign-foot"><label>DATA:</label><input value="'+esc(mo.dataFisc)+'" placeholder="__/__/____" oninput="setSign('+mi+',\'dataFisc\',this.value)"></div></div>';
   h+='</div>';
   return h;
@@ -772,7 +806,7 @@ function applyData(p){
       if(Array.isArray(src.avals)) d.avals=src.avals.slice(0,NUM_IND).concat(Array(Math.max(0,NUM_IND-src.avals.length)).fill(''));
       if(Array.isArray(src.cargos)&&src.cargos.length)
         d.cargos=src.cargos.map(c=>({cargo:c.cargo||'',postos:c.postos||'',vlrUnit:c.vlrUnit||'',faltas:c.faltas||''}));
-      ['icDesc','qtdTotal','vlrUnitario','vlrServicos','crecheEstUnit','crecheAprovados','crecheReembDep','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
+      ['icDesc','qtdTotal','vlrUnitario','vlrServicos','crecheEstUnit','crecheAprovados','crecheReembDep','diasTrab','ocorrencias','dataDir','dataFisc','fiscCarimbo'].forEach(k=>{
         if(src[k]!==undefined&&src[k]!==null) d[k]=src[k];
       });
     }
@@ -875,6 +909,106 @@ function refHTML(){
 
 /* ═══════════════════ UTIL ═══════════════════ */
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ═══ ASSINATURA ELETRÔNICA ═══
+   Valida SIAPE + senha no nó /assinaturas do RTDB. A senha nunca trafega:
+   compara-se o mesmo hash gravado pela tela de Assinaturas
+   (SHA-256 de 'pr6:'+SIAPE+':'+senha; fallback FNV em contexto não seguro). */
+const ASSINATURAS_URL='https://fiscalizacao-d9a39-default-rtdb.firebaseio.com/assinaturas.json';
+function hashSenha(senha, siape){
+  var txt='pr6:'+siape+':'+senha;
+  if(window.crypto&&window.crypto.subtle&&window.TextEncoder){
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  var h1=0x811c9dc5, h2=0x01000193;
+  for(var i=0;i<txt.length;i++){ h1=((h1^txt.charCodeAt(i))*16777619)>>>0; h2=((h2+txt.charCodeAt(i)*(i+7))*2246822519)>>>0; }
+  return Promise.resolve('fnv:'+('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8));
+}
+function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
+function abrirAssinatura(){
+  // Assinar funciona mesmo com o formulário travado (não altera campos travados).
+  if(currentTab==='ref'){ alert('Abra a aba de um mês para assinar.'); return; }
+  document.getElementById('assSiapeInp').value='';
+  document.getElementById('assSenhaInp').value='';
+  setAssMsg('','');
+  document.getElementById('assModal').style.display='flex';
+  setTimeout(function(){ var el=document.getElementById('assSiapeInp'); if(el) el.focus(); },50);
+}
+function fecharAssinatura(){ var m=document.getElementById('assModal'); if(m) m.style.display='none'; }
+function confirmarAssinatura(){
+  var siape=(document.getElementById('assSiapeInp').value||'').trim();
+  var senha=document.getElementById('assSenhaInp').value||'';
+  if(!siape||!senha){ setAssMsg('err','Preencha SIAPE e senha.'); return; }
+  var btn=document.getElementById('assBtn'); var ol=btn.textContent; btn.disabled=true; btn.textContent='Verificando…';
+  setAssMsg('','Verificando…');
+  Promise.all([ fetch(ASSINATURAS_URL,{cache:'no-store'}).then(function(r){ return r.json(); }), hashSenha(senha,siape) ])
+    .then(function(res){
+      var data=res[0]||{}, hash=res[1], achou=null;
+      Object.keys(data||{}).forEach(function(k){
+        var r=data[k]; if(!r) return;
+        if(String(r.siape||'').trim()===siape && r.senhaHash && r.senhaHash===hash) achou=r;
+      });
+      if(!achou){ setAssMsg('err','SIAPE ou senha incorretos (ou SIAPE sem assinatura cadastrada).'); btn.disabled=false; btn.textContent=ol; return; }
+      aplicarAssinatura(achou); btn.disabled=false; btn.textContent=ol;
+    })
+    .catch(function(e){ console.error('assinatura:',e); setAssMsg('err','Não foi possível verificar a assinatura. Verifique a conexão.'); btn.disabled=false; btn.textContent=ol; });
+}
+function aplicarAssinatura(r){
+  var agora=new Date();
+  var dh=agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var mo=state.months[currentTab];
+  mo.fiscCarimbo='Serviço atestado por '+(r.nome||'')+'\nSIAPE '+(r.siape||'')+' — '+(r.cargo||'')+'\nEm '+dh;
+  mo.dataFisc=dh;
+  if(!mo.fiscal) mo.fiscal=r.nome||'';
+  persist();
+  fecharAssinatura();
+  render();
+  setCloudStatus('✍️ Assinado por '+(r.nome||'')+' em '+dh);
+}
+
+/* Gera o PDF da ABA ATUAL direto no navegador (1 folha A4), sem diálogo de impressão. */
+async function salvarPDFAba(btn){
+  const pg=document.querySelector('.page');
+  if(!pg) return;
+  if(typeof html2canvas==='undefined' || !(window.jspdf&&window.jspdf.jsPDF)){
+    alert('Não foi possível carregar o gerador de PDF. Verifique sua conexão com a internet e tente novamente.');
+    return;
+  }
+  const labelOrig = btn ? btn.textContent : '';
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Gerando…'; }
+  // Replica as regras de @media print (que não valem fora da impressão) durante a captura
+  const tmp=document.createElement('style');
+  tmp.textContent='.tab-nav,.tabbar,.btn-bar,.add-btn,.rm,.rm-btn,.lock-btn,.print-btn{display:none!important;}'
+    +'textarea.oco{height:auto!important;max-height:none!important;overflow:visible!important;}'
+    +'input{border-bottom:1px solid #aaa!important;background:transparent!important;}'
+    +'input:disabled{background:#f0f0f0!important;}';
+  document.head.appendChild(tmp);
+  // Garante que a textarea de ocorrências mostre todo o conteúdo na captura
+  const taFix=[];
+  document.querySelectorAll('textarea.oco').forEach(function(t){ taFix.push([t,t.style.height]); t.style.height=t.scrollHeight+'px'; });
+  try{
+    const canvas=await html2canvas(pg,{scale:2,backgroundColor:'#ffffff',useCORS:true,windowWidth:pg.scrollWidth});
+    const jsPDF=window.jspdf.jsPDF;
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+    const m=8, availW=pw-2*m, availH=ph-2*m;
+    const escala=Math.min(availW/canvas.width, availH/canvas.height);
+    const w=canvas.width*escala, h=canvas.height*escala;
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',(pw-w)/2, m, w, h);
+    const per=(currentTab==='ref')?'Referência':periodoDe(currentTab);
+    const uni=(state.months[0]&&state.months[0].hdr.unidade)||'PREFEITURA UNIVERSITÁRIA';
+    const nome=('IMR '+uni+' - '+per).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+    pdf.save(nome+'.pdf');
+  }catch(e){
+    alert('Falha ao gerar o PDF: '+(e&&e.message?e.message:e));
+  }finally{
+    document.head.removeChild(tmp);
+    taFix.forEach(function(p){ p[0].style.height=p[1]; });
+    if(btn){ btn.disabled=false; btn.textContent=labelOrig; }
+  }
+}
 
 /* ═══════════════════ INIT ═══════════════════ */
 loadState();
