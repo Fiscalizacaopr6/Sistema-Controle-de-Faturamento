@@ -332,7 +332,9 @@ const CARGOS_PADRAO=[
 ];
 const QTD_TOTAL_PADRAO='10152712.7675';
 const VLR_UNIT_PADRAO='0.69657774';   // (qtd × unit)/12 = R$ 589.346,14/mês
-const VLR_SERVICOS_PADRAO='R$ 514.274,84'; // mensal − total mensal dos postos (R$ 75.071,30)
+// Valor dos serviços: nasce VAZIO em todas as abas — muda a cada mês e é digitado pelo fiscal.
+// (referência do TA 06/26: mensal − total mensal dos postos = R$ 589.346,14 − R$ 75.071,30 = R$ 514.274,84)
+const VLR_SERVICOS_PADRAO='';
 const CRECHE_EST_UNIT_PADRAO='129.29';  // valor estimado unitário retido por colaborador/mês
 const CRECHE_DEP_PADRAO='526.64';       // reembolso por dependente (Anexo I da IN SEGES/MGI 147/2026)
 const HORAS_POR_POSTO=200;            // 40h semanais (TA 06/26); era 220 com 44h
@@ -609,7 +611,7 @@ function monthHTML(mi){
       '</div>';
   h+= '<div class="fat-box"><h4>VALOR LIBERADO PARA FATURAMENTO</h4>'+
         '<div class="fat-row"><label>Valor dos serviços</label>'+
-          '<input value="'+esc(mo.vlrServicos)+'" oninput="setFat('+mi+',\'vlrServicos\',this.value)" onblur="fmtServBlur('+mi+')"></div>'+
+          '<input id="inpVlrServ" placeholder="Informe o valor do mês" value="'+esc(mo.vlrServicos)+'" oninput="setServ('+mi+',this.value)" onblur="fmtServBlur('+mi+')"></div>'+
         '<div class="fat-row"><label>Percentual de liberação <i>(nota obtida)</i></label><div class="v blue" id="fPct">—</div></div>'+
         '<div class="fat-row"><label>Subtotal dos serviços</label><div class="v" id="fSub">—</div></div>'+
         '<div class="fat-row"><label>Valor do desconto <i>(nota)</i></label><div class="v neg" id="fDescNota">—</div></div>'+
@@ -736,13 +738,15 @@ function setFaltas(mi,ci,v){ state.months[mi].cargos[ci].faltas=v; persist(); re
 function setDias(mi,v){ state.months[mi].diasTrab=v; persist(); recalc(mi); }
 function setCrecheAprov(mi,v){ state.months[mi].crecheAprovados=v; persist(); recalc(mi); }
 function setFat(mi,k,v){ for(let m=mi;m<NUM_MONTHS;m++) state.months[m][k]=v; persist(); recalc(mi); }
+// valor dos serviços é próprio de cada mês: não cascateia para as abas seguintes
+function setServ(mi,v){ state.months[mi].vlrServicos=v; if(parseMoney(v)!=='') limpaPend(event&&event.target); persist(); recalc(mi); }
 /* valor dos serviços: formato moeda ao sair do campo */
 function fmtServBlur(mi){
   const n=parseMoney(state.months[mi].vlrServicos);
   if(n==='') return;
   const txt=fmtMoney(n);
-  for(let m=mi;m<NUM_MONTHS;m++) state.months[m].vlrServicos=txt;
-  const inp=document.querySelector('.fat-box input[onblur^="fmtServBlur"]'); if(inp) inp.value=txt;
+  state.months[mi].vlrServicos=txt;
+  const inp=document.getElementById('inpVlrServ'); if(inp) inp.value=txt;
   persist(); recalc(mi);
 }
 
@@ -963,6 +967,10 @@ function pendenciasAssinatura(mi){
       txt:'<b>Avaliação incompleta.</b> Escolha Bom, Regular ou Ruim para: '
           +semAval.map(i=>i.c+' — '+i.d).join('; ')+'.'});
   }
+  if(parseMoney(mo.vlrServicos)===''){
+    pend.push({campo:'serv',
+      txt:'<b>Valor dos serviços não informado.</b> Preencha o valor medido neste mês no quadro <i>VALOR LIBERADO PARA FATURAMENTO</i> — sem ele não há valor a faturar.'});
+  }
   const just=String(mo.ocorrencias||'').trim();
   if(criticos.length && just.length<JUSTIF_MIN){
     pend.push({campo:'just',
@@ -982,6 +990,9 @@ function marcarPendencias(pend){
       document.querySelectorAll('select.cs').forEach(sel=>{
         if(sel.value===''){ sel.classList.add('pend'); if(!primeiro) primeiro=sel; }
       });
+    } else if(p.campo==='serv'){
+      const inp=document.getElementById('inpVlrServ');
+      if(inp){ inp.classList.add('pend'); if(!primeiro) primeiro=inp; }
     } else if(p.campo==='just'){
       const ta=document.querySelector('textarea.oco');
       if(ta){ ta.classList.add('pend'); if(!primeiro) primeiro=ta; }
