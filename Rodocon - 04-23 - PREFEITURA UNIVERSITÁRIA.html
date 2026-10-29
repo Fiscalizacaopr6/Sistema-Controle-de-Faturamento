@@ -38,6 +38,19 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .header-badge .badge-inp{width:44px;margin-top:3px;border:none;border-bottom:1.5px solid #fff;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:bold;font-family:Arial;text-align:center;letter-spacing:0;outline:none;padding:1px 2px;border-radius:2px;}
 .header-badge .badge-inp:disabled{background:rgba(255,255,255,.07);color:#cfd8e6;border-bottom-color:#8ea3c4;cursor:not-allowed;}
 
+/* ── REEMBOLSO DE CRECHE ── */
+.creche-wrap{border:2px solid #f57f17;border-radius:4px;overflow:hidden;}
+.creche-hdr{background:#f57f17;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.creche-table{width:100%;border-collapse:collapse;}
+.creche-table td{border:1px solid #ffe0b2;padding:4px 6px;vertical-align:middle;font-size:11px;}
+.creche-table td.lbl{background:#fff8e1;font-weight:bold;color:#e65100;}
+.creche-table td.lbl small{font-weight:normal;}
+.creche-table td.val{background:#fffde7;text-align:right;}
+.creche-table td.res{background:#e8f5e9;font-weight:bold;text-align:right;color:#1b5e20;}
+.creche-table input.ci{width:100%;border:none;border-bottom:1.5px solid #f57f17;font-size:11px;text-align:right;outline:none;background:transparent;font-family:Arial;padding:1px 2px;}
+.creche-table input.ci:disabled{background:#f5f5f5;color:#888;cursor:not-allowed;border-bottom:1px solid #ddd;}
+.creche-warn{font-size:10px;color:#b71c1c;font-weight:bold;padding:4px 8px;background:#ffebee;display:none;}
+
 /* ── INSTRUMENTO DE COBRANÇA (tabela verde) ── */
 .ic-wrap{border:2px solid #556b2f;border-radius:4px;margin-top:8px;overflow:hidden;}
 .ic-hdr{background:#556b2f;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
@@ -273,7 +286,8 @@ const CARGOS_PADRAO=[
 const QTD_TOTAL_PADRAO='10152712.7675';
 const VLR_UNIT_PADRAO='0.69657774';   // (qtd × unit)/12 = R$ 589.346,14/mês
 const VLR_SERVICOS_PADRAO='R$ 514.274,84'; // mensal − total mensal dos postos (R$ 75.071,30)
-const CRECHE_UNIT_PADRAO='129.29';    // retenção por colaborador/mês
+const CRECHE_EST_UNIT_PADRAO='129.29';  // valor estimado unitário retido por colaborador/mês
+const CRECHE_DEP_PADRAO='526.64';       // reembolso por dependente (Anexo I da IN SEGES/MGI 147/2026)
 const HORAS_POR_POSTO=200;            // 40h semanais (TA 06/26); era 220 com 44h
 
 /* Cabeçalho: editável enquanto o formulário está destravado e cascateado para as abas
@@ -305,7 +319,9 @@ function blankMonth(idx){
     qtdTotal:QTD_TOTAL_PADRAO,
     vlrUnitario:VLR_UNIT_PADRAO,
     vlrServicos:VLR_SERVICOS_PADRAO,
-    crecheUnit:CRECHE_UNIT_PADRAO,
+    crecheEstUnit:CRECHE_EST_UNIT_PADRAO,
+    crecheAprovados:'0',
+    crecheReembDep:CRECHE_DEP_PADRAO,
     diasTrab:'25',
     ocorrencias:'',
     dataDir:'', dataFisc:''
@@ -383,11 +399,27 @@ function calcMonth(mi){
   const glosa=-somaDesc;
   const totDesc=(descNota==='')?glosa:descNota+glosa;
   const liberado=(vlrServ==='')?'':vlrServ*nota.pct+glosa;
-  const colab=cs.reduce((a,c)=>a+(c.postos===''?0:c.postos),0);
-  const cUnit=parseMoney(mo.crecheUnit);
-  const creche=(cUnit==='')?0:colab*cUnit;
-  const liquido=(liberado==='')?'':liberado-creche;
-  return {cs,somaMensal,somaHoras,somaDesc,maoObra,engenharia,qtd,vu,vlrServ,vuFat,pontos:p,nota,subtotal,descNota,glosa,totDesc,liberado,colab,creche,liquido};
+  const cr=creche(mi);
+  const aprovado=(liberado==='')?'':liberado+cr.total;
+  return {cs,somaMensal,somaHoras,somaDesc,maoObra,engenharia,qtd,vu,vlrServ,vuFat,pontos:p,nota,subtotal,descNota,glosa,totDesc,liberado,cr,aprovado};
+}
+
+/* ── REEMBOLSO DE CRECHE ──
+   Retido  = valor estimado unitário × qtde contratada (soma dos postos)
+   Total   = reembolsos aprovados × reembolso por dependente
+   Saldo   = acumulado de (Retido − Total) desde a 1ª aba até a aba atual        */
+function creche(mi){
+  const mo=state.months[mi];
+  const colab=mo.cargos.reduce((a,c)=>{ const n=parseNum(c.postos); return a+(n===''?0:n); },0);
+  const est=parseMoney(mo.crecheEstUnit), dep=parseMoney(mo.crecheReembDep), ap=parseNum(mo.crecheAprovados);
+  const retido=(est==='')?0:colab*est;
+  const total=(ap===''||dep==='')?0:ap*dep;
+  return {colab, retido, total, aprovados:(ap===''?0:ap)};
+}
+function crecheSaldo(upto){
+  let acc=0;
+  for(let k=0;k<=upto;k++){ const c=creche(k); acc+=c.retido-c.total; }
+  return acc;
 }
 
 /* ═══════════════════ RENDER ═══════════════════ */
@@ -517,18 +549,32 @@ function monthHTML(mi){
       '</div>';
   h+='</div>';
 
-  /* ── REEMBOLSO-CRECHE (retenção na fatura, IN SEGES/MGI 147/2026) ── */
+  /* ── REEMBOLSO DE CRECHE ── */
   h+='<div class="fat-wrap" style="margin-top:12px">';
-  h+= '<div class="fat-box"><h4>RETENÇÃO DO REEMBOLSO-CRECHE (IN SEGES/MGI 147/2026)</h4>'+
-        '<div class="fat-row"><label>Nº de colaboradores <i>(soma dos postos)</i></label><div class="v blue" id="fColab">—</div></div>'+
-        '<div class="fat-row"><label>Valor estimado unitário <i>(por colaborador/mês)</i></label>'+
-          '<input '+lk+' value="'+esc(mo.crecheUnit)+'" oninput="setFat('+mi+',\'crecheUnit\',this.value)"></div>'+
-        '<div class="fat-row"><label>Valor retido mensal</label><div class="v neg" id="fCreche">—</div></div>'+
-        '<div class="fat-row final"><label>Valor líquido a faturar <i>(liberado − retenção)</i></label><div class="v" id="fLiquido">—</div></div>'+
+  h+= '<div class="creche-wrap">'+
+        '<div class="creche-hdr">🏫 REEMBOLSO DE CRECHE</div>'+
+        '<table class="creche-table"><tbody>'+
+          '<tr><td class="lbl">Valor estimado unitário (R$)</td>'+
+            '<td class="val"><input class="ci" '+lk+' value="'+esc(mo.crecheEstUnit)+'" oninput="setFat('+mi+',\'crecheEstUnit\',this.value)"></td></tr>'+
+          '<tr><td class="lbl">Valor Reembolso Creche Retido (R$)<br><small>(Valor estimado unitário × qtde contratada)</small></td>'+
+            '<td class="res" id="crRetido">R$ 0,00</td></tr>'+
+          '<tr><td class="lbl">Reembolsos Aprovados (quantidade)</td>'+
+            '<td class="val"><input class="ci" style="text-align:center" value="'+esc(mo.crecheAprovados)+'" oninput="setCrecheAprov('+mi+',this.value)"></td></tr>'+
+          '<tr><td class="lbl">Reembolso por dependente (R$)</td>'+
+            '<td class="val"><input class="ci" '+lk+' value="'+esc(mo.crecheReembDep)+'" oninput="setFat('+mi+',\'crecheReembDep\',this.value)"></td></tr>'+
+          '<tr><td class="lbl">Valor Total dos Reembolsos (R$)<br><small>(Aprovados × Reembolso por dependente)</small></td>'+
+            '<td class="res" id="crTotal">R$ 0,00</td></tr>'+
+          '<tr><td class="lbl">Saldo de Reembolso (R$)<br><small>(Saldo anterior + Retido − Total)</small></td>'+
+            '<td class="res" id="crSaldo">R$ 0,00</td></tr>'+
+        '</tbody></table>'+
+        '<div class="creche-warn" id="crWarn">⚠ ATENÇÃO: saldo negativo — se o contrato tiver mais de uma unidade, some o saldo de todas; se permanecer negativo será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!</div>'+
       '</div>';
-  h+= '<div class="instrucao" style="margin:0">O reembolso-creche é <b>provisionado no valor mensal do contrato e retido na fatura</b>. '+
-      'Seu pagamento à contratada depende da comprovação mensal do desembolso em favor dos trabalhadores beneficiários '+
-      '(nota fiscal, recibo ou declaração de quitação da instituição de educação infantil), e é vedada à contratada a apropriação de saldo não utilizado.</div>';
+  h+= '<div class="fat-box"><h4>VALOR APROVADO PARA FATURAMENTO</h4>'+
+        '<div class="fat-row"><label>Valor liberado para Faturamento</label><div class="v" id="fLibDup">—</div></div>'+
+        '<div class="fat-row"><label>(+) Valor Total dos Reembolsos</label><div class="v blue" id="fReemb">—</div></div>'+
+        '<div class="fat-row final"><label>Valor total aprovado <i>(liberado + reembolsos)</i></label><div class="v" id="fAprovado">—</div></div>'+
+        '<div class="fat-row"><label>Qtde contratada <i>(soma dos postos)</i></label><div class="v blue" id="fColab">—</div></div>'+
+      '</div>';
   h+='</div>';
 
   /* ── INSTRUMENTO DE COBRANÇA (tabela verde) ── */
@@ -621,9 +667,17 @@ function recalc(mi){
   setTxt('fGlosa',fmtMoney(r.glosa));
   setTxt('fTotDesc',fmtMoney(r.totDesc));
   setTxt('fLib',fmtMoney(r.liberado));
-  setTxt('fColab',fmtNum(r.colab,0));
-  setTxt('fCreche',fmtMoney(-r.creche));
-  setTxt('fLiquido',fmtMoney(r.liquido));
+  // reembolso de creche
+  setTxt('crRetido',fmtMoney(r.cr.retido));
+  setTxt('crTotal',fmtMoney(r.cr.total));
+  const saldo=crecheSaldo(mi);
+  const sEl=document.getElementById('crSaldo');
+  if(sEl){ sEl.textContent=fmtMoney(saldo); sEl.style.color=saldo<0?'#b71c1c':'#1b5e20'; sEl.style.background=saldo<0?'#ffebee':'#e8f5e9'; }
+  const wEl=document.getElementById('crWarn'); if(wEl) wEl.style.display=saldo<0?'block':'none';
+  setTxt('fLibDup',fmtMoney(r.liberado));
+  setTxt('fReemb',fmtMoney(r.cr.total));
+  setTxt('fAprovado',fmtMoney(r.aprovado));
+  setTxt('fColab',fmtNum(r.cr.colab,0));
 }
 function setTxt(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
 
@@ -636,6 +690,7 @@ function setCargo(mi,ci,k,v){
 }
 function setFaltas(mi,ci,v){ state.months[mi].cargos[ci].faltas=v; persist(); recalc(mi); }
 function setDias(mi,v){ state.months[mi].diasTrab=v; persist(); recalc(mi); }
+function setCrecheAprov(mi,v){ state.months[mi].crecheAprovados=v; persist(); recalc(mi); }
 function setFat(mi,k,v){ for(let m=mi;m<NUM_MONTHS;m++) state.months[m][k]=v; persist(); recalc(mi); }
 /* valor dos serviços: formato moeda ao sair do campo */
 function fmtServBlur(mi){
@@ -723,7 +778,7 @@ function applyData(p){
       if(Array.isArray(src.avals)) d.avals=src.avals.slice(0,NUM_IND).concat(Array(Math.max(0,NUM_IND-src.avals.length)).fill(''));
       if(Array.isArray(src.cargos)&&src.cargos.length)
         d.cargos=src.cargos.map(c=>({cargo:c.cargo||'',postos:c.postos||'',vlrUnit:c.vlrUnit||'',faltas:c.faltas||''}));
-      ['icDesc','qtdTotal','vlrUnitario','vlrServicos','crecheUnit','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
+      ['icDesc','qtdTotal','vlrUnitario','vlrServicos','crecheEstUnit','crecheAprovados','crecheReembDep','diasTrab','ocorrencias','dataDir','dataFisc'].forEach(k=>{
         if(src[k]!==undefined&&src[k]!==null) d[k]=src[k];
       });
     }
@@ -810,7 +865,10 @@ function refHTML(){
   h+='<div class="k">Engenharia</div><div class="v">(QTD TOTAL × VALOR UNITÁRIO) ÷ 12 − serviço de mão-de-obra.</div>';
   h+='<div class="k">Glosa por faltas</div><div class="v">Para cada cargo: valor da hora (valor mensal ÷ horas contratadas, sendo horas = postos × '+HORAS_POR_POSTO+') × qtd. de faltas, com sinal negativo.</div>';
   h+='<div class="k">Valor liberado</div><div class="v">Valor dos serviços × percentual de liberação + glosa de mão-de-obra.</div>';
-  h+='<div class="k faixa">Reembolso-creche</div><div class="v faixa">Retenção de R$ 129,29 por colaborador/mês (20% de R$ 526,64 = R$ 105,33 + custos indiretos + lucro + tributos), deduzida do valor liberado.</div>';
+  h+='<div class="k faixa">Reembolso de creche</div><div class="v faixa">Retido = valor estimado unitário (R$ 129,29 = 20% de R$ 526,64, ou R$ 105,33, + custos indiretos + lucro + tributos) × qtde contratada.\n'+
+     'Total dos reembolsos = reembolsos aprovados no mês × reembolso por dependente.\n'+
+     'Saldo = saldo do mês anterior + retido − total, acumulado desde a primeira aba.</div>';
+  h+='<div class="k faixa">Valor total aprovado</div><div class="v faixa">Valor liberado para faturamento + valor total dos reembolsos do mês.</div>';
   h+='</div></div>';
   h+='<div class="ind-block"><div class="ind-title">Termo Aditivo nº 06/2026 — vigente a partir de 01/10/2026</div><div class="ind-body">';
   h+='<div class="k">Jornada</div><div class="v">Redução da jornada semanal de 44h para 40h sem prejuízo da remuneração (art. 4º do Decreto 12.174/2024; IN SEGES/MGI 190/2024, com a redação da IN 148/2026). O preço mensal do posto permanece inalterado — muda apenas o custo hora-homem, por isso as horas contratadas passam de 220 para '+HORAS_POR_POSTO+' por posto/mês.</div>';
