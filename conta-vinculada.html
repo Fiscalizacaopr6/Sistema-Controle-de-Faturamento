@@ -48,7 +48,6 @@ tfoot td{background:#047857;color:#fff;font-weight:bold;border-color:#064e3b;whi
 .btn-excel{background:#217346;color:#fff}
 .btn-import{background:#2563eb;color:#fff}
 .btn-pr6{background:transparent;color:#9aa5b1;font-weight:normal;font-size:10px;padding:6px 6px}
-.btn-reexibir{background:#f0ad00;color:#fff}
 .btn-pr6:hover{opacity:1;color:#047857;text-decoration:underline}
 .btn:hover{opacity:.88}
 /* Coluna Nome: acompanha o tamanho do texto digitado */
@@ -111,7 +110,6 @@ td input.col-nome{width:auto;min-width:150px;max-width:340px;text-align:left}
 
     <div class="barra">
       <button class="btn btn-pr6" id="btn-pr6" onclick="togglePR6()">🔒 PR6</button>
-      <button class="btn btn-reexibir" id="btn-reexibir" onclick="reexibirPeriodo()" title="Faz o período anterior voltar a aparecer para a empresa" style="display:none">↩️ Reexibir período</button>
       <span id="pr6-sel-wrap" style="display:none;align-items:center;gap:5px;font-size:11px;color:#9aa5b1" title="Define qual período a empresa verá ao abrir o formulário">
         <label for="pr6-periodo-empresa" style="font-size:11px">📅 Período visível à empresa:</label>
         <select id="pr6-periodo-empresa" onchange="pr6DefinirPeriodoEmpresa(this.value)" style="font-size:11px;padding:4px;border-radius:6px"></select>
@@ -609,7 +607,7 @@ function enviarMes() {
     var d = new Date();
     var hojeISO = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
     var envKey = m.ano + '-' + ('0' + (MESES.indexOf(m.mes) + 1)).slice(-2);
-    // "em" é único por envio: um reenvio (após reexibir) gera carimbo novo e faz
+    // "em" é único por envio: um reenvio (após retornar o período) gera carimbo novo e faz
     // o sistema reinserir a data em Documentos, mesmo que seja no mesmo dia.
     fbdb.ref('retencao_empresa/' + TOKEN + '/envios/' + envKey)
       .set({ data: hojeISO, em: d.toISOString() }).catch(function(e) { console.error(e); });
@@ -626,37 +624,12 @@ function enviarMes() {
   }
 }
 
-// ── Reexibir período (correção) ──
-// Se a empresa preencheu errado e enviou, a PR6 (modo com senha) usa este botão
-// para fazer o período anterior voltar a aparecer para a empresa: recua o
-// enviadoAte em um, então o último mês enviado volta a ser o período atual.
-function reexibirPeriodo() {
-  if (!DADOS || !_pr6) return;
-  var atual = DADOS.enviadoAte || 0;
-  if (atual <= 0) { alert('Nenhum período foi enviado ainda — não há o que reexibir.'); return; }
-  var alvo = DADOS.meses[atual - 1];
-  if (!confirm('Reexibir o período ' + mesRotulo(alvo) + ' para a empresa?\n\n'
-      + 'Ele volta a aparecer para preenchimento/correção e passa a ser o período atual da empresa.')) return;
-  DADOS.enviadoAte = atual - 1;
-  try { localStorage.setItem(chaveLocal(), JSON.stringify(DADOS)); } catch (e) {}
-  if (fbdb) {
-    fbdb.ref('retencao_empresa/' + TOKEN).update({
-      enviadoAte: DADOS.enviadoAte, atualizadoEm: new Date().toISOString()
-    }).catch(function(e) { console.error(e); });
-  }
-  MES_ATUAL = DADOS.enviadoAte;
-  renderTabs(); renderTabela(); pr6RenderSeletorPeriodo(); requestAnimationFrame(syncHBar);
-  status('✔ ' + mesRotulo(alvo) + ' voltou a aparecer para a empresa.', 'ok');
-}
-
 // ── Modo PR6 (senha) ──
 // Revela todos os períodos e libera o botão de PDF. A senha é pedida só para
 // ligar; para desligar (voltar a ver só o mês atual) basta clicar de novo.
 function aplicarPR6() {
   var pdf = document.getElementById('btn-pdf');
   if (pdf) pdf.style.display = _pr6 ? '' : 'none';
-  var re = document.getElementById('btn-reexibir');
-  if (re) re.style.display = _pr6 ? '' : 'none';
   var wrap = document.getElementById('pr6-sel-wrap');
   if (wrap) wrap.style.display = _pr6 ? 'inline-flex' : 'none';
   if (_pr6) pr6RenderSeletorPeriodo();
@@ -681,8 +654,9 @@ function pr6RenderSeletorPeriodo() {
   sel.innerHTML = opts;
 }
 
-// Define qual período a empresa verá ao abrir o formulário (fora do modo PR6).
-// Generaliza o "Reexibir período": em vez de só recuar 1, escolhe qualquer mês.
+// Define qual período a empresa verá ao abrir o formulário (fora do modo PR6):
+// grava o enviadoAte no mês escolhido (ou "nenhum/todos enviados"). Permite
+// avançar ou retornar a empresa a qualquer período já liberado.
 function pr6DefinirPeriodoEmpresa(v) {
   if (!DADOS || !_pr6) return;
   var fim = (DADOS.meses || []).length;
