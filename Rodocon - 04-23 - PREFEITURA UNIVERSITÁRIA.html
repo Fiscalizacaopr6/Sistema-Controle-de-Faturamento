@@ -148,6 +148,10 @@ textarea.oco:disabled{background:#f0f0f0;color:#555;}
 .btn{padding:7px 20px;font-size:12px;border:none;border-radius:4px;cursor:pointer;font-family:Arial;font-weight:bold;transition:opacity .15s;}
 .btn:hover{opacity:.85;}
 .btn-print{background:#1f3864;color:#fff;}
+.pend{outline:2px solid #b71c1c!important;outline-offset:1px;background:#ffebee!important;}
+.pend-lista{font-size:11.5px;color:#333;line-height:1.5;margin:4px 0 2px;padding-left:2px;}
+.pend-lista li{margin-bottom:7px;}
+.pend-lista b{color:#b71c1c;}
 .add-btn{margin:6px 0;font-size:10px;padding:4px 12px;background:#1f3864;color:#fff;border:none;border-radius:3px;cursor:pointer;font-weight:bold;}
 .add-btn:hover{background:#2e74b5;}
 .add-btn:disabled{background:#ccc;cursor:not-allowed;}
@@ -236,6 +240,18 @@ textarea.oco:disabled{background:#f0f0f0;color:#555;}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
       <button onclick="fecharAssinatura()" style="padding:7px 14px;border:1px solid #999;background:#eee;border-radius:4px;cursor:pointer;font-family:Arial;">Cancelar</button>
       <button id="assBtn" onclick="confirmarAssinatura()" style="padding:7px 18px;border:none;background:#1f3864;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Assinar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL DE PENDÊNCIAS (bloqueia a assinatura) ══ -->
+<div id="pendModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:2px solid #b71c1c;border-radius:8px;width:480px;max-width:94vw;padding:18px 20px;font-family:Arial;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+    <div style="font-size:14px;font-weight:bold;color:#b71c1c;margin-bottom:4px;">⚠️ Não é possível assinar ainda</div>
+    <div style="font-size:11px;color:#555;margin-bottom:10px;">Corrija o que está abaixo nesta aba e clique novamente em <b>Assinar e enviar</b>. Os campos pendentes ficam destacados em vermelho.</div>
+    <ul class="pend-lista" id="pendLista"></ul>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+      <button onclick="fecharPendencias()" style="padding:7px 18px;border:none;background:#b71c1c;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Entendi, corrigir</button>
     </div>
   </div>
 </div>
@@ -710,7 +726,7 @@ function recalc(mi){
 function setTxt(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
 
 /* ═══════════════════ EDIÇÃO ═══════════════════ */
-function setAval(mi,i,v){ state.months[mi].avals[i]=v; persist(); recalc(mi); }
+function setAval(mi,i,v){ state.months[mi].avals[i]=v; limpaPend(event&&event.target); persist(); recalc(mi); }
 // cargo/postos/valor unitário em cascata: valem deste mês para a frente
 function setCargo(mi,ci,k,v){
   for(let m=mi;m<NUM_MONTHS;m++){ const c=state.months[m].cargos[ci]; if(c) c[k]=v; }
@@ -755,7 +771,7 @@ function resequenceFrom(i){
     state.months[k].periodo=periodLabel(m,y);
   }
 }
-function setOco(mi,v){ state.months[mi].ocorrencias=v; persist(); }
+function setOco(mi,v){ state.months[mi].ocorrencias=v; if(String(v||'').trim().length>=JUSTIF_MIN) limpaPend(event&&event.target); persist(); }
 function setSign(mi,k,v){ state.months[mi][k]=v; persist(); }
 function addCargo(){
   if(state.locked) return;
@@ -927,9 +943,70 @@ function hashSenha(senha, siape){
   return Promise.resolve('fnv:'+('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8));
 }
 function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
+/* Indicadores em lista única, na mesma ordem dos índices de `avals`. */
+function indsFlat(){ const out=[]; MODULOS.forEach(m=>m.inds.forEach(i=>out.push(i))); return out; }
+
+/* Regras obrigatórias para assinar a aba:
+   1) nenhum indicador pode ficar "— não avaliado —";
+   2) havendo nota Regular ou Ruim, a justificativa da avaliação é obrigatória. */
+const JUSTIF_MIN=15;
+function pendenciasAssinatura(mi){
+  const mo=state.months[mi], flat=indsFlat();
+  const semAval=[], criticos=[], pend=[];
+  flat.forEach((ind,i)=>{
+    const v=String(mo.avals[i]==null?'':mo.avals[i]);
+    if(v===''){ semAval.push(ind); }
+    else if(v==='2'||v==='3'){ criticos.push({ind, t:(v==='2'?'Regular':'Ruim')}); }
+  });
+  if(semAval.length){
+    pend.push({campo:'aval',
+      txt:'<b>Avaliação incompleta.</b> Escolha Bom, Regular ou Ruim para: '
+          +semAval.map(i=>i.c+' — '+i.d).join('; ')+'.'});
+  }
+  const just=String(mo.ocorrencias||'').trim();
+  if(criticos.length && just.length<JUSTIF_MIN){
+    pend.push({campo:'just',
+      txt:'<b>Justificativa obrigatória.</b> '
+          +(criticos.length===1?'O indicador ':'Os indicadores ')
+          +criticos.map(c=>c.ind.c+' ('+c.t+')').join(', ')
+          +(criticos.length===1?' recebeu ':' receberam ')
+          +'avaliação abaixo de Bom. Descreva o motivo no campo <i>OCORRÊNCIAS OBSERVADAS EM RELAÇÃO À CONTRATADA – JUSTIFICATIVAS DA AVALIAÇÃO</i>.'});
+  }
+  return pend;
+}
+function marcarPendencias(pend){
+  document.querySelectorAll('.pend').forEach(el=>el.classList.remove('pend'));
+  let primeiro=null;
+  pend.forEach(p=>{
+    if(p.campo==='aval'){
+      document.querySelectorAll('select.cs').forEach(sel=>{
+        if(sel.value===''){ sel.classList.add('pend'); if(!primeiro) primeiro=sel; }
+      });
+    } else if(p.campo==='just'){
+      const ta=document.querySelector('textarea.oco');
+      if(ta){ ta.classList.add('pend'); if(!primeiro) primeiro=ta; }
+    }
+  });
+  return primeiro;
+}
+function limpaPend(el){ if(el&&el.classList&&el.classList.contains('pend')) el.classList.remove('pend'); }
+let pendFoco=null;
+function mostrarPendencias(pend){
+  document.getElementById('pendLista').innerHTML=pend.map(p=>'<li>'+p.txt+'</li>').join('');
+  pendFoco=marcarPendencias(pend);
+  document.getElementById('pendModal').style.display='flex';
+}
+function fecharPendencias(){
+  const m=document.getElementById('pendModal'); if(m) m.style.display='none';
+  if(pendFoco){ try{ pendFoco.scrollIntoView({behavior:'smooth',block:'center'}); pendFoco.focus(); }catch(e){} }
+}
+
 function abrirAssinatura(){
   // Assinar funciona mesmo com o formulário travado (não altera campos travados).
   if(currentTab==='ref'){ alert('Abra a aba de um mês para assinar.'); return; }
+  const pend=pendenciasAssinatura(currentTab);
+  if(pend.length){ mostrarPendencias(pend); return; }
+  document.querySelectorAll('.pend').forEach(el=>el.classList.remove('pend'));
   document.getElementById('assSiapeInp').value='';
   document.getElementById('assSenhaInp').value='';
   setAssMsg('','');
