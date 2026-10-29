@@ -398,10 +398,10 @@ function calcMonth(mi){
   const descNota=(subtotal==='')?'':subtotal-vlrServ;
   const glosa=-somaDesc;
   const totDesc=(descNota==='')?glosa:descNota+glosa;
-  const liberado=(vlrServ==='')?'':vlrServ*nota.pct+glosa;
   const cr=creche(mi);
-  const aprovado=(liberado==='')?'':liberado+cr.total;
-  return {cs,somaMensal,somaHoras,somaDesc,maoObra,engenharia,qtd,vu,vlrServ,vuFat,pontos:p,nota,subtotal,descNota,glosa,totDesc,liberado,cr,aprovado};
+  // o reembolso de creche entra inteiro: não sofre desconto de qualidade (nota) nem glosa de mão de obra
+  const liberado=(vlrServ==='')?'':vlrServ*nota.pct+glosa+cr.total;
+  return {cs,somaMensal,somaHoras,somaDesc,maoObra,engenharia,qtd,vu,vlrServ,vuFat,pontos:p,nota,subtotal,descNota,glosa,totDesc,liberado,cr};
 }
 
 /* ── REEMBOLSO DE CRECHE ──
@@ -525,32 +525,9 @@ function monthHTML(mi){
      '<td class="calc" id="totDesc">—</td><td class="rm"></td></tr></tfoot></table>';
   h+='<button class="add-btn" '+lk+' onclick="addCargo()">+ Adicionar cargo</button>';
 
-  /* ── FATURAMENTO ── */
-  h+='<div class="sec-title"><span>APURAÇÃO DO VALOR A FATURAR — '+esc(per)+'</span></div>';
-  h+='<div class="fat-wrap">';
-  h+= '<div class="fat-box"><h4>MEDIÇÃO DOS SERVIÇOS</h4>'+
-        '<div class="fat-row"><label>VALOR UNITÁRIO <i>(planilha orçamentária)</i></label>'+
-          '<input '+lk+' value="'+esc(mo.vlrUnitario)+'" oninput="setFat('+mi+',\'vlrUnitario\',this.value)"></div>'+
-        '<div class="fat-row"><label>Dias Trabalhados no mês</label>'+
-          '<input value="'+esc(mo.diasTrab)+'" oninput="setDias('+mi+',this.value)"></div>'+
-        '<div class="fat-row strong"><label>Serviço de mão-de-obra <i>(total mensal ÷ 30 × dias)</i></label><div class="v" id="fMao">—</div></div>'+
-        '<div class="fat-row strong"><label>Serviço de engenharia <i>((qtd × unit.) ÷ 12 − mão-de-obra)</i></label><div class="v" id="fEng">—</div></div>'+
-        '<div class="fat-row"><label>Valor mensal do contrato <i>(qtd × unit. ÷ 12)</i></label><div class="v blue" id="fMensal">—</div></div>'+
-      '</div>';
-  h+= '<div class="fat-box"><h4>VALOR LIBERADO PARA FATURAMENTO</h4>'+
-        '<div class="fat-row"><label>Valor dos serviços</label>'+
-          '<input value="'+esc(mo.vlrServicos)+'" oninput="setFat('+mi+',\'vlrServicos\',this.value)" onblur="fmtServBlur('+mi+')"></div>'+
-        '<div class="fat-row"><label>Percentual de liberação <i>(nota obtida)</i></label><div class="v blue" id="fPct">—</div></div>'+
-        '<div class="fat-row"><label>Subtotal dos serviços</label><div class="v" id="fSub">—</div></div>'+
-        '<div class="fat-row"><label>Valor do desconto <i>(nota)</i></label><div class="v neg" id="fDescNota">—</div></div>'+
-        '<div class="fat-row"><label>Valor da GLOSA de mão-de-obra <i>(faltas)</i></label><div class="v neg" id="fGlosa">—</div></div>'+
-        '<div class="fat-row"><label>Valor total dos descontos</label><div class="v neg" id="fTotDesc">—</div></div>'+
-        '<div class="fat-row final"><label>Valor liberado para Faturamento</label><div class="v" id="fLib">—</div></div>'+
-      '</div>';
-  h+='</div>';
-
   /* ── REEMBOLSO DE CRECHE ── */
-  h+='<div class="fat-wrap" style="margin-top:12px">';
+  h+='<div class="sec-title"><span>REEMBOLSO DE CRECHE — '+esc(per)+'</span></div>';
+  h+='<div style="max-width:440px">';
   h+= '<div class="creche-wrap">'+
         '<div class="creche-hdr">🏫 REEMBOLSO DE CRECHE</div>'+
         '<table class="creche-table"><tbody>'+
@@ -569,11 +546,30 @@ function monthHTML(mi){
         '</tbody></table>'+
         '<div class="creche-warn" id="crWarn">⚠ ATENÇÃO: saldo negativo — se o contrato tiver mais de uma unidade, some o saldo de todas; se permanecer negativo será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!</div>'+
       '</div>';
-  h+= '<div class="fat-box"><h4>VALOR APROVADO PARA FATURAMENTO</h4>'+
-        '<div class="fat-row"><label>Valor liberado para Faturamento</label><div class="v" id="fLibDup">—</div></div>'+
-        '<div class="fat-row"><label>(+) Valor Total dos Reembolsos</label><div class="v blue" id="fReemb">—</div></div>'+
-        '<div class="fat-row final"><label>Valor total aprovado <i>(liberado + reembolsos)</i></label><div class="v" id="fAprovado">—</div></div>'+
+  h+='</div>';
+
+  h+='<div class="sec-title"><span>APURAÇÃO DO VALOR A FATURAR — '+esc(per)+'</span></div>';
+  h+='<div class="fat-wrap">';
+  h+= '<div class="fat-box"><h4>MEDIÇÃO DOS SERVIÇOS</h4>'+
+        '<div class="fat-row"><label>VALOR UNITÁRIO <i>(planilha orçamentária)</i></label>'+
+          '<input '+lk+' value="'+esc(mo.vlrUnitario)+'" oninput="setFat('+mi+',\'vlrUnitario\',this.value)"></div>'+
+        '<div class="fat-row"><label>Dias Trabalhados no mês</label>'+
+          '<input value="'+esc(mo.diasTrab)+'" oninput="setDias('+mi+',this.value)"></div>'+
         '<div class="fat-row"><label>Qtde contratada <i>(soma dos postos)</i></label><div class="v blue" id="fColab">—</div></div>'+
+        '<div class="fat-row strong"><label>Serviço de mão-de-obra <i>(total mensal ÷ 30 × dias)</i></label><div class="v" id="fMao">—</div></div>'+
+        '<div class="fat-row strong"><label>Serviço de engenharia <i>((qtd × unit.) ÷ 12 − mão-de-obra)</i></label><div class="v" id="fEng">—</div></div>'+
+        '<div class="fat-row"><label>Valor mensal do contrato <i>(qtd × unit. ÷ 12)</i></label><div class="v blue" id="fMensal">—</div></div>'+
+      '</div>';
+  h+= '<div class="fat-box"><h4>VALOR LIBERADO PARA FATURAMENTO</h4>'+
+        '<div class="fat-row"><label>Valor dos serviços</label>'+
+          '<input value="'+esc(mo.vlrServicos)+'" oninput="setFat('+mi+',\'vlrServicos\',this.value)" onblur="fmtServBlur('+mi+')"></div>'+
+        '<div class="fat-row"><label>Percentual de liberação <i>(nota obtida)</i></label><div class="v blue" id="fPct">—</div></div>'+
+        '<div class="fat-row"><label>Subtotal dos serviços</label><div class="v" id="fSub">—</div></div>'+
+        '<div class="fat-row"><label>Valor do desconto <i>(nota)</i></label><div class="v neg" id="fDescNota">—</div></div>'+
+        '<div class="fat-row"><label>Valor da GLOSA de mão-de-obra <i>(faltas)</i></label><div class="v neg" id="fGlosa">—</div></div>'+
+        '<div class="fat-row"><label>Valor total dos descontos</label><div class="v neg" id="fTotDesc">—</div></div>'+
+        '<div class="fat-row"><label>Valor Reembolso de creche <i>(não sofre desconto)</i></label><div class="v blue" id="fReemb">—</div></div>'+
+        '<div class="fat-row final"><label>Valor liberado para Faturamento</label><div class="v" id="fLib">—</div></div>'+
       '</div>';
   h+='</div>';
 
@@ -666,6 +662,7 @@ function recalc(mi){
   setTxt('fDescNota',fmtMoney(r.descNota));
   setTxt('fGlosa',fmtMoney(r.glosa));
   setTxt('fTotDesc',fmtMoney(r.totDesc));
+  setTxt('fReemb',fmtMoney(r.cr.total));
   setTxt('fLib',fmtMoney(r.liberado));
   // reembolso de creche
   setTxt('crRetido',fmtMoney(r.cr.retido));
@@ -674,9 +671,6 @@ function recalc(mi){
   const sEl=document.getElementById('crSaldo');
   if(sEl){ sEl.textContent=fmtMoney(saldo); sEl.style.color=saldo<0?'#b71c1c':'#1b5e20'; sEl.style.background=saldo<0?'#ffebee':'#e8f5e9'; }
   const wEl=document.getElementById('crWarn'); if(wEl) wEl.style.display=saldo<0?'block':'none';
-  setTxt('fLibDup',fmtMoney(r.liberado));
-  setTxt('fReemb',fmtMoney(r.cr.total));
-  setTxt('fAprovado',fmtMoney(r.aprovado));
   setTxt('fColab',fmtNum(r.cr.colab,0));
 }
 function setTxt(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
@@ -864,11 +858,11 @@ function refHTML(){
   h+='<div class="k">Mão-de-obra</div><div class="v">Soma do valor mensal dos postos ÷ 30 × dias trabalhados no mês.</div>';
   h+='<div class="k">Engenharia</div><div class="v">(QTD TOTAL × VALOR UNITÁRIO) ÷ 12 − serviço de mão-de-obra.</div>';
   h+='<div class="k">Glosa por faltas</div><div class="v">Para cada cargo: valor da hora (valor mensal ÷ horas contratadas, sendo horas = postos × '+HORAS_POR_POSTO+') × qtd. de faltas, com sinal negativo.</div>';
-  h+='<div class="k">Valor liberado</div><div class="v">Valor dos serviços × percentual de liberação + glosa de mão-de-obra.</div>';
+  h+='<div class="k">Valor liberado</div><div class="v">Valor dos serviços × percentual de liberação + glosa de mão-de-obra + valor total dos reembolsos de creche.</div>';
   h+='<div class="k faixa">Reembolso de creche</div><div class="v faixa">Retido = valor estimado unitário (R$ 129,29 = 20% de R$ 526,64, ou R$ 105,33, + custos indiretos + lucro + tributos) × qtde contratada.\n'+
      'Total dos reembolsos = reembolsos aprovados no mês × reembolso por dependente.\n'+
      'Saldo = saldo do mês anterior + retido − total, acumulado desde a primeira aba.</div>';
-  h+='<div class="k faixa">Valor total aprovado</div><div class="v faixa">Valor liberado para faturamento + valor total dos reembolsos do mês.</div>';
+  h+='<div class="k faixa">Incidência</div><div class="v faixa">O reembolso de creche entra inteiro no valor liberado: não sofre desconto de qualidade (nota) nem glosa de mão de obra.</div>';
   h+='</div></div>';
   h+='<div class="ind-block"><div class="ind-title">Termo Aditivo nº 06/2026 — vigente a partir de 01/10/2026</div><div class="ind-body">';
   h+='<div class="k">Jornada</div><div class="v">Redução da jornada semanal de 44h para 40h sem prejuízo da remuneração (art. 4º do Decreto 12.174/2024; IN SEGES/MGI 190/2024, com a redação da IN 148/2026). O preço mensal do posto permanece inalterado — muda apenas o custo hora-homem, por isso as horas contratadas passam de 220 para '+HORAS_POR_POSTO+' por posto/mês.</div>';
