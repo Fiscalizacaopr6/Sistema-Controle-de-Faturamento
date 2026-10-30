@@ -821,6 +821,9 @@ function applyLockUI(){
   const b=document.getElementById('lockBtn');
   if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
   else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
+  // o PDF é do servidor da PR-6: o fiscal (formulário travado) só assina e envia
+  const pdf=document.getElementById('btnPDFaba');
+  if(pdf) pdf.style.display=state.locked?'none':'';
 }
 /* A trava é local (não vai para a nuvem): cada computador abre travado e o
    servidor da PR-6 destrava com a senha padrão para preparar o formulário. */
