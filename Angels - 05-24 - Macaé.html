@@ -716,7 +716,8 @@ function applyRemote(payload){
   applyData(payload);
   // Mantém travado por padrão, a não ser que o usuário tenha destravado nesta sessão
   if(manterTravado){ globalLocked=true; globalPwd=SENHA_PADRAO; }
-  currentPeriod=Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
+  // travado: o fiscal fica sempre no período liberado; destravado, mantém a aba
+  currentPeriod=globalLocked?abaDoFiscal():Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
   applyPeriodToDOM(periods[currentPeriod]);
   applyGlobalLock(); toggleLockBtns();
   renderTabs(); recalcAll();
