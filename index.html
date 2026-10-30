@@ -1320,6 +1320,9 @@ html .bar-plot .bar-track{background:transparent}
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Contrato</span>
           <select class="sel" id="imr-f-contrato" onchange="buildImrTable()"><option value="">Todos</option></select>
         </div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="fl">Empresa</span>
+          <select class="sel" id="imr-f-empresa" onchange="buildImrTable()"><option value="">Todas</option></select>
+        </div>
         <div style="display:flex;align-items:center;gap:8px"><span class="fl">Responsável</span>
           <select class="sel" id="imr-f-resp" onchange="buildImrTable()"><option value="">Todos</option></select>
         </div>
@@ -5501,6 +5504,7 @@ var imrFiltered = [], imrPage = 1, imrPer = 50;
 function populateImrFilters() {
   fillCascadingFilters(IMR, [
     { id:'imr-f-contrato', placeholder:'Todos', get:function(r){ return r.contrato; } },
+    { id:'imr-f-empresa',  placeholder:'Todas', get:function(r){ return r.empresa; } },
     { id:'imr-f-resp',     placeholder:'Todos', get:function(r){ return retRespDoContrato(r.contrato); } }
   ]);
 }
@@ -5509,10 +5513,11 @@ function buildImrTable() {
   populateImrFilters();
   aplicarRespPadrao('imr', 'imr-f-resp');
   var q = (document.getElementById('imr-q') ? document.getElementById('imr-q').value : '').toLowerCase();
-  var fContrato = fVal('imr-f-contrato'), fResp = fVal('imr-f-resp');
+  var fContrato = fVal('imr-f-contrato'), fEmpresa = fVal('imr-f-empresa'), fResp = fVal('imr-f-resp');
   imrFiltered = IMR.filter(function(r) {
     var resp = retRespDoContrato(r.contrato);
     if (fContrato && String(r.contrato||'').trim() !== fContrato) return false;
+    if (fEmpresa && String(r.empresa||'').trim() !== fEmpresa) return false;
     if (fResp && String(resp||'').trim() !== fResp) return false;
     if (!q) return true;
     return (r.contrato||'').toLowerCase().indexOf(q) !== -1
