@@ -491,11 +491,6 @@ function renderTabs(){
     b.onclick=()=>{ currentTab=i; render(); };
     bar.appendChild(b);
   }
-  const r=document.createElement('button');
-  r.className='tab-btn special'+(currentTab==='ref'?' active':'');
-  r.textContent='📑 Referência';
-  r.onclick=()=>{ currentTab='ref'; render(); };
-  bar.appendChild(r);
   renderSeletorVisivel();
 }
 /* Destravado, o servidor escolhe qual período fica visível para o fiscal. */
