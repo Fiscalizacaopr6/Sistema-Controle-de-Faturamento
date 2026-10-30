@@ -93,6 +93,8 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 .lock-btn.unlocked{background:#fff8e1;color:#e65100;border-color:#e65100;}
 .lock-btn.locked{background:#ffebee;color:#b71c1c;border-color:#b71c1c;}
 .lock-btn:hover{opacity:.8;}
+.vis-box{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#1f3864;font-weight:bold;}
+.vis-box select{font-size:10px;padding:1px 3px;}
 .field-lock-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:1px 3px;line-height:1;vertical-align:middle;}
 .field-lock-btn:hover{opacity:.7;}
 
@@ -177,6 +179,9 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
   <button onclick="prevPeriod()">◀ Anterior</button>
   <span class="tab-info" id="tabInfo">Período 1 de 60</span>
   <button onclick="nextPeriod()">Próximo ▶</button>
+  <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()" title="Travar o formulário (senha 123456)">🔓 Travar</button>
+  <button class="lock-btn locked" id="btnUnlock" onclick="unlockAll()" title="Desbloquear (senha do servidor da PR-6)" style="display:none;">🔒 Desbloquear</button>
+  <span id="visBox" class="vis-box" style="display:none"><label for="selVisivel">Período do fiscal:</label><select id="selVisivel" onchange="setAbaVisivel(this.value)"></select></span>
   <span class="tab-hint">Cada aba = 1 período. Digite o período inicial na 1ª aba; os demais preenchem automaticamente.</span>
   <span id="saveStatus" style="font-size:10px;color:#2e7d32;font-weight:bold;white-space:nowrap;">💾 Salvamento automático ativo</span>
   <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
@@ -397,8 +402,6 @@ select.nota-sel{width:68px;font-size:11px;border:1px solid #aaa;padding:2px;back
 <!-- ══ POSTOS DE TRABALHO ══ -->
 <div class="sec-title" style="margin-top:14px;">
   <span>POSTOS DE TRABALHO</span>
-  <button class="lock-btn unlocked" id="btnLock" onclick="lockAll()" title="Travar Contrato, Contratada, Unidade, Postos e Creche em TODAS as abas">🔓 Travar Formulário</button>
-  <button class="lock-btn locked" id="btnUnlock" onclick="unlockAll()" title="Desbloquear todos os campos travados em TODAS as abas" style="display:none;">🔒 Desbloquear</button>
 </div>
 <div class="postos-scroll">
   <table class="postos-tbl" id="postosTable">
@@ -653,6 +656,7 @@ function todayISO(){ return new Date().toISOString().split('T')[0]; }
 // ─── ESTADO GLOBAL ───────────────────────────────────────────────
 let periods = [];          // 60 estados (um por período)
 let currentPeriod = 0;
+let abaVisivel = 0; // período único que o fiscal vê enquanto o formulário está travado
 let postoCount = 0;
 let globalLocked = false;
 let globalPwd = '';
@@ -712,7 +716,8 @@ function applyRemote(payload){
   applyData(payload);
   // Mantém travado por padrão, a não ser que o usuário tenha destravado nesta sessão
   if(manterTravado){ globalLocked=true; globalPwd=SENHA_PADRAO; }
-  currentPeriod=Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
+  // travado: o fiscal fica sempre no período liberado; destravado, mantém a aba
+  currentPeriod=globalLocked?abaDoFiscal():Math.min(Math.max(0,keepTab),NUM_PERIODS-1);
   applyPeriodToDOM(periods[currentPeriod]);
   applyGlobalLock(); toggleLockBtns();
   renderTabs(); recalcAll();
@@ -853,20 +858,38 @@ function applyPeriodToDOM(s){
 }
 
 // ─── ABAS ────────────────────────────────────────────────────────
+function abaDoFiscal(){ const i=Number(abaVisivel); return (i>=0&&i<NUM_PERIODS)?i:0; }
+function periodoLabel(i){ return (periods[i]&&periods[i].periodo)||('Período '+(i+1)); }
+function renderSeletorVisivel(){
+  const box=document.getElementById('visBox'), sel=document.getElementById('selVisivel');
+  if(!box||!sel) return;
+  box.style.display=globalLocked?'none':'inline-flex';
+  if(globalLocked) return;
+  let h='';
+  for(let i=0;i<NUM_PERIODS;i++){
+    const ass=(periods[i]&&periods[i].opCarimbo)?' ✓':'';
+    h+='<option value="'+i+'"'+(i===abaDoFiscal()?' selected':'')+'>'+esc(periodoLabel(i))+ass+'</option>';
+  }
+  sel.innerHTML=h;
+}
+function setAbaVisivel(v){ abaVisivel=Number(v); persist(); renderSeletorVisivel(); }
 function renderTabs(){
   const bar=document.getElementById('tabbar'); if(!bar) return;
   let h='';
-  for(let n=0;n<NUM_PERIODS;n++){
+  const ini=globalLocked?abaDoFiscal():0, fim=globalLocked?abaDoFiscal():NUM_PERIODS-1;
+  for(let n=ini;n<=fim;n++){
     const label=(periods[n]&&periods[n].periodo)?periods[n].periodo:('Período '+(n+1));
     h+='<button class="tab-btn'+(n===currentPeriod?' active':'')+'" onclick="switchPeriod('+n+')" title="'+esc(label)+'"><b>'+(n+1)+'</b><small>'+esc(label)+'</small></button>';
   }
   bar.innerHTML=h;
+  renderSeletorVisivel();
   setTxt('tabInfo','Período '+(currentPeriod+1)+' de '+NUM_PERIODS);
   const per=periods[currentPeriod];
   setTxt('periodoTag', (per&&per.periodo)?('▶ Aba '+(currentPeriod+1)):'' );
   const act=bar.querySelector('.tab-btn.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
 }
 function switchPeriod(n){
+  if(globalLocked) return; // travado: o fiscal vê apenas o período liberado
   if(n<0||n>=NUM_PERIODS||n===currentPeriod){ if(n===currentPeriod) return; }
   if(n<0||n>=NUM_PERIODS) return;
   periods[currentPeriod]=snapshotDOM();
@@ -1106,18 +1129,17 @@ function toggleLockBtns(){
   document.getElementById('btnUnlock').style.display = globalLocked?'inline-block':'none';
 }
 function lockAll(){
-  const pwd=prompt('Defina uma senha para travar o formulário (mín. 4 caracteres):');
-  if(!pwd||pwd.length<4){ alert('Senha inválida. Use pelo menos 4 caracteres.'); return; }
-  globalPwd=pwd; globalLocked=true; manterTravado=true;
-  applyGlobalLock(); toggleLockBtns(); persist();
-  alert('✅ Formulário travado com sucesso em TODAS as abas!');
+  periods[currentPeriod]=snapshotDOM();
+  globalPwd=SENHA_PADRAO; globalLocked=true; manterTravado=true;
+  currentPeriod=abaDoFiscal();
+  applyPeriodToDOM(periods[currentPeriod]);
+  applyGlobalLock(); toggleLockBtns(); renderTabs(); recalcAll(); persist();
 }
 function unlockAll(){
-  const pwd=prompt('Digite a senha para desbloquear:');
-  if(pwd!==globalPwd){ alert('❌ Senha incorreta.'); return; }
+  const pwd=prompt('Digite a senha do servidor da PR-6 para desbloquear:');
+  if(pwd!==globalPwd && pwd!==SENHA_PADRAO){ alert('❌ Senha incorreta.'); return; }
   globalLocked=false; globalPwd=''; manterTravado=false;
-  applyGlobalLock(); toggleLockBtns(); persist();
-  alert('🔓 Formulário desbloqueado em TODAS as abas.');
+  applyGlobalLock(); toggleLockBtns(); renderTabs(); recalcAll(); persist();
 }
 function applyGlobalLock(){
   // Cabeçalho compartilhado + editável
@@ -1266,7 +1288,7 @@ function collectData(){
   return {
     v:1,
     global:{ contrato:val('contrato'), contratada:val('contratada'), unidade:val('unidade'), fiscal:val('fiscal') },
-    periods:periods, currentPeriod:currentPeriod,
+    periods:periods, currentPeriod:currentPeriod, abaVisivel:abaVisivel,
     locked:globalLocked, pwd:globalPwd
   };
 }
@@ -1306,6 +1328,7 @@ function applyData(data){
   const src=Array.isArray(data.periods)?data.periods:[];
   for(let i=0;i<NUM_PERIODS;i++) periods.push(normalizePeriod(src[i]));
   currentPeriod=Math.min(Math.max(0, data.currentPeriod|0), NUM_PERIODS-1);
+  abaVisivel=Math.min(Math.max(0, data.abaVisivel|0), NUM_PERIODS-1);
   globalLocked=!!data.locked; globalPwd=data.pwd||'';
 }
 
@@ -1328,6 +1351,7 @@ if(saved){ applyData(saved); }
 // 4) Trava por padrão: toda abertura começa travada (senha 123456), para que
 // qualquer pessoa que abrir encontre o formulário bloqueado.
 globalLocked=true; globalPwd=SENHA_PADRAO; manterTravado=true;
+currentPeriod=abaDoFiscal();
 
 applyPeriodToDOM(periods[currentPeriod]);
 applyGlobalLock(); toggleLockBtns();
@@ -1385,6 +1409,12 @@ function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) 
 function abrirAssinatura(){
   // Assinar funciona mesmo com o formulário travado (a assinatura não altera
   // os campos travados — só estampa o carimbo do Fiscal Operacional).
+  const prox=(currentPeriod+1<NUM_PERIODS)?periodoLabel(currentPeriod+1):null;
+  const aviso='Enviar o período '+periodoLabel(currentPeriod)+'?\n\n'
+    +(prox?('Depois de enviado, este mês sai da tela e aparece '+prox+' para preenchimento.')
+          :'Depois de enviado, este mês sai da tela. Era o último período previsto no formulário.')
+    +'\n\nPara rever os meses já enviados, entrar em contato com o servidor responsável.';
+  if(!confirm(aviso)) return;
   document.getElementById('assSiapeInp').value='';
   document.getElementById('assSenhaInp').value='';
   setAssMsg('','');
@@ -1423,6 +1453,12 @@ function aplicarAssinatura(r){
   setVal('assFiscalOpMat', p.assFiscalOpMat);
   setVal('assOpCarimbo', carimbo);
   renderCarimboOp(carimbo);
+  periods[currentPeriod]=snapshotDOM();
+  // enviado: o período sai da tela do fiscal e o mês seguinte entra no lugar
+  if(currentPeriod===abaDoFiscal() && currentPeriod+1<NUM_PERIODS){
+    abaVisivel=currentPeriod+1; currentPeriod=abaVisivel;
+    applyPeriodToDOM(periods[currentPeriod]); applyGlobalLock(); renderTabs(); recalcAll();
+  }
   persist();
   fecharAssinatura();
   setCloudStatus('✍️ Assinado por '+(r.nome||'')+' em '+dh);
