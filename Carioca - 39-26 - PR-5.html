@@ -26,6 +26,7 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .tab-btn.cons.active{background:#fff;color:#7b4b12;border-color:#fff;}
 .tab-btn:hover{opacity:.92;}
 .tab-btn.hasglosa{box-shadow:inset 0 -3px 0 #ffd54f;}
+.tab-btn.assinado{box-shadow:inset 0 -3px 0 #2e7d32;}
 
 /* ── HEADER ── */
 .header-wrap{border:2px solid #1f3864;}
@@ -152,8 +153,12 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
   <div class="tab-nav">
     <span class="tab-info" id="tabInfo">Outubro/2026</span>
     <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
-    <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
-    <button class="lock-btn unlocked" id="lockBtn" onclick="toggleLock()">🔓 Destravado</button>
+    <span id="visBox" style="display:none;align-items:center;gap:5px;">
+      <label style="font-size:10px;font-weight:bold;color:#1f3864;white-space:nowrap;">Mês visível à empresa:</label>
+      <select id="selVisivel" onchange="setAbaVisivel(this.value)" style="font-size:10px;padding:2px 6px;border:1px solid #2e74b5;border-radius:3px;background:#f0f7ff;font-family:Arial;"></select>
+    </span>
+    <button class="lock-btn unlocked no-print" id="btnLock" onclick="lockForm()" title="Travar o formulário (senha 123456)">🔓 Travar</button>
+    <button class="lock-btn locked no-print" id="btnUnlock" onclick="unlockForm()" style="display:none;" title="Destravar (senha do servidor)">🔒 Destravar</button>
     <span class="tab-hint">Preencha as células em amarelo. Faixas, alíquotas e glosas são calculadas.</span>
   </div>
   <div class="tabbar" id="tabbar"></div>
@@ -181,10 +186,35 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
   <!-- conteúdo -->
   <div id="content"></div>
 
+  <!-- botões -->
+  <div class="btn-bar no-print" style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+    <button class="print-btn" style="background:#1f3864;" onclick="abrirAssinatura()">✍️ Assinar e enviar</button>
+    <button class="print-btn" id="btnPDF" onclick="salvarPDFAba(this)">⬇️ Baixar PDF</button>
+  </div>
+
+</div>
+
+<!-- Modal de assinatura -->
+<div id="assModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:2px solid #1f3864;border-radius:8px;width:360px;max-width:92vw;padding:18px 20px;font-family:Arial;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+    <div style="font-size:14px;font-weight:bold;color:#1f3864;margin-bottom:4px;">✍️ Assinatura do Fiscal</div>
+    <div style="font-size:11px;color:#555;margin-bottom:12px;">Informe seu <b>SIAPE</b> e a <b>senha</b> cadastrada na tela de Assinaturas.</div>
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">SIAPE</label>
+    <input type="text" id="assSiapeInp" inputmode="numeric" autocomplete="off" style="width:100%;margin:2px 0 10px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">Senha</label>
+    <input type="password" id="assSenhaInp" autocomplete="off" onkeydown="if(event.key==='Enter')confirmarAssinatura()" style="width:100%;margin:2px 0 6px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <div id="assMsg" style="font-size:11px;min-height:16px;margin:4px 0;color:#555;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="fecharAssinatura()" style="padding:7px 14px;border:1px solid #999;background:#eee;border-radius:4px;cursor:pointer;font-family:Arial;">Cancelar</button>
+      <button id="assBtn" onclick="confirmarAssinatura()" style="padding:7px 18px;border:none;background:#1f3864;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Assinar</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ═══════════════════ PERÍODOS ═══════════════════ */
 const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -253,6 +283,9 @@ const TOTAL_CONTRATO=ITENS.reduce((a,_,i)=>a+itemTotal(i),0);
 const STORAGE_KEY='IMR_CARIOCA_3926';
 let state=null;
 let currentTab=0;   // 0..11 = mês | 'cons' | 'crit' | 'comp'
+const SENHA_PADRAO='123456';   // o formulário abre SEMPRE travado com esta senha
+let manterTravado=true;        // true até o usuário destravar de propósito nesta sessão
+let abaVisivel=0;              // mês que a empresa vê enquanto travado
 
 function blankOcorr(){ return {data:'',ind:'',desc:'',prov:'',resp:'',evid:''}; }
 function blankMonth(){
@@ -260,11 +293,12 @@ function blankMonth(){
           occ:new Array(NUM_INDS).fill(''),
           qt:new Array(NUM_ITENS).fill(''),
           ocorr:[blankOcorr()],
+          carimbo:'', dataAprov:'',
           obs:''};
 }
 function defaultState(){
   const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankMonth());
-  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',locked:false,pwd:'',months};
+  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',locked:true,pwd:SENHA_PADRAO,visivel:0,months};
 }
 
 /* ═══════════════════ PARSE / FORMATO ═══════════════════ */
@@ -340,27 +374,48 @@ function gatilhoRescisao(){
 }
 
 /* ═══════════════════ RENDER — ABAS ═══════════════════ */
+function abaDoFiscal(){ const i=Number(abaVisivel); return (i>=0&&i<NUM_MONTHS)?i:0; }
+function renderSeletorVisivel(){
+  const box=document.getElementById('visBox'), sel=document.getElementById('selVisivel');
+  if(!box||!sel) return;
+  box.style.display=state.locked?'none':'inline-flex';
+  if(state.locked) return;
+  let h='';
+  for(let i=0;i<NUM_MONTHS;i++){
+    const ass=state.months[i].carimbo?' ✓':'';
+    h+='<option value="'+i+'"'+(i===abaDoFiscal()?' selected':'')+'>'+esc(MONTHS[i])+ass+'</option>';
+  }
+  sel.innerHTML=h;
+}
+function setAbaVisivel(v){ abaVisivel=Number(v); state.visivel=abaVisivel; persist(); renderSeletorVisivel(); }
 function renderTabs(){
   const bar=document.getElementById('tabbar'); bar.innerHTML='';
   const al=mesesAlerta();
+  // travado: a empresa vê apenas o mês liberado (abaVisivel); destravado: todas as abas
+  const ini=state.locked?abaDoFiscal():0, fim=state.locked?abaDoFiscal():NUM_MONTHS-1;
   MONTHS_SHORT.forEach((lbl,i)=>{
+    if(i<ini||i>fim) return;
     const b=document.createElement('button');
-    b.className='tab-btn'+(currentTab===i?' active':'')+(al[i]?' hasglosa':'');
+    b.className='tab-btn'+(currentTab===i?' active':'')+(al[i]?' hasglosa':'')+(state.months[i].carimbo?' assinado':'');
     b.innerHTML='<b>'+lbl.split('/')[0]+'</b><span>/'+lbl.split('/')[1]+'</span>';
-    b.title=MONTHS[i]+(al[i]?' — glosa ≥ 10%':'');
-    b.onclick=()=>{ currentTab=i; render(); };
+    b.title=MONTHS[i]+(al[i]?' — glosa ≥ 10%':'')+(state.months[i].carimbo?' — assinado':'');
+    b.onclick=()=>{ if(state.locked) return; currentTab=i; render(); };
     bar.appendChild(b);
   });
-  [['cons','📊 Consolidação','cons'],['crit','📑 Critérios','special'],['comp','📋 Composição','special']].forEach(([id,txt,cls])=>{
-    const b=document.createElement('button');
-    b.className='tab-btn '+cls+(currentTab===id?' active':'');
-    b.textContent=txt; b.style.minWidth='110px';
-    b.onclick=()=>{ currentTab=id; render(); };
-    bar.appendChild(b);
-  });
+  if(!state.locked){
+    [['cons','📊 Consolidação','cons'],['crit','📑 Critérios','special'],['comp','📋 Composição','special']].forEach(([id,txt,cls])=>{
+      const b=document.createElement('button');
+      b.className='tab-btn '+cls+(currentTab===id?' active':'');
+      b.textContent=txt; b.style.minWidth='110px';
+      b.onclick=()=>{ currentTab=id; render(); };
+      bar.appendChild(b);
+    });
+  }
+  renderSeletorVisivel();
 }
 
 function render(){
+  if(state.locked) currentTab=abaDoFiscal();   // travado: sempre no mês liberado
   renderTabs();
   const info=document.getElementById('tabInfo');
   const content=document.getElementById('content');
@@ -437,6 +492,13 @@ function monthHTML(mi){
   h+='<div class="sec-title"><span>OBSERVAÇÕES</span></div>';
   h+='<textarea class="obs-box" '+lk+' oninput="setF('+mi+',\'obs\',this.value)" '+
      'placeholder="Registre aqui as observações da Fiscalização relativas a esta medição.">'+esc(m.obs)+'</textarea>';
+
+  h+='<div class="sec-title"><span>ATESTE DO FISCAL</span></div>';
+  if(m.carimbo){
+    h+='<div style="border:1.5px solid #2e7d32;background:#f1f8f2;border-radius:4px;padding:8px 12px;margin-top:6px;font-size:11px;color:#1b5e20;white-space:pre-line;font-weight:bold;">'+esc(m.carimbo)+'</div>';
+  } else {
+    h+='<div style="border:1px dashed #aaa;border-radius:4px;padding:8px 12px;margin-top:6px;font-size:10px;color:#888;">Medição ainda não assinada. Use o botão <b>✍️ Assinar e enviar</b> abaixo.</div>';
+  }
   return h;
 }
 
@@ -732,38 +794,41 @@ function delOcorr(mi,ri){
 
 /* ═══════════════════ TRAVA ═══════════════════ */
 function applyLockUI(){
-  const b=document.getElementById('lockBtn');
-  if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
-  else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
-  ['fiscal','fiscalSub','gestor','preposto'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=state.locked; });
+  const bl=document.getElementById('btnLock'), bu=document.getElementById('btnUnlock');
+  if(bl) bl.style.display=state.locked?'none':'inline-block';
+  if(bu) bu.style.display=state.locked?'inline-block':'none';
+  const fi=document.getElementById('fiscal'); if(fi) fi.disabled=state.locked;
 }
-function toggleLock(){
-  if(!state.locked){
-    const pwd=prompt('Defina uma senha para TRAVAR o formulário (deixe em branco para travar sem senha):');
-    if(pwd===null) return;
-    state.locked=true; state.pwd=pwd||'';
-  } else {
-    if(state.pwd){ const t=prompt('Digite a senha para DESTRAVAR:'); if(t===null) return; if(t!==state.pwd){ alert('Senha incorreta.'); return; } }
-    state.locked=false;
-  }
+function lockForm(){
+  state.locked=true; state.pwd=SENHA_PADRAO; manterTravado=true;
+  currentTab=abaDoFiscal();
+  persist(); applyLockUI(); render();
+}
+function unlockForm(){
+  const t=prompt('Digite a senha para destravar o formulário:');
+  if(t===null) return;
+  if(t!==state.pwd && t!==SENHA_PADRAO){ alert('Senha incorreta.'); return; }
+  state.locked=false; manterTravado=false;
   persist(); applyLockUI(); render();
 }
 
 /* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
 function collectData(){
   return {v:1, fiscal:state.fiscal, fiscalSub:state.fiscalSub, gestor:state.gestor, preposto:state.preposto,
-          locked:state.locked, pwd:state.pwd, months:state.months};
+          locked:state.locked, pwd:state.pwd, visivel:state.visivel, months:state.months};
 }
 function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
 function applyData(p){
   if(!p) return;
   state.fiscal=p.fiscal||''; state.fiscalSub=p.fiscalSub||''; state.gestor=p.gestor||''; state.preposto=p.preposto||'';
   state.locked=!!p.locked; state.pwd=p.pwd||'';
+  state.visivel=(typeof p.visivel==='number')?p.visivel:0; abaVisivel=state.visivel;
   if(Array.isArray(p.months)){
     for(let i=0;i<NUM_MONTHS;i++){
       const s=p.months[i]; if(!s) continue;
       const m=blankMonth();
       m.nf=s.nf||''; m.ateste=s.ateste||''; m.bruto=s.bruto||''; m.obs=s.obs||'';
+      m.carimbo=s.carimbo||''; m.dataAprov=s.dataAprov||'';
       if(Array.isArray(s.occ)) for(let k=0;k<NUM_INDS;k++) m.occ[k]=s.occ[k]==null?'':s.occ[k];
       if(Array.isArray(s.qt))  for(let k=0;k<NUM_ITENS;k++) m.qt[k]=s.qt[k]==null?'':s.qt[k];
       if(Array.isArray(s.ocorr)&&s.ocorr.length){
@@ -781,6 +846,8 @@ function fillGlobals(){
 function loadState(){
   state=defaultState();
   try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+  // o formulário abre SEMPRE travado com a senha padrão, mesmo que tenha sido fechado destravado
+  state.locked=true; state.pwd=SENHA_PADRAO; manterTravado=true; currentTab=abaDoFiscal();
   fillGlobals();
 }
 
@@ -821,6 +888,8 @@ function applyRemote(payload){
   if(editing){ remotePending=payload; return; }
   applyingRemote=true;
   applyData(payload);
+  if(manterTravado){ state.locked=true; state.pwd=SENHA_PADRAO; }  // mantém travado por padrão
+  if(state.locked) currentTab=abaDoFiscal();
   applyLockUI();
   render();
   saveState();
@@ -837,6 +906,106 @@ function pushCloud(){
 function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
 function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
 document.addEventListener('focusout', function(){ if(remotePending){ const p=remotePending; remotePending=null; setTimeout(()=>applyRemote(p),50); } });
+// retrava ao sair da página, para a próxima abertura já vir travada
+window.addEventListener('beforeunload', function(){ state.locked=true; state.pwd=SENHA_PADRAO; try{ saveState(); }catch(e){} });
+
+/* ═══════════════════ ASSINATURA ELETRÔNICA (valida SIAPE + senha no nó /assinaturas) ═══════════════════ */
+const ASSINATURAS_URL='https://fiscalizacao-d9a39-default-rtdb.firebaseio.com/assinaturas.json';
+function hashSenha(senha, siape){
+  var txt='pr6:'+siape+':'+senha;
+  if(window.crypto&&window.crypto.subtle&&window.TextEncoder){
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  var h1=0x811c9dc5, h2=0x01000193;
+  for(var i=0;i<txt.length;i++){ h1=((h1^txt.charCodeAt(i))*16777619)>>>0; h2=((h2+txt.charCodeAt(i)*(i+7))*2246822519)>>>0; }
+  return Promise.resolve('fnv:'+('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8));
+}
+function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
+function abrirAssinatura(){
+  var mi=(typeof currentTab==='number')?currentTab:abaDoFiscal();
+  var prox=(mi+1<NUM_MONTHS)?MONTHS[mi+1]:null;
+  var aviso='Assinar e enviar a medição de '+MONTHS[mi]+'?\n\n'
+    +(prox?('Depois de enviado, este mês sai da tela e aparece '+prox+' para a empresa.')
+          :'Depois de enviado, este mês sai da tela. Era o último período previsto.')
+    +'\n\nPara rever meses já enviados, contate o servidor responsável.';
+  if(!confirm(aviso)) return;
+  document.getElementById('assSiapeInp').value='';
+  document.getElementById('assSenhaInp').value='';
+  setAssMsg('','');
+  document.getElementById('assModal').style.display='flex';
+  setTimeout(function(){ var el=document.getElementById('assSiapeInp'); if(el) el.focus(); },50);
+}
+function fecharAssinatura(){ var m=document.getElementById('assModal'); if(m) m.style.display='none'; }
+function confirmarAssinatura(){
+  var siape=(document.getElementById('assSiapeInp').value||'').trim();
+  var senha=document.getElementById('assSenhaInp').value||'';
+  if(!siape||!senha){ setAssMsg('err','Preencha SIAPE e senha.'); return; }
+  var btn=document.getElementById('assBtn'); var ol=btn.textContent; btn.disabled=true; btn.textContent='Verificando…';
+  setAssMsg('','Verificando…');
+  Promise.all([ fetch(ASSINATURAS_URL,{cache:'no-store'}).then(function(r){ return r.json(); }), hashSenha(senha,siape) ])
+    .then(function(res){
+      var data=res[0]||{}, hash=res[1], achou=null;
+      Object.keys(data||{}).forEach(function(k){
+        var r=data[k]; if(!r) return;
+        if(String(r.siape||'').trim()===siape && r.senhaHash && r.senhaHash===hash) achou=r;
+      });
+      if(!achou){ setAssMsg('err','SIAPE ou senha incorretos (ou SIAPE sem assinatura cadastrada).'); btn.disabled=false; btn.textContent=ol; return; }
+      aplicarAssinatura(achou); btn.disabled=false; btn.textContent=ol;
+    })
+    .catch(function(e){ console.error('assinatura:',e); setAssMsg('err','Não foi possível verificar a assinatura. Verifique a conexão.'); btn.disabled=false; btn.textContent=ol; });
+}
+function aplicarAssinatura(r){
+  var agora=new Date();
+  var dh=agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var carimbo='Serviço atestado por '+(r.nome||'')+'\nSIAPE '+(r.siape||'')+' — '+(r.cargo||'')+'\nEm '+dh;
+  var mi=(typeof currentTab==='number')?currentTab:abaDoFiscal();
+  state.months[mi].carimbo=carimbo;
+  state.months[mi].dataAprov=dh;
+  // enviado: o mês sai da tela da empresa e o próximo entra no lugar
+  if(mi===abaDoFiscal() && mi+1<NUM_MONTHS){ abaVisivel=mi+1; state.visivel=abaVisivel; currentTab=abaDoFiscal(); }
+  persist(); render(); fecharAssinatura();
+  setCloudStatus('✍️ Assinado por '+(r.nome||'')+' em '+dh);
+}
+
+/* Gera o PDF da aba atual direto no navegador (1 folha A4), sem diálogo de impressão. */
+async function salvarPDFAba(btn){
+  const pg=document.querySelector('.page');
+  if(!pg) return;
+  if(typeof html2canvas==='undefined' || !(window.jspdf&&window.jspdf.jsPDF)){
+    alert('Não foi possível carregar o gerador de PDF. Verifique a conexão e tente novamente.'); return;
+  }
+  const labelOrig=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Gerando…'; }
+  const tmp=document.createElement('style');
+  tmp.textContent='.tab-nav,.tabbar,.btn-bar,.add-btn,.lock-btn,.print-btn,.rm-btn{display:none!important;}'
+    +'.tbl-scroll{overflow:visible!important;}'
+    +'.obs-box{height:auto!important;min-height:0!important;overflow:visible!important;}'
+    +'input{border-bottom:1px solid #aaa!important;}'
+    +'input:disabled{background:#f0f0f0!important;}';
+  document.head.appendChild(tmp);
+  const taFix=[];
+  document.querySelectorAll('.obs-box').forEach(function(t){ taFix.push([t,t.style.height]); t.style.height=t.scrollHeight+'px'; });
+  try{
+    const canvas=await html2canvas(pg,{scale:2,backgroundColor:'#ffffff',useCORS:true,windowWidth:pg.scrollWidth});
+    const jsPDF=window.jspdf.jsPDF;
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+    const mg=8, availW=pw-2*mg, availH=ph-2*mg;
+    const sc=Math.min(availW/canvas.width, availH/canvas.height);
+    const w=canvas.width*sc, hh=canvas.height*sc;
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',(pw-w)/2, mg, w, hh);
+    const mi=(typeof currentTab==='number')?currentTab:abaDoFiscal();
+    const nome=('IMR Carioca 39-26 - '+MONTHS[mi]).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+    pdf.save(nome+'.pdf');
+  }catch(e){ alert('Falha ao gerar o PDF: '+(e&&e.message?e.message:e)); }
+  finally{
+    document.head.removeChild(tmp);
+    taFix.forEach(function(p){ p[0].style.height=p[1]; });
+    if(btn){ btn.disabled=false; btn.textContent=labelOrig; }
+  }
+}
 
 /* ═══════════════════ UTIL ═══════════════════ */
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
