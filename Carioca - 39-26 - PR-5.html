@@ -174,11 +174,11 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
       <div class="header-badge">IMR</div>
     </div>
     <div class="info-grid">
-      <div class="info-cell"><label>EMPRESA</label><span class="fixed">Carioca Solution Ltda.</span></div>
-      <div class="info-cell"><label>CONTRATO</label><span class="fixed">39/26</span></div>
-      <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Inicial de Contrato</span></div>
+      <div class="info-cell"><label>EMPRESA</label><input id="empresa" placeholder="Empresa contratada" oninput="onG('empresa',this.value)"></div>
+      <div class="info-cell"><label>CONTRATO</label><input id="contrato" placeholder="nº/ano" oninput="onG('contrato',this.value)"></div>
+      <div class="info-cell"><label>TERMO</label><input id="termo" placeholder="Termo" oninput="onG('termo',this.value)"></div>
       <div class="info-cell"><label>PERÍODO</label><span class="fixed" id="periodoHdr">—</span></div>
-      <div class="info-cell"><label>UNIDADE</label><span class="fixed">PR-5 (Extensão) e Gabinete do Reitor</span></div>
+      <div class="info-cell"><label>UNIDADE</label><input id="unidade" placeholder="Unidade" oninput="onG('unidade',this.value)"></div>
       <div class="info-cell full"><label>FISCAL</label><input id="fiscal" placeholder="Nome do fiscal" oninput="onG('fiscal',this.value)"></div>
     </div>
   </div>
@@ -298,7 +298,9 @@ function blankMonth(){
 }
 function defaultState(){
   const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankMonth());
-  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',locked:true,pwd:SENHA_PADRAO,visivel:0,months};
+  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',
+          empresa:'Carioca Solution Ltda.',contrato:'39/26',termo:'Termo Inicial de Contrato',unidade:'PR-5 (Extensão) e Gabinete do Reitor',
+          locked:true,pwd:SENHA_PADRAO,visivel:0,months};
 }
 
 /* ═══════════════════ PARSE / FORMATO ═══════════════════ */
@@ -433,7 +435,8 @@ function render(){
 
 /* ═══════════════════ RENDER — MÊS ═══════════════════ */
 function monthHTML(mi){
-  const m=state.months[mi], lk=state.locked?'disabled':'';
+  // Qtde no mês, Ocorrências no mês e Observações continuam editáveis mesmo travado
+  const m=state.months[mi], lk='';
   let h='';
   h+='<div class="sec-title"><span>EXECUÇÃO POR ITEM DA ATA — '+MONTHS[mi]+'</span></div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl" id="itensTbl"><thead><tr>';
@@ -797,7 +800,12 @@ function applyLockUI(){
   const bl=document.getElementById('btnLock'), bu=document.getElementById('btnUnlock');
   if(bl) bl.style.display=state.locked?'none':'inline-block';
   if(bu) bu.style.display=state.locked?'inline-block':'none';
-  const fi=document.getElementById('fiscal'); if(fi) fi.disabled=state.locked;
+  // Identidade do contrato (empresa/contrato/termo/unidade): editável só destravado
+  ['empresa','contrato','termo','unidade'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=state.locked; });
+  // Fiscal continua editável mesmo travado
+  const fi=document.getElementById('fiscal'); if(fi) fi.disabled=false;
+  // Baixar PDF aparece apenas no formulário destravado
+  const pdf=document.getElementById('btnPDF'); if(pdf) pdf.style.display=state.locked?'none':'inline-block';
 }
 function lockForm(){
   state.locked=true; state.pwd=SENHA_PADRAO; manterTravado=true;
@@ -815,12 +823,17 @@ function unlockForm(){
 /* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
 function collectData(){
   return {v:1, fiscal:state.fiscal, fiscalSub:state.fiscalSub, gestor:state.gestor, preposto:state.preposto,
+          empresa:state.empresa, contrato:state.contrato, termo:state.termo, unidade:state.unidade,
           locked:state.locked, pwd:state.pwd, visivel:state.visivel, months:state.months};
 }
 function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
 function applyData(p){
   if(!p) return;
   state.fiscal=p.fiscal||''; state.fiscalSub=p.fiscalSub||''; state.gestor=p.gestor||''; state.preposto=p.preposto||'';
+  if(p.empresa!=null) state.empresa=p.empresa;
+  if(p.contrato!=null) state.contrato=p.contrato;
+  if(p.termo!=null) state.termo=p.termo;
+  if(p.unidade!=null) state.unidade=p.unidade;
   state.locked=!!p.locked; state.pwd=p.pwd||'';
   state.visivel=(typeof p.visivel==='number')?p.visivel:0; abaVisivel=state.visivel;
   if(Array.isArray(p.months)){
@@ -840,7 +853,8 @@ function applyData(p){
   fillGlobals();
 }
 function fillGlobals(){
-  [['fiscal',state.fiscal],['fiscalSub',state.fiscalSub],['gestor',state.gestor],['preposto',state.preposto]]
+  [['fiscal',state.fiscal],['fiscalSub',state.fiscalSub],['gestor',state.gestor],['preposto',state.preposto],
+   ['empresa',state.empresa],['contrato',state.contrato],['termo',state.termo],['unidade',state.unidade]]
     .forEach(([id,v])=>{ const e=document.getElementById(id); if(e) e.value=v; });
 }
 function loadState(){
