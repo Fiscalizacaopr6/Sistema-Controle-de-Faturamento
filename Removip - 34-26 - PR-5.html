@@ -26,6 +26,7 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .tab-btn.cons.active{background:#fff;color:#7b4b12;border-color:#fff;}
 .tab-btn:hover{opacity:.92;}
 .tab-btn.hasglosa{box-shadow:inset 0 -3px 0 #ffd54f;}
+.tab-btn.assinado{box-shadow:inset 0 -3px 0 #2e7d32;}
 
 /* ── HEADER ── */
 .header-wrap{border:2px solid #1f3864;}
@@ -152,8 +153,12 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
   <div class="tab-nav">
     <span class="tab-info" id="tabInfo">Outubro/2026</span>
     <span id="cloudStatus" style="font-size:10px;color:#1565c0;font-weight:bold;white-space:nowrap;"></span>
-    <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
-    <button class="lock-btn unlocked" id="lockBtn" onclick="toggleLock()">🔓 Destravado</button>
+    <span id="visBox" style="display:none;align-items:center;gap:5px;">
+      <label style="font-size:10px;font-weight:bold;color:#1f3864;white-space:nowrap;">Mês visível à empresa:</label>
+      <select id="selVisivel" onchange="setAbaVisivel(this.value)" style="font-size:10px;padding:2px 6px;border:1px solid #2e74b5;border-radius:3px;background:#f0f7ff;font-family:Arial;"></select>
+    </span>
+    <button class="lock-btn unlocked no-print" id="btnLock" onclick="lockForm()" title="Travar o formulário (senha 123456)">🔓 Travar</button>
+    <button class="lock-btn locked no-print" id="btnUnlock" onclick="unlockForm()" style="display:none;" title="Destravar (senha do servidor)">🔒 Destravar</button>
     <span class="tab-hint">Preencha as células em amarelo. Faixas, alíquotas e glosas são calculadas.</span>
   </div>
   <div class="tabbar" id="tabbar"></div>
@@ -165,33 +170,51 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
       <div class="header-title">
         <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
         <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
-        <div class="sub">Anexo do Termo de Referência — Critérios de aferição, glosas e sanções (Art. 156, Lei nº 14.133/2021)</div>
       </div>
-      <div class="header-badge">IMR<small>Nº 01</small></div>
+      <div class="header-badge">IMR</div>
     </div>
     <div class="info-grid">
-      <div class="info-cell"><label>EMPRESA</label><span class="fixed">REMOVIP Serviço Médico Ltda.</span></div>
-      <div class="info-cell"><label>CONTRATO</label><span class="fixed">34/26</span></div>
-      <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Inicial de Contrato</span></div>
-      <div class="info-cell"><label>VIGÊNCIA</label><span class="fixed">02/10/2026 a 02/10/2027</span></div>
-      <div class="info-cell"><label>UNIDADE</label><span class="fixed">PR-5 (Extensão) e Gabinete do Reitor</span></div>
-      <div class="info-cell"><label>VALOR GLOBAL</label><span class="fixed">R$ 76.500,00 (estimado)</span></div>
-      <div class="info-cell"><label>PROCESSO SEI</label><span class="fixed">23079.249840/2026-16 — doc. 7085807</span></div>
-      <div class="info-cell"><label>MODALIDADE</label><span class="fixed">Pregão Eletrônico nº 90011/2026</span></div>
-      <div class="info-cell"><label>FISCAL TITULAR</label><input id="fiscal" placeholder="Nome do fiscal titular" oninput="onG('fiscal',this.value)"></div>
-      <div class="info-cell"><label>FISCAL SUBST.</label><input id="fiscalSub" placeholder="Nome do fiscal substituto" oninput="onG('fiscalSub',this.value)"></div>
-      <div class="info-cell"><label>GESTOR</label><input id="gestor" placeholder="Gestor do contrato" oninput="onG('gestor',this.value)"></div>
-      <div class="info-cell"><label>PREPOSTO</label><input id="preposto" placeholder="Preposto da CONTRATADA" oninput="onG('preposto',this.value)"></div>
+      <div class="info-cell"><label>EMPRESA</label><input id="empresa" placeholder="Empresa contratada" oninput="onG('empresa',this.value)"></div>
+      <div class="info-cell"><label>CONTRATO</label><input id="contrato" placeholder="nº/ano" oninput="onG('contrato',this.value)"></div>
+      <div class="info-cell"><label>TERMO</label><input id="termo" placeholder="Termo" oninput="onG('termo',this.value)"></div>
+      <div class="info-cell"><label>PERÍODO</label><span class="fixed" id="periodoHdr">—</span></div>
+      <div class="info-cell"><label>UNIDADE</label><input id="unidade" placeholder="Unidade" oninput="onG('unidade',this.value)"></div>
+      <div class="info-cell full"><label>FISCAL</label><input id="fiscal" placeholder="Nome do fiscal" oninput="onG('fiscal',this.value)"></div>
     </div>
   </div>
 
   <!-- conteúdo -->
   <div id="content"></div>
 
+  <!-- botões -->
+  <div class="btn-bar no-print" style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+    <button class="print-btn" style="background:#1f3864;" onclick="abrirAssinatura()">✍️ Assinar e enviar</button>
+    <button class="print-btn" id="btnPDF" onclick="salvarPDFAba(this)">⬇️ Baixar PDF</button>
+  </div>
+
+</div>
+
+<!-- Modal de assinatura -->
+<div id="assModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:2px solid #1f3864;border-radius:8px;width:360px;max-width:92vw;padding:18px 20px;font-family:Arial;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+    <div style="font-size:14px;font-weight:bold;color:#1f3864;margin-bottom:4px;">✍️ Assinatura do Fiscal</div>
+    <div style="font-size:11px;color:#555;margin-bottom:12px;">Informe seu <b>SIAPE</b> e a <b>senha</b> cadastrada na tela de Assinaturas.</div>
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">SIAPE</label>
+    <input type="text" id="assSiapeInp" inputmode="numeric" autocomplete="off" style="width:100%;margin:2px 0 10px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <label style="font-size:11px;font-weight:bold;color:#1f3864;display:block;">Senha</label>
+    <input type="password" id="assSenhaInp" autocomplete="off" onkeydown="if(event.key==='Enter')confirmarAssinatura()" style="width:100%;margin:2px 0 6px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <div id="assMsg" style="font-size:11px;min-height:16px;margin:4px 0;color:#555;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="fecharAssinatura()" style="padding:7px 14px;border:1px solid #999;background:#eee;border-radius:4px;cursor:pointer;font-family:Arial;">Cancelar</button>
+      <button id="assBtn" onclick="confirmarAssinatura()" style="padding:7px 18px;border:none;background:#1f3864;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Assinar</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ═══════════════════ PERÍODOS ═══════════════════ */
 const MESES_CAP=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -224,8 +247,8 @@ const NUM_INDS=INDS.length;
 // Retorna {faixa, aliq} para um indicador, dadas as ocorrências do mês e as acumuladas no contrato.
 function avaliar(i, occMes, occAcum){
   const d=INDS[i];
-  if(occMes===''||occMes===null||occMes===undefined||isNaN(occMes)) return {faixa:'—', aliq:null};
-  const om=Number(occMes);
+  // ocorrências no mês vazio = calcula como zero (sem ocorrência, glosa 0)
+  const om=(occMes===''||occMes===null||occMes===undefined||isNaN(occMes))?0:Number(occMes);
   if(om===0) return {faixa:'Sem ocorrência', aliq:0};
   if(d.base==='C'){                                  // acumulado no contrato (tipo A)
     const ac=Number(occAcum);
@@ -257,6 +280,9 @@ const TOTAL_CONTRATO=ITENS.reduce((a,_,i)=>a+itemTotal(i),0);
 const STORAGE_KEY='IMR_REMOVIP_3426';
 let state=null;
 let currentTab=0;   // 0..11 = mês | 'cons' | 'crit' | 'comp'
+const SENHA_PADRAO='123456';   // o formulário abre SEMPRE travado com esta senha
+let manterTravado=true;        // true até o usuário destravar de propósito nesta sessão
+let abaVisivel=0;              // mês que a empresa vê enquanto travado
 
 function blankOcorr(){ return {data:'',ind:'',desc:'',prov:'',resp:'',evid:''}; }
 function blankMonth(){
@@ -264,11 +290,14 @@ function blankMonth(){
           occ:new Array(NUM_INDS).fill(''),
           qt:new Array(NUM_ITENS).fill(''),
           ocorr:[blankOcorr()],
+          carimbo:'', dataAprov:'',
           obs:''};
 }
 function defaultState(){
   const months=[]; for(let i=0;i<NUM_MONTHS;i++) months.push(blankMonth());
-  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',locked:false,pwd:'',months};
+  return {fiscal:'',fiscalSub:'',gestor:'',preposto:'',
+          empresa:'REMOVIP Serviço Médico Ltda.',contrato:'34/26',termo:'Termo Inicial de Contrato',unidade:'PR-5 (Extensão) e Gabinete do Reitor',
+          locked:true,pwd:SENHA_PADRAO,visivel:0,months};
 }
 
 /* ═══════════════════ PARSE / FORMATO ═══════════════════ */
@@ -304,16 +333,22 @@ function acumulado(mi,i){
   for(let k=0;k<=mi;k++){ const v=parseNum(state.months[k].occ[i]); if(v!=='') s+=v; }
   return s;
 }
+// Valor-base da glosa = TOTAL EXECUTADO NO MÊS (Σ qtde executada × valor unitário dos itens da ATA)
+function brutoMes(mi){
+  let s=0, any=false;
+  for(let i=0;i<NUM_ITENS;i++){ const q=parseNum(state.months[mi].qt[i]); if(q!==''){ s+=q*ITENS[i].vu; any=true; } }
+  return any? s : '';
+}
 function linhaGlosa(mi,i){
   const om=parseNum(state.months[mi].occ[i]);
   const ac=INDS[i].base==='C'?acumulado(mi,i):'';
   const r=avaliar(i,om,ac);
-  const bruto=parseMoney(state.months[mi].bruto);
+  const bruto=brutoMes(mi);
   const valor=(r.aliq===null||bruto==='')?null:bruto*r.aliq;
   return {occMes:om, acum:ac, faixa:r.faixa, aliq:r.aliq, valor:valor};
 }
 function totaisMes(mi){
-  const bruto=parseMoney(state.months[mi].bruto);
+  const bruto=brutoMes(mi);
   let aliq=0, temAliq=false;
   for(let i=0;i<NUM_INDS;i++){ const l=linhaGlosa(mi,i); if(l.aliq!==null){ aliq+=l.aliq; temAliq=true; } }
   const glosa=(temAliq&&bruto!=='')?bruto*aliq:'';
@@ -338,30 +373,55 @@ function gatilhoRescisao(){
 }
 
 /* ═══════════════════ RENDER — ABAS ═══════════════════ */
+function abaDoFiscal(){ const i=Number(abaVisivel); return (i>=0&&i<NUM_MONTHS)?i:0; }
+function renderSeletorVisivel(){
+  const box=document.getElementById('visBox'), sel=document.getElementById('selVisivel');
+  if(!box||!sel) return;
+  box.style.display=state.locked?'none':'inline-flex';
+  if(state.locked) return;
+  let h='';
+  for(let i=0;i<NUM_MONTHS;i++){
+    const ass=state.months[i].carimbo?' ✓':'';
+    h+='<option value="'+i+'"'+(i===abaDoFiscal()?' selected':'')+'>'+esc(MONTHS[i])+ass+'</option>';
+  }
+  sel.innerHTML=h;
+}
+function setAbaVisivel(v){ abaVisivel=Number(v); state.visivel=abaVisivel; persist(); renderSeletorVisivel(); }
 function renderTabs(){
   const bar=document.getElementById('tabbar'); bar.innerHTML='';
   const al=mesesAlerta();
+  // travado: a empresa vê apenas o mês liberado (abaVisivel); destravado: todas as abas
+  const ini=state.locked?abaDoFiscal():0, fim=state.locked?abaDoFiscal():NUM_MONTHS-1;
   MONTHS_SHORT.forEach((lbl,i)=>{
+    if(i<ini||i>fim) return;
     const b=document.createElement('button');
-    b.className='tab-btn'+(currentTab===i?' active':'')+(al[i]?' hasglosa':'');
+    b.className='tab-btn'+(currentTab===i?' active':'')+(al[i]?' hasglosa':'')+(state.months[i].carimbo?' assinado':'');
     b.innerHTML='<b>'+lbl.split('/')[0]+'</b><span>/'+lbl.split('/')[1]+'</span>';
-    b.title=MONTHS[i]+(al[i]?' — glosa ≥ 10%':'');
-    b.onclick=()=>{ currentTab=i; render(); };
+    b.title=MONTHS[i]+(al[i]?' — glosa ≥ 10%':'')+(state.months[i].carimbo?' — assinado':'');
+    b.onclick=()=>{ if(state.locked) return; currentTab=i; render(); };
     bar.appendChild(b);
   });
-  [['cons','📊 Consolidação','cons'],['crit','📑 Critérios','special'],['comp','📋 Composição','special']].forEach(([id,txt,cls])=>{
-    const b=document.createElement('button');
-    b.className='tab-btn '+cls+(currentTab===id?' active':'');
-    b.textContent=txt; b.style.minWidth='110px';
-    b.onclick=()=>{ currentTab=id; render(); };
-    bar.appendChild(b);
-  });
+  if(!state.locked){
+    [['cons','📊 Consolidação','cons'],['crit','📑 Critérios','special'],['comp','📋 Composição','special']].forEach(([id,txt,cls])=>{
+      const b=document.createElement('button');
+      b.className='tab-btn '+cls+(currentTab===id?' active':'');
+      b.textContent=txt; b.style.minWidth='110px';
+      b.onclick=()=>{ currentTab=id; render(); };
+      bar.appendChild(b);
+    });
+  }
+  renderSeletorVisivel();
 }
 
 function render(){
+  if(state.locked) currentTab=abaDoFiscal();   // travado: sempre no mês liberado
   renderTabs();
   const info=document.getElementById('tabInfo');
   const content=document.getElementById('content');
+  const ph=document.getElementById('periodoHdr');
+  if(ph){ ph.textContent = (typeof currentTab==='number')
+      ? MONTHS[currentTab]
+      : (currentTab==='cons'?'Consolidação Anual':currentTab==='crit'?'Critérios do IMR':'Composição do Contrato'); }
   if(currentTab==='crit'){ info.textContent='Critérios do IMR (Referência)'; content.innerHTML=critHTML(); return; }
   if(currentTab==='comp'){ info.textContent='Composição do Contrato'; content.innerHTML=compHTML(); return; }
   if(currentTab==='cons'){ info.textContent='Consolidação Anual'; content.innerHTML=consHTML(); return; }
@@ -372,58 +432,10 @@ function render(){
 
 /* ═══════════════════ RENDER — MÊS ═══════════════════ */
 function monthHTML(mi){
-  const m=state.months[mi], lk=state.locked?'disabled':'';
+  // Qtde no mês, Ocorrências no mês e Observações continuam editáveis mesmo travado
+  const m=state.months[mi], lk='';
   let h='';
-  h+='<div class="instrucao"><b>Preenchimento:</b> informe o Nº da Nota Fiscal, o Nº do Ateste/SEI e o <b>Valor Bruto da Medição</b>; '+
-     'em seguida, para cada indicador (01 a 10), lance o <b>número de ocorrências apuradas no mês</b>. As colunas de ocorrências acumuladas, '+
-     'faixa aplicável, alíquota e valor da glosa são calculadas automaticamente. Os indicadores <b>01</b> e <b>04</b> usam contagem '+
-     '<b>acumulada ao longo do contrato</b>; os demais, contagem <b>mensal</b>.</div>';
-
-  h+='<div class="sec-title"><span>MEDIÇÃO MENSAL — '+MONTHS[mi]+'</span></div>';
-  h+='<div class="med-grid">';
-  h+='<div class="med-cell"><label>Período de referência</label><div class="ro">'+MONTHS[mi].toUpperCase().replace('/',' ')+'</div></div>';
-  h+='<div class="med-cell"><label>Nº da Nota Fiscal</label><input '+lk+' value="'+esc(m.nf)+'" oninput="setF('+mi+',\'nf\',this.value)" placeholder="NF nº"></div>';
-  h+='<div class="med-cell"><label>Nº do Ateste / SEI</label><input '+lk+' value="'+esc(m.ateste)+'" oninput="setF('+mi+',\'ateste\',this.value)" placeholder="doc. SEI"></div>';
-  h+='<div class="med-cell"><label>Valor Bruto da Medição (R$)</label><input class="money" '+lk+' value="'+esc(m.bruto)+'" oninput="setBruto('+mi+',this.value)" onblur="brutoBlur('+mi+')" placeholder="0,00"></div>';
-  h+='</div>';
-
-  h+='<div class="sec-title"><span>APURAÇÃO DOS INDICADORES E GLOSAS</span></div>';
-  h+='<div class="tbl-scroll"><table class="imr-tbl" id="indTbl"><thead><tr>';
-  h+='<th style="width:30px">Nº</th><th style="min-width:230px">Indicador</th><th style="width:60px">Base</th>';
-  h+='<th class="meas" style="width:78px">Ocorrências<br>no mês</th>';
-  h+='<th class="calc" style="width:82px">Ocorrências<br>acumuladas</th>';
-  h+='<th class="calc" style="min-width:190px">Faixa aplicável</th>';
-  h+='<th class="calc" style="width:74px">Alíquota<br>da glosa</th>';
-  h+='<th class="calc" style="width:110px">Valor da glosa (R$)</th>';
-  h+='</tr></thead><tbody>';
-  INDS.forEach((d,i)=>{
-    h+='<tr data-i="'+i+'">';
-    h+='<td class="num">'+d.n+'</td>';
-    h+='<td class="ind">'+esc(d.nome)+'</td>';
-    h+='<td class="base">'+(d.base==='C'?'Contrato':'Mês')+'</td>';
-    h+='<td><input class="ci meas" '+lk+' value="'+esc(m.occ[i])+'" oninput="setOcc('+mi+','+i+',this.value)"></td>';
-    h+='<td class="c" data-acum>—</td>';
-    h+='<td class="faixa" data-faixa>—</td>';
-    h+='<td class="c" data-aliq>—</td>';
-    h+='<td class="money" data-val>—</td>';
-    h+='</tr>';
-  });
-  h+='</tbody><tfoot>';
-  h+='<tr class="totrow"><td colspan="6" style="text-align:right">TOTAL DE GLOSAS DO MÊS</td><td id="totAliq">—</td><td class="money" id="totGlosa">—</td></tr>';
-  h+='<tr class="liqrow"><td colspan="7" style="text-align:right">VALOR LÍQUIDO A PAGAR (R$)</td><td id="totLiq" style="text-align:right">—</td></tr>';
-  h+='</tfoot></table></div>';
-
-  h+='<div class="month-summary">'+
-       '<div class="sum-card"><div class="lbl">Valor bruto da medição</div><div class="num" id="cardBruto">—</div></div>'+
-       '<div class="sum-card red"><div class="lbl">Total de glosas</div><div class="num" id="cardGlosa">—</div></div>'+
-       '<div class="sum-card red"><div class="lbl">Glosa (% da medição)</div><div class="num" id="cardPct">—</div></div>'+
-       '<div class="sum-card green"><div class="lbl">Valor líquido a pagar</div><div class="num" id="cardLiq">—</div></div>'+
-     '</div>';
-  h+='<div id="alertaMes"></div>';
-
   h+='<div class="sec-title"><span>EXECUÇÃO POR ITEM DA ATA — '+MONTHS[mi]+'</span></div>';
-  h+='<div class="instrucao">Informe a <b>quantidade executada no mês</b> de cada item. O saldo contratual é <b>acumulado</b>: '+
-     'desconta de cada item tudo o que já foi lançado de '+MONTHS[0]+' até '+MONTHS[mi]+'.</div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl" id="itensTbl"><thead><tr>';
   h+='<th style="min-width:200px">Grupo</th><th style="width:56px">Item ATA</th><th style="width:52px">Und.</th>'+
      '<th style="min-width:330px">Especificação</th><th class="meas" style="width:70px">Qtde<br>no mês</th>'+
@@ -449,18 +461,44 @@ function monthHTML(mi){
   h+='<div class="instrucao">O valor global é estimativo. Os pagamentos dependerão dos quantitativos efetivamente executados '+
      '(Cláusula Quinta, itens 5.2 e 5.3, do Contrato nº 34/2026).</div>';
 
-  h+='<div class="sec-title"><span>REGISTRO DE OCORRÊNCIAS — MEMÓRIA DE CÁLCULO DO ATESTE</span></div>';
-  h+='<div class="tbl-scroll"><table class="imr-tbl" id="ocTbl"><thead><tr>';
-  h+='<th style="width:84px">Data</th><th style="width:120px">Indicador</th><th style="min-width:230px">Descrição</th>'+
-     '<th style="min-width:190px">Providência</th><th style="width:140px">Responsável</th>'+
-     '<th style="width:130px">Evidência (doc. SEI)</th><th style="width:26px"></th></tr></thead><tbody>';
-  m.ocorr.forEach((o,ri)=>{ h+=ocorrRowHTML(mi,ri,o); });
-  h+='</tbody></table></div>';
-  h+='<button class="add-btn" '+lk+' onclick="addOcorr('+mi+')">+ Adicionar ocorrência</button>';
+  h+='<div class="sec-title"><span>APURAÇÃO DOS INDICADORES E GLOSAS</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl" id="indTbl"><thead><tr>';
+  h+='<th style="width:30px">Nº</th><th style="min-width:230px">Indicador</th><th style="width:60px">Base</th>';
+  h+='<th class="meas" style="width:78px">Ocorrências<br>no mês</th>';
+  h+='<th class="calc" style="width:82px">Ocorrências<br>acumuladas</th>';
+  h+='<th class="calc" style="min-width:190px">Faixa aplicável</th>';
+  h+='<th class="calc" style="width:74px">Alíquota<br>da glosa</th>';
+  h+='<th class="calc" style="width:110px">Valor da glosa (R$)</th>';
+  h+='</tr></thead><tbody>';
+  INDS.forEach((d,i)=>{
+    h+='<tr data-i="'+i+'">';
+    h+='<td class="num">'+d.n+'</td>';
+    h+='<td class="ind">'+esc(d.nome)+'</td>';
+    h+='<td class="base">'+(d.base==='C'?'Contrato':'Mês')+'</td>';
+    h+='<td><input class="ci meas" '+lk+' value="'+esc(m.occ[i])+'" oninput="setOcc('+mi+','+i+',this.value)"></td>';
+    h+='<td class="c" data-acum>—</td>';
+    h+='<td class="faixa" data-faixa>—</td>';
+    h+='<td class="c" data-aliq>—</td>';
+    h+='<td class="money" data-val>—</td>';
+    h+='</tr>';
+  });
+  h+='</tbody><tfoot>';
+  h+='<tr class="totrow"><td colspan="6" style="text-align:right">TOTAL DE GLOSAS DO MÊS</td><td id="totAliq">—</td><td class="money" id="totGlosa">—</td></tr>';
+  h+='<tr class="liqrow"><td colspan="7" style="text-align:right">VALOR APROVADO PARA PAGAMENTO (R$)</td><td id="totLiq" style="text-align:right">—</td></tr>';
+  h+='</tfoot></table></div>';
+
+  h+='<div id="alertaMes"></div>';
 
   h+='<div class="sec-title"><span>OBSERVAÇÕES</span></div>';
   h+='<textarea class="obs-box" '+lk+' oninput="setF('+mi+',\'obs\',this.value)" '+
      'placeholder="Registre aqui as observações da Fiscalização relativas a esta medição.">'+esc(m.obs)+'</textarea>';
+
+  h+='<div class="sec-title"><span>ATESTE DO FISCAL</span></div>';
+  if(m.carimbo){
+    h+='<div style="border:1.5px solid #2e7d32;background:#f1f8f2;border-radius:4px;padding:8px 12px;margin-top:6px;font-size:11px;color:#1b5e20;white-space:pre-line;font-weight:bold;">'+esc(m.carimbo)+'</div>';
+  } else {
+    h+='<div style="border:1px dashed #aaa;border-radius:4px;padding:8px 12px;margin-top:6px;font-size:10px;color:#888;">Medição ainda não assinada. Use o botão <b>✍️ Assinar e enviar</b> abaixo.</div>';
+  }
   return h;
 }
 
@@ -550,8 +588,8 @@ function consHTML(){
   const al=mesesAlerta(), g=gatilhoRescisao();
   let h='<div class="sec-title"><span>CONSOLIDAÇÃO ANUAL DE MEDIÇÕES E GLOSAS — Contrato nº 34/2026</span></div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl"><thead><tr>';
-  h+='<th style="width:90px">Mês</th><th style="width:130px">Valor Bruto (R$)</th><th style="width:130px">Total Glosa (R$)</th>'+
-     '<th style="width:90px">Glosa (%)</th><th style="width:130px">Líquido (R$)</th>'+
+  h+='<th style="width:90px">Mês</th><th style="width:130px">Total Executado (R$)</th><th style="width:130px">Total Glosa (R$)</th>'+
+     '<th style="width:90px">Glosa (%)</th><th style="width:130px">Valor Aprovado (R$)</th>'+
      '<th style="width:90px">Alerta 10%?</th><th style="min-width:210px">Rescisão (3 meses consec. ≥ 10%)</th></tr></thead><tbody>';
   let sb=0,sg=0,sl=0,anyB=false;
   let run=0;
@@ -578,9 +616,9 @@ function consHTML(){
   h+='<td class="money">'+(anyB?fmtMoney(sl):'—')+'</td><td colspan="2"></td></tr></tfoot></table></div>';
 
   h+='<div class="month-summary">'+
-     '<div class="sum-card"><div class="lbl">Bruto acumulado</div><div class="num">'+(anyB?fmtMoney(sb):'—')+'</div></div>'+
+     '<div class="sum-card"><div class="lbl">Executado acumulado</div><div class="num">'+(anyB?fmtMoney(sb):'—')+'</div></div>'+
      '<div class="sum-card red"><div class="lbl">Glosa acumulada</div><div class="num">'+(anyB?fmtMoney(sg):'—')+'</div></div>'+
-     '<div class="sum-card green"><div class="lbl">Líquido acumulado</div><div class="num">'+(anyB?fmtMoney(sl):'—')+'</div></div>'+
+     '<div class="sum-card green"><div class="lbl">Aprovado acumulado</div><div class="num">'+(anyB?fmtMoney(sl):'—')+'</div></div>'+
      '<div class="sum-card"><div class="lbl">Total do contrato (estimado)</div><div class="num">'+fmtMoney(TOTAL_CONTRATO)+'</div></div>'+
      '</div>';
   h+= g>-1
@@ -756,38 +794,51 @@ function delOcorr(mi,ri){
 
 /* ═══════════════════ TRAVA ═══════════════════ */
 function applyLockUI(){
-  const b=document.getElementById('lockBtn');
-  if(state.locked){ b.textContent='🔒 Travado'; b.className='lock-btn locked'; }
-  else { b.textContent='🔓 Destravado'; b.className='lock-btn unlocked'; }
-  ['fiscal','fiscalSub','gestor','preposto'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=state.locked; });
+  const bl=document.getElementById('btnLock'), bu=document.getElementById('btnUnlock');
+  if(bl) bl.style.display=state.locked?'none':'inline-block';
+  if(bu) bu.style.display=state.locked?'inline-block':'none';
+  // Identidade do contrato (empresa/contrato/termo/unidade): editável só destravado
+  ['empresa','contrato','termo','unidade'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=state.locked; });
+  // Fiscal continua editável mesmo travado
+  const fi=document.getElementById('fiscal'); if(fi) fi.disabled=false;
+  // Baixar PDF aparece apenas no formulário destravado
+  const pdf=document.getElementById('btnPDF'); if(pdf) pdf.style.display=state.locked?'none':'inline-block';
 }
-function toggleLock(){
-  if(!state.locked){
-    const pwd=prompt('Defina uma senha para TRAVAR o formulário (deixe em branco para travar sem senha):');
-    if(pwd===null) return;
-    state.locked=true; state.pwd=pwd||'';
-  } else {
-    if(state.pwd){ const t=prompt('Digite a senha para DESTRAVAR:'); if(t===null) return; if(t!==state.pwd){ alert('Senha incorreta.'); return; } }
-    state.locked=false;
-  }
+function lockForm(){
+  state.locked=true; state.pwd=SENHA_PADRAO; manterTravado=true;
+  currentTab=abaDoFiscal();
+  persist(); applyLockUI(); render();
+}
+function unlockForm(){
+  const t=prompt('Digite a senha para destravar o formulário:');
+  if(t===null) return;
+  if(t!==state.pwd && t!==SENHA_PADRAO){ alert('Senha incorreta.'); return; }
+  state.locked=false; manterTravado=false;
   persist(); applyLockUI(); render();
 }
 
 /* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
 function collectData(){
   return {v:1, fiscal:state.fiscal, fiscalSub:state.fiscalSub, gestor:state.gestor, preposto:state.preposto,
-          locked:state.locked, pwd:state.pwd, months:state.months};
+          empresa:state.empresa, contrato:state.contrato, termo:state.termo, unidade:state.unidade,
+          locked:state.locked, pwd:state.pwd, visivel:state.visivel, months:state.months};
 }
 function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData())); }catch(e){} }
 function applyData(p){
   if(!p) return;
   state.fiscal=p.fiscal||''; state.fiscalSub=p.fiscalSub||''; state.gestor=p.gestor||''; state.preposto=p.preposto||'';
+  if(p.empresa!=null) state.empresa=p.empresa;
+  if(p.contrato!=null) state.contrato=p.contrato;
+  if(p.termo!=null) state.termo=p.termo;
+  if(p.unidade!=null) state.unidade=p.unidade;
   state.locked=!!p.locked; state.pwd=p.pwd||'';
+  state.visivel=(typeof p.visivel==='number')?p.visivel:0; abaVisivel=state.visivel;
   if(Array.isArray(p.months)){
     for(let i=0;i<NUM_MONTHS;i++){
       const s=p.months[i]; if(!s) continue;
       const m=blankMonth();
       m.nf=s.nf||''; m.ateste=s.ateste||''; m.bruto=s.bruto||''; m.obs=s.obs||'';
+      m.carimbo=s.carimbo||''; m.dataAprov=s.dataAprov||'';
       if(Array.isArray(s.occ)) for(let k=0;k<NUM_INDS;k++) m.occ[k]=s.occ[k]==null?'':s.occ[k];
       if(Array.isArray(s.qt))  for(let k=0;k<NUM_ITENS;k++) m.qt[k]=s.qt[k]==null?'':s.qt[k];
       if(Array.isArray(s.ocorr)&&s.ocorr.length){
@@ -799,12 +850,15 @@ function applyData(p){
   fillGlobals();
 }
 function fillGlobals(){
-  [['fiscal',state.fiscal],['fiscalSub',state.fiscalSub],['gestor',state.gestor],['preposto',state.preposto]]
+  [['fiscal',state.fiscal],['fiscalSub',state.fiscalSub],['gestor',state.gestor],['preposto',state.preposto],
+   ['empresa',state.empresa],['contrato',state.contrato],['termo',state.termo],['unidade',state.unidade]]
     .forEach(([id,v])=>{ const e=document.getElementById(id); if(e) e.value=v; });
 }
 function loadState(){
   state=defaultState();
   try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+  // o formulário abre SEMPRE travado com a senha padrão, mesmo que tenha sido fechado destravado
+  state.locked=true; state.pwd=SENHA_PADRAO; manterTravado=true; currentTab=abaDoFiscal();
   fillGlobals();
 }
 
@@ -845,6 +899,8 @@ function applyRemote(payload){
   if(editing){ remotePending=payload; return; }
   applyingRemote=true;
   applyData(payload);
+  if(manterTravado){ state.locked=true; state.pwd=SENHA_PADRAO; }  // mantém travado por padrão
+  if(state.locked) currentTab=abaDoFiscal();
   applyLockUI();
   render();
   saveState();
@@ -861,6 +917,106 @@ function pushCloud(){
 function scheduleCloud(){ if(!cloudReady) return; clearTimeout(cloudSaveTimer); cloudSaveTimer=setTimeout(pushCloud,700); }
 function persist(){ saveState(); if(!applyingRemote) scheduleCloud(); }
 document.addEventListener('focusout', function(){ if(remotePending){ const p=remotePending; remotePending=null; setTimeout(()=>applyRemote(p),50); } });
+// retrava ao sair da página, para a próxima abertura já vir travada
+window.addEventListener('beforeunload', function(){ state.locked=true; state.pwd=SENHA_PADRAO; try{ saveState(); }catch(e){} });
+
+/* ═══════════════════ ASSINATURA ELETRÔNICA (valida SIAPE + senha no nó /assinaturas) ═══════════════════ */
+const ASSINATURAS_URL='https://fiscalizacao-d9a39-default-rtdb.firebaseio.com/assinaturas.json';
+function hashSenha(senha, siape){
+  var txt='pr6:'+siape+':'+senha;
+  if(window.crypto&&window.crypto.subtle&&window.TextEncoder){
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  var h1=0x811c9dc5, h2=0x01000193;
+  for(var i=0;i<txt.length;i++){ h1=((h1^txt.charCodeAt(i))*16777619)>>>0; h2=((h2+txt.charCodeAt(i)*(i+7))*2246822519)>>>0; }
+  return Promise.resolve('fnv:'+('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8));
+}
+function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el) return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
+function abrirAssinatura(){
+  var mi=(typeof currentTab==='number')?currentTab:abaDoFiscal();
+  var prox=(mi+1<NUM_MONTHS)?MONTHS[mi+1]:null;
+  var aviso='Assinar e enviar a medição de '+MONTHS[mi]+'?\n\n'
+    +(prox?('Depois de enviado, este mês sai da tela e aparece '+prox+' para a empresa.')
+          :'Depois de enviado, este mês sai da tela. Era o último período previsto.')
+    +'\n\nPara rever meses já enviados, contate o servidor responsável.';
+  if(!confirm(aviso)) return;
+  document.getElementById('assSiapeInp').value='';
+  document.getElementById('assSenhaInp').value='';
+  setAssMsg('','');
+  document.getElementById('assModal').style.display='flex';
+  setTimeout(function(){ var el=document.getElementById('assSiapeInp'); if(el) el.focus(); },50);
+}
+function fecharAssinatura(){ var m=document.getElementById('assModal'); if(m) m.style.display='none'; }
+function confirmarAssinatura(){
+  var siape=(document.getElementById('assSiapeInp').value||'').trim();
+  var senha=document.getElementById('assSenhaInp').value||'';
+  if(!siape||!senha){ setAssMsg('err','Preencha SIAPE e senha.'); return; }
+  var btn=document.getElementById('assBtn'); var ol=btn.textContent; btn.disabled=true; btn.textContent='Verificando…';
+  setAssMsg('','Verificando…');
+  Promise.all([ fetch(ASSINATURAS_URL,{cache:'no-store'}).then(function(r){ return r.json(); }), hashSenha(senha,siape) ])
+    .then(function(res){
+      var data=res[0]||{}, hash=res[1], achou=null;
+      Object.keys(data||{}).forEach(function(k){
+        var r=data[k]; if(!r) return;
+        if(String(r.siape||'').trim()===siape && r.senhaHash && r.senhaHash===hash) achou=r;
+      });
+      if(!achou){ setAssMsg('err','SIAPE ou senha incorretos (ou SIAPE sem assinatura cadastrada).'); btn.disabled=false; btn.textContent=ol; return; }
+      aplicarAssinatura(achou); btn.disabled=false; btn.textContent=ol;
+    })
+    .catch(function(e){ console.error('assinatura:',e); setAssMsg('err','Não foi possível verificar a assinatura. Verifique a conexão.'); btn.disabled=false; btn.textContent=ol; });
+}
+function aplicarAssinatura(r){
+  var agora=new Date();
+  var dh=agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var carimbo='Serviço atestado por '+(r.nome||'')+'\nSIAPE '+(r.siape||'')+' — '+(r.cargo||'')+'\nEm '+dh;
+  var mi=(typeof currentTab==='number')?currentTab:abaDoFiscal();
+  state.months[mi].carimbo=carimbo;
+  state.months[mi].dataAprov=dh;
+  // enviado: o mês sai da tela da empresa e o próximo entra no lugar
+  if(mi===abaDoFiscal() && mi+1<NUM_MONTHS){ abaVisivel=mi+1; state.visivel=abaVisivel; currentTab=abaDoFiscal(); }
+  persist(); render(); fecharAssinatura();
+  setCloudStatus('✍️ Assinado por '+(r.nome||'')+' em '+dh);
+}
+
+/* Gera o PDF da aba atual direto no navegador (1 folha A4), sem diálogo de impressão. */
+async function salvarPDFAba(btn){
+  const pg=document.querySelector('.page');
+  if(!pg) return;
+  if(typeof html2canvas==='undefined' || !(window.jspdf&&window.jspdf.jsPDF)){
+    alert('Não foi possível carregar o gerador de PDF. Verifique a conexão e tente novamente.'); return;
+  }
+  const labelOrig=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Gerando…'; }
+  const tmp=document.createElement('style');
+  tmp.textContent='.tab-nav,.tabbar,.btn-bar,.add-btn,.lock-btn,.print-btn,.rm-btn{display:none!important;}'
+    +'.tbl-scroll{overflow:visible!important;}'
+    +'.obs-box{height:auto!important;min-height:0!important;overflow:visible!important;}'
+    +'input{border-bottom:1px solid #aaa!important;}'
+    +'input:disabled{background:#f0f0f0!important;}';
+  document.head.appendChild(tmp);
+  const taFix=[];
+  document.querySelectorAll('.obs-box').forEach(function(t){ taFix.push([t,t.style.height]); t.style.height=t.scrollHeight+'px'; });
+  try{
+    const canvas=await html2canvas(pg,{scale:2,backgroundColor:'#ffffff',useCORS:true,windowWidth:pg.scrollWidth});
+    const jsPDF=window.jspdf.jsPDF;
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+    const mg=8, availW=pw-2*mg, availH=ph-2*mg;
+    const sc=Math.min(availW/canvas.width, availH/canvas.height);
+    const w=canvas.width*sc, hh=canvas.height*sc;
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',(pw-w)/2, mg, w, hh);
+    const mi=(typeof currentTab==='number')?currentTab:abaDoFiscal();
+    const nome=('IMR Removip 34-26 - '+MONTHS[mi]).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
+    pdf.save(nome+'.pdf');
+  }catch(e){ alert('Falha ao gerar o PDF: '+(e&&e.message?e.message:e)); }
+  finally{
+    document.head.removeChild(tmp);
+    taFix.forEach(function(p){ p[0].style.height=p[1]; });
+    if(btn){ btn.disabled=false; btn.textContent=labelOrig; }
+  }
+}
 
 /* ═══════════════════ UTIL ═══════════════════ */
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
