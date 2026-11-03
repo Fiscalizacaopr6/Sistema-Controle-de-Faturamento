@@ -174,8 +174,7 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
       <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Inicial de Contrato</span></div>
       <div class="info-cell"><label>PERÍODO</label><span class="fixed" id="periodoHdr">—</span></div>
       <div class="info-cell"><label>UNIDADE</label><span class="fixed">PR-5 (Extensão) e Gabinete do Reitor</span></div>
-      <div class="info-cell"><label>VALOR GLOBAL</label><span class="fixed">R$ 182.370,00 (estimado)</span></div>
-      <div class="info-cell full"><label>FISCAL TITULAR</label><input id="fiscal" placeholder="Nome do fiscal titular" oninput="onG('fiscal',this.value)"></div>
+      <div class="info-cell full"><label>FISCAL</label><input id="fiscal" placeholder="Nome do fiscal" oninput="onG('fiscal',this.value)"></div>
     </div>
   </div>
 
@@ -381,6 +380,32 @@ function render(){
 function monthHTML(mi){
   const m=state.months[mi], lk=state.locked?'disabled':'';
   let h='';
+  h+='<div class="sec-title"><span>EXECUÇÃO POR ITEM DA ATA — '+MONTHS[mi]+'</span></div>';
+  h+='<div class="tbl-scroll"><table class="imr-tbl" id="itensTbl"><thead><tr>';
+  h+='<th style="min-width:200px">Grupo</th><th style="width:56px">Item ATA</th><th style="width:52px">Und.</th>'+
+     '<th style="min-width:330px">Especificação</th><th class="meas" style="width:70px">Qtde<br>no mês</th>'+
+     '<th style="width:86px">Valor<br>Unitário</th><th class="calc" style="width:100px">Total do Item<br>no mês (R$)</th>'+
+     '<th class="calc" style="width:118px">Saldo contratual<br>do item (R$)</th></tr></thead><tbody>';
+  let lastG=null;
+  ITENS.forEach((it,i)=>{
+    if(it.g!==lastG){ h+='<tr class="grprow"><td colspan="8">'+esc(it.g)+' — total contratado: '+fmtMoney(ITENS.reduce((a,x,k)=>a+(x.g===it.g?itemTotal(k):0),0))+'</td></tr>'; lastG=it.g; }
+    h+='<tr data-it="'+i+'">';
+    h+='<td class="base" style="text-align:left">'+esc(it.g)+'</td>';
+    h+='<td>'+it.item+'</td><td>'+esc(it.und)+'</td>';
+    h+='<td class="espec">'+esc(it.esp)+'</td>';
+    h+='<td><input class="ci qt" '+lk+' value="'+esc(state.months[mi].qt[i])+'" oninput="setQt('+mi+','+i+',this.value)"></td>';
+    h+='<td style="text-align:right">'+fmtMoney(it.vu)+'</td>';
+    h+='<td class="money" data-ival>—</td>';
+    h+='<td class="money" data-isaldo>—</td>';
+    h+='</tr>';
+  });
+  h+='</tbody><tfoot><tr class="subrow"><td colspan="6" style="text-align:right">TOTAL EXECUTADO NO MÊS</td>'+
+     '<td class="money" id="itTotMes">—</td><td class="money" id="itSaldoTot">—</td></tr>'+
+     '<tr class="subrow"><td colspan="6" style="text-align:right">TOTAL DO CONTRATO (estimado)</td>'+
+     '<td colspan="2" style="text-align:right">'+fmtMoney(TOTAL_CONTRATO)+'</td></tr></tfoot></table></div>';
+  h+='<div class="instrucao">O valor global é estimativo. Os pagamentos dependerão dos quantitativos efetivamente executados '+
+     '(Cláusula Quinta, itens 5.2 e 5.3, do Contrato nº 39/2026).</div>';
+
   h+='<div class="sec-title"><span>APURAÇÃO DOS INDICADORES E GLOSAS</span></div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl" id="indTbl"><thead><tr>';
   h+='<th style="width:30px">Nº</th><th style="min-width:230px">Indicador</th><th style="width:60px">Base</th>';
@@ -408,32 +433,6 @@ function monthHTML(mi){
   h+='</tfoot></table></div>';
 
   h+='<div id="alertaMes"></div>';
-
-  h+='<div class="sec-title"><span>EXECUÇÃO POR ITEM DA ATA — '+MONTHS[mi]+'</span></div>';
-  h+='<div class="tbl-scroll"><table class="imr-tbl" id="itensTbl"><thead><tr>';
-  h+='<th style="min-width:200px">Grupo</th><th style="width:56px">Item ATA</th><th style="width:52px">Und.</th>'+
-     '<th style="min-width:330px">Especificação</th><th class="meas" style="width:70px">Qtde<br>no mês</th>'+
-     '<th style="width:86px">Valor<br>Unitário</th><th class="calc" style="width:100px">Total do Item<br>no mês (R$)</th>'+
-     '<th class="calc" style="width:118px">Saldo contratual<br>do item (R$)</th></tr></thead><tbody>';
-  let lastG=null;
-  ITENS.forEach((it,i)=>{
-    if(it.g!==lastG){ h+='<tr class="grprow"><td colspan="8">'+esc(it.g)+' — total contratado: '+fmtMoney(ITENS.reduce((a,x,k)=>a+(x.g===it.g?itemTotal(k):0),0))+'</td></tr>'; lastG=it.g; }
-    h+='<tr data-it="'+i+'">';
-    h+='<td class="base" style="text-align:left">'+esc(it.g)+'</td>';
-    h+='<td>'+it.item+'</td><td>'+esc(it.und)+'</td>';
-    h+='<td class="espec">'+esc(it.esp)+'</td>';
-    h+='<td><input class="ci qt" '+lk+' value="'+esc(state.months[mi].qt[i])+'" oninput="setQt('+mi+','+i+',this.value)"></td>';
-    h+='<td style="text-align:right">'+fmtMoney(it.vu)+'</td>';
-    h+='<td class="money" data-ival>—</td>';
-    h+='<td class="money" data-isaldo>—</td>';
-    h+='</tr>';
-  });
-  h+='</tbody><tfoot><tr class="subrow"><td colspan="6" style="text-align:right">TOTAL EXECUTADO NO MÊS</td>'+
-     '<td class="money" id="itTotMes">—</td><td class="money" id="itSaldoTot">—</td></tr>'+
-     '<tr class="subrow"><td colspan="6" style="text-align:right">TOTAL DO CONTRATO (estimado)</td>'+
-     '<td colspan="2" style="text-align:right">'+fmtMoney(TOTAL_CONTRATO)+'</td></tr></tfoot></table></div>';
-  h+='<div class="instrucao">O valor global é estimativo. Os pagamentos dependerão dos quantitativos efetivamente executados '+
-     '(Cláusula Quinta, itens 5.2 e 5.3, do Contrato nº 39/2026).</div>';
 
   h+='<div class="sec-title"><span>OBSERVAÇÕES</span></div>';
   h+='<textarea class="obs-box" '+lk+' oninput="setF('+mi+',\'obs\',this.value)" '+
