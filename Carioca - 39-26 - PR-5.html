@@ -165,7 +165,6 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
       <div class="header-title">
         <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
         <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
-        <div class="sub">Anexo do Termo de Referência — Critérios de aferição, glosas e sanções (Art. 156, Lei nº 14.133/2021)</div>
       </div>
       <div class="header-badge">IMR<small>Nº 01</small></div>
     </div>
@@ -173,15 +172,10 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
       <div class="info-cell"><label>EMPRESA</label><span class="fixed">Carioca Solution Ltda.</span></div>
       <div class="info-cell"><label>CONTRATO</label><span class="fixed">39/26</span></div>
       <div class="info-cell"><label>TERMO</label><span class="fixed">Termo Inicial de Contrato</span></div>
-      <div class="info-cell"><label>VIGÊNCIA</label><span class="fixed">20/10/2026 a 20/10/2027</span></div>
+      <div class="info-cell"><label>PERÍODO</label><span class="fixed" id="periodoHdr">—</span></div>
       <div class="info-cell"><label>UNIDADE</label><span class="fixed">PR-5 (Extensão) e Gabinete do Reitor</span></div>
       <div class="info-cell"><label>VALOR GLOBAL</label><span class="fixed">R$ 182.370,00 (estimado)</span></div>
-      <div class="info-cell"><label>PROCESSO SEI</label><span class="fixed">23079.254035/2026-04 — doc. 7141962</span></div>
-      <div class="info-cell"><label>MODALIDADE</label><span class="fixed">Pregão Eletrônico nº 29/2026</span></div>
-      <div class="info-cell"><label>FISCAL TITULAR</label><input id="fiscal" placeholder="Nome do fiscal titular" oninput="onG('fiscal',this.value)"></div>
-      <div class="info-cell"><label>FISCAL SUBST.</label><input id="fiscalSub" placeholder="Nome do fiscal substituto" oninput="onG('fiscalSub',this.value)"></div>
-      <div class="info-cell"><label>GESTOR</label><input id="gestor" placeholder="Gestor do contrato" oninput="onG('gestor',this.value)"></div>
-      <div class="info-cell"><label>PREPOSTO</label><input id="preposto" placeholder="Preposto da CONTRATADA" oninput="onG('preposto',this.value)"></div>
+      <div class="info-cell full"><label>FISCAL TITULAR</label><input id="fiscal" placeholder="Nome do fiscal titular" oninput="onG('fiscal',this.value)"></div>
     </div>
   </div>
 
@@ -307,16 +301,22 @@ function acumulado(mi,i){
   for(let k=0;k<=mi;k++){ const v=parseNum(state.months[k].occ[i]); if(v!=='') s+=v; }
   return s;
 }
+// Valor-base da glosa = TOTAL EXECUTADO NO MÊS (Σ qtde executada × valor unitário dos itens da ATA)
+function brutoMes(mi){
+  let s=0, any=false;
+  for(let i=0;i<NUM_ITENS;i++){ const q=parseNum(state.months[mi].qt[i]); if(q!==''){ s+=q*ITENS[i].vu; any=true; } }
+  return any? s : '';
+}
 function linhaGlosa(mi,i){
   const om=parseNum(state.months[mi].occ[i]);
   const ac=INDS[i].base==='C'?acumulado(mi,i):'';
   const r=avaliar(i,om,ac);
-  const bruto=parseMoney(state.months[mi].bruto);
+  const bruto=brutoMes(mi);
   const valor=(r.aliq===null||bruto==='')?null:bruto*r.aliq;
   return {occMes:om, acum:ac, faixa:r.faixa, aliq:r.aliq, valor:valor};
 }
 function totaisMes(mi){
-  const bruto=parseMoney(state.months[mi].bruto);
+  const bruto=brutoMes(mi);
   let aliq=0, temAliq=false;
   for(let i=0;i<NUM_INDS;i++){ const l=linhaGlosa(mi,i); if(l.aliq!==null){ aliq+=l.aliq; temAliq=true; } }
   const glosa=(temAliq&&bruto!=='')?bruto*aliq:'';
@@ -365,6 +365,10 @@ function render(){
   renderTabs();
   const info=document.getElementById('tabInfo');
   const content=document.getElementById('content');
+  const ph=document.getElementById('periodoHdr');
+  if(ph){ ph.textContent = (typeof currentTab==='number')
+      ? MONTHS[currentTab]
+      : (currentTab==='cons'?'Consolidação Anual':currentTab==='crit'?'Critérios do IMR':'Composição do Contrato'); }
   if(currentTab==='crit'){ info.textContent='Critérios do IMR (Referência)'; content.innerHTML=critHTML(); return; }
   if(currentTab==='comp'){ info.textContent='Composição do Contrato'; content.innerHTML=compHTML(); return; }
   if(currentTab==='cons'){ info.textContent='Consolidação Anual'; content.innerHTML=consHTML(); return; }
@@ -377,19 +381,6 @@ function render(){
 function monthHTML(mi){
   const m=state.months[mi], lk=state.locked?'disabled':'';
   let h='';
-  h+='<div class="instrucao"><b>Preenchimento:</b> informe o Nº da Nota Fiscal, o Nº do Ateste/SEI e o <b>Valor Bruto da Medição</b>; '+
-     'em seguida, para cada indicador (01 a 10), lance o <b>número de ocorrências apuradas no mês</b>. As colunas de ocorrências acumuladas, '+
-     'faixa aplicável, alíquota e valor da glosa são calculadas automaticamente. Os indicadores <b>01</b> e <b>04</b> usam contagem '+
-     '<b>acumulada ao longo do contrato</b>; os demais, contagem <b>mensal</b>.</div>';
-
-  h+='<div class="sec-title"><span>MEDIÇÃO MENSAL — '+MONTHS[mi]+'</span></div>';
-  h+='<div class="med-grid">';
-  h+='<div class="med-cell"><label>Período de referência</label><div class="ro">'+MONTHS[mi].toUpperCase().replace('/',' ')+'</div></div>';
-  h+='<div class="med-cell"><label>Nº da Nota Fiscal</label><input '+lk+' value="'+esc(m.nf)+'" oninput="setF('+mi+',\'nf\',this.value)" placeholder="NF nº"></div>';
-  h+='<div class="med-cell"><label>Nº do Ateste / SEI</label><input '+lk+' value="'+esc(m.ateste)+'" oninput="setF('+mi+',\'ateste\',this.value)" placeholder="doc. SEI"></div>';
-  h+='<div class="med-cell"><label>Valor Bruto da Medição (R$)</label><input class="money" '+lk+' value="'+esc(m.bruto)+'" oninput="setBruto('+mi+',this.value)" onblur="brutoBlur('+mi+')" placeholder="0,00"></div>';
-  h+='</div>';
-
   h+='<div class="sec-title"><span>APURAÇÃO DOS INDICADORES E GLOSAS</span></div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl" id="indTbl"><thead><tr>';
   h+='<th style="width:30px">Nº</th><th style="min-width:230px">Indicador</th><th style="width:60px">Base</th>';
@@ -413,20 +404,12 @@ function monthHTML(mi){
   });
   h+='</tbody><tfoot>';
   h+='<tr class="totrow"><td colspan="6" style="text-align:right">TOTAL DE GLOSAS DO MÊS</td><td id="totAliq">—</td><td class="money" id="totGlosa">—</td></tr>';
-  h+='<tr class="liqrow"><td colspan="7" style="text-align:right">VALOR LÍQUIDO A PAGAR (R$)</td><td id="totLiq" style="text-align:right">—</td></tr>';
+  h+='<tr class="liqrow"><td colspan="7" style="text-align:right">VALOR APROVADO PARA PAGAMENTO (R$)</td><td id="totLiq" style="text-align:right">—</td></tr>';
   h+='</tfoot></table></div>';
 
-  h+='<div class="month-summary">'+
-       '<div class="sum-card"><div class="lbl">Valor bruto da medição</div><div class="num" id="cardBruto">—</div></div>'+
-       '<div class="sum-card red"><div class="lbl">Total de glosas</div><div class="num" id="cardGlosa">—</div></div>'+
-       '<div class="sum-card red"><div class="lbl">Glosa (% da medição)</div><div class="num" id="cardPct">—</div></div>'+
-       '<div class="sum-card green"><div class="lbl">Valor líquido a pagar</div><div class="num" id="cardLiq">—</div></div>'+
-     '</div>';
   h+='<div id="alertaMes"></div>';
 
   h+='<div class="sec-title"><span>EXECUÇÃO POR ITEM DA ATA — '+MONTHS[mi]+'</span></div>';
-  h+='<div class="instrucao">Informe a <b>quantidade executada no mês</b> de cada item. O saldo contratual é <b>acumulado</b>: '+
-     'desconta de cada item tudo o que já foi lançado de '+MONTHS[0]+' até '+MONTHS[mi]+'.</div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl" id="itensTbl"><thead><tr>';
   h+='<th style="min-width:200px">Grupo</th><th style="width:56px">Item ATA</th><th style="width:52px">Und.</th>'+
      '<th style="min-width:330px">Especificação</th><th class="meas" style="width:70px">Qtde<br>no mês</th>'+
@@ -451,15 +434,6 @@ function monthHTML(mi){
      '<td colspan="2" style="text-align:right">'+fmtMoney(TOTAL_CONTRATO)+'</td></tr></tfoot></table></div>';
   h+='<div class="instrucao">O valor global é estimativo. Os pagamentos dependerão dos quantitativos efetivamente executados '+
      '(Cláusula Quinta, itens 5.2 e 5.3, do Contrato nº 39/2026).</div>';
-
-  h+='<div class="sec-title"><span>REGISTRO DE OCORRÊNCIAS — MEMÓRIA DE CÁLCULO DO ATESTE</span></div>';
-  h+='<div class="tbl-scroll"><table class="imr-tbl" id="ocTbl"><thead><tr>';
-  h+='<th style="width:84px">Data</th><th style="width:120px">Indicador</th><th style="min-width:230px">Descrição</th>'+
-     '<th style="min-width:190px">Providência</th><th style="width:140px">Responsável</th>'+
-     '<th style="width:130px">Evidência (doc. SEI)</th><th style="width:26px"></th></tr></thead><tbody>';
-  m.ocorr.forEach((o,ri)=>{ h+=ocorrRowHTML(mi,ri,o); });
-  h+='</tbody></table></div>';
-  h+='<button class="add-btn" '+lk+' onclick="addOcorr('+mi+')">+ Adicionar ocorrência</button>';
 
   h+='<div class="sec-title"><span>OBSERVAÇÕES</span></div>';
   h+='<textarea class="obs-box" '+lk+' oninput="setF('+mi+',\'obs\',this.value)" '+
@@ -553,8 +527,8 @@ function consHTML(){
   const al=mesesAlerta(), g=gatilhoRescisao();
   let h='<div class="sec-title"><span>CONSOLIDAÇÃO ANUAL DE MEDIÇÕES E GLOSAS — Contrato nº 39/2026</span></div>';
   h+='<div class="tbl-scroll"><table class="imr-tbl"><thead><tr>';
-  h+='<th style="width:90px">Mês</th><th style="width:130px">Valor Bruto (R$)</th><th style="width:130px">Total Glosa (R$)</th>'+
-     '<th style="width:90px">Glosa (%)</th><th style="width:130px">Líquido (R$)</th>'+
+  h+='<th style="width:90px">Mês</th><th style="width:130px">Total Executado (R$)</th><th style="width:130px">Total Glosa (R$)</th>'+
+     '<th style="width:90px">Glosa (%)</th><th style="width:130px">Valor Aprovado (R$)</th>'+
      '<th style="width:90px">Alerta 10%?</th><th style="min-width:210px">Rescisão (3 meses consec. ≥ 10%)</th></tr></thead><tbody>';
   let sb=0,sg=0,sl=0,anyB=false;
   let run=0;
@@ -581,9 +555,9 @@ function consHTML(){
   h+='<td class="money">'+(anyB?fmtMoney(sl):'—')+'</td><td colspan="2"></td></tr></tfoot></table></div>';
 
   h+='<div class="month-summary">'+
-     '<div class="sum-card"><div class="lbl">Bruto acumulado</div><div class="num">'+(anyB?fmtMoney(sb):'—')+'</div></div>'+
+     '<div class="sum-card"><div class="lbl">Executado acumulado</div><div class="num">'+(anyB?fmtMoney(sb):'—')+'</div></div>'+
      '<div class="sum-card red"><div class="lbl">Glosa acumulada</div><div class="num">'+(anyB?fmtMoney(sg):'—')+'</div></div>'+
-     '<div class="sum-card green"><div class="lbl">Líquido acumulado</div><div class="num">'+(anyB?fmtMoney(sl):'—')+'</div></div>'+
+     '<div class="sum-card green"><div class="lbl">Aprovado acumulado</div><div class="num">'+(anyB?fmtMoney(sl):'—')+'</div></div>'+
      '<div class="sum-card"><div class="lbl">Total do contrato (estimado)</div><div class="num">'+fmtMoney(TOTAL_CONTRATO)+'</div></div>'+
      '</div>';
   h+= g>-1
