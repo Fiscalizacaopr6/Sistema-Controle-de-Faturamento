@@ -166,7 +166,7 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
         <div class="org">UNIVERSIDADE FEDERAL DO RIO DE JANEIRO — PRÓ-REITORIA DE GESTÃO E GOVERNANÇA (PR-6)</div>
         <div class="main">INSTRUMENTO DE MEDIÇÃO DE RESULTADO</div>
       </div>
-      <div class="header-badge">IMR<small>Nº 01</small></div>
+      <div class="header-badge">IMR</div>
     </div>
     <div class="info-grid">
       <div class="info-cell"><label>EMPRESA</label><span class="fixed">Carioca Solution Ltda.</span></div>
@@ -217,8 +217,8 @@ const NUM_INDS=INDS.length;
 // Retorna {faixa, aliq} para um indicador, dadas as ocorrências do mês e as acumuladas no contrato.
 function avaliar(i, occMes, occAcum){
   const d=INDS[i];
-  if(occMes===''||occMes===null||occMes===undefined||isNaN(occMes)) return {faixa:'—', aliq:null};
-  const om=Number(occMes);
+  // ocorrências no mês vazio = calcula como zero (sem ocorrência, glosa 0)
+  const om=(occMes===''||occMes===null||occMes===undefined||isNaN(occMes))?0:Number(occMes);
   if(om===0) return {faixa:'Sem ocorrência', aliq:0};
   if(d.base==='C'){                                  // acumulado no contrato (tipo A)
     const ac=Number(occAcum);
