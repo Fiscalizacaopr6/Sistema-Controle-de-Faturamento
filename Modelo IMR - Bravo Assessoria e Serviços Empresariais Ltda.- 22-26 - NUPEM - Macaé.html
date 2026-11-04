@@ -80,7 +80,11 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .posto-eval-tbl th{background:#5a0000;color:#fff;border:1px solid #a33;padding:4px 5px;text-align:center;}
 .posto-eval-tbl td{border:1px solid #dcc;padding:2px 4px;vertical-align:middle;}
 .posto-eval-tbl td.calc{background:#fdf5f5;text-align:right;font-weight:bold;}
-.posto-eval-tbl th.sec-hdr{background:#7b0000;}
+/* Instrumento de cobrança (verde) */
+.posto-eval-tbl th.sec-hdr{background:#556b2f;}
+.posto-eval-tbl td.ic-cell{background:#f3f7e0;}
+.posto-eval-tbl td.ic-cell.calc{background:#e8f0c8;color:#33691e;}
+.posto-eval-tbl tr:hover td.ic-cell{background:#eef3d8;}
 
 /* IMR financial */
 .fin-tbl{border-collapse:collapse;font-size:11px;width:100%;}
@@ -93,11 +97,17 @@ body{font-family:Arial,sans-serif;font-size:11px;background:#e8e8e8;color:#000;}
 .fin-tbl tr.glosado td.lbl{background:#fff0c0;}
 .fin-tbl tr.glosado td.val{color:#a00;}
 
-/* Creche */
-.creche-tbl{border-collapse:collapse;font-size:11px;width:100%;}
-.creche-tbl td{border:1px solid #dcc;padding:5px 10px;}
-.creche-tbl td.lbl{background:#e8f4e8;font-weight:bold;color:#1a5e1a;width:55%;}
-.creche-tbl td.val{text-align:right;font-weight:bold;}
+/* Creche (estilo Angels 05/24 – laranja/âmbar) */
+.creche-wrap{border:2px solid #f57f17;border-radius:4px;overflow:hidden;}
+.creche-hdr{background:#f57f17;color:#fff;font-weight:bold;font-size:11px;padding:5px 10px;letter-spacing:.5px;}
+.creche2-tbl{border-collapse:collapse;width:100%;}
+.creche2-tbl td{border:1px solid #ffe0b2;padding:5px 8px;font-size:11px;vertical-align:middle;}
+.creche2-tbl td.lbl{background:#fff8e1;font-weight:bold;color:#e65100;width:60%;}
+.creche2-tbl td.val{background:#fffde7;text-align:right;}
+.creche2-tbl td.res{background:#e8f5e9;font-weight:bold;text-align:right;color:#1b5e20;}
+.creche2-tbl input{border:none;border-bottom:1.5px solid #f57f17;background:transparent;font-family:Arial;font-size:11px;text-align:right;outline:none;padding:2px 4px;}
+.creche2-tbl input:disabled{color:#000;-webkit-text-fill-color:#000;opacity:1;border-bottom:1px solid #ddd;}
+.creche-warn{font-size:10px;color:#b71c1c;font-weight:bold;padding:5px 8px;background:#ffebee;border:1px solid #f57f17;border-top:none;}
 
 /* Relatório */
 .rel-tbl{border-collapse:collapse;font-size:10px;white-space:nowrap;width:100%;}
@@ -223,18 +233,14 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- NAV -->
 <div class="nav-tabs">
-  <div class="nav-tab active" onclick="showTab('contrato')">📋 Contrato</div>
-  <div class="nav-tab" onclick="showTab('materiais')">📦 Materiais</div>
-  <div class="nav-tab" onclick="showTab('imr')">📊 IMR</div>
+  <div class="nav-tab active" id="tab-contrato" onclick="showTab('contrato')">📋 Contrato</div>
+  <div class="nav-tab" id="tab-materiais" onclick="showTab('materiais')">📦 Materiais</div>
+  <div class="nav-tab" id="tab-imr" onclick="showTab('imr')">📊 IMR</div>
   <div class="nav-tab" id="tab-relatorio" onclick="showTab('relatorio')">📄 Relatório</div>
 </div>
 
 <!-- ═══════════════════ CONTRATO ═══════════════════ -->
 <div id="sec-contrato" class="section active">
-  <div class="lock-bar">
-    <button class="btn btn-red" onclick="toggleLock()">🔒 Travar Planilha</button>
-  </div>
-
   <div class="sec-title"><span>📋 DADOS DO CONTRATO</span></div>
   <div class="info-grid">
     <div class="info-cell full">
@@ -284,6 +290,10 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- ═══════════════════ MATERIAIS ═══════════════════ -->
 <div id="sec-materiais" class="section">
   <div class="period-bar">
+    <button class="btn btn-red" id="btnLock" onclick="toggleLock()">🔒 Travar Planilha</button>
+    <label id="imr-period-lbl">Período:</label>
+    <select id="imr-period" onchange="onPeriodChange()"></select>
+    <span style="width:14px;"></span>
     <label>Unidade de Material:</label>
     <div class="unit-pills" id="mat-unit-pills" style="margin:0;"></div>
   </div>
@@ -293,10 +303,6 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- ═══════════════════ IMR ═══════════════════ -->
 <div id="sec-imr" class="section">
-  <div class="period-bar">
-    <label>Período:</label>
-    <select id="imr-period" onchange="renderIMR()"></select>
-  </div>
   <div id="imrContent"></div>
 </div>
 
@@ -306,7 +312,7 @@ input[type=number]{-moz-appearance:textfield;}
 </div>
 
 <div class="btn-bar">
-  <button class="btn btn-green" id="btnPDF" onclick="salvarPDF()">📄 Salvar PDF (aba atual)</button>
+  <button class="btn btn-green" id="btnPDF">📄 Salvar PDF (aba atual)</button>
 </div>
 
 <!-- Área montada dinamicamente só para impressão/PDF -->
@@ -370,6 +376,23 @@ input[type=number]{-moz-appearance:textfield;}
     <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn btn-gray" onclick="closeModal('modalMatImport')">Cancelar</button>
       <button class="btn btn-red" onclick="confirmMatImport()">✅ Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE ASSINATURA ELETRÔNICA -->
+<div id="assModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border:2px solid #7b0000;border-radius:8px;width:360px;max-width:92vw;padding:18px 20px;font-family:Arial;box-shadow:0 8px 30px rgba(0,0,0,.4);">
+    <div style="font-size:14px;font-weight:bold;color:#7b0000;margin-bottom:4px;">✍️ Assinatura do Fiscal Operacional</div>
+    <div style="font-size:11px;color:#555;margin-bottom:12px;">Informe seu <b>SIAPE</b> e a <b>senha</b> cadastrada na tela de Assinaturas.</div>
+    <label style="font-size:11px;font-weight:bold;color:#7b0000;display:block;">SIAPE</label>
+    <input type="text" id="assSiapeInp" inputmode="numeric" autocomplete="off" style="width:100%;margin:2px 0 10px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <label style="font-size:11px;font-weight:bold;color:#7b0000;display:block;">Senha</label>
+    <input type="password" id="assSenhaInp" autocomplete="off" onkeydown="if(event.key==='Enter')confirmarAssinatura()" style="width:100%;margin:2px 0 6px;padding:7px;border:1px solid #aaa;border-radius:4px;font-family:Arial;font-size:12px;">
+    <div id="assMsg" style="font-size:11px;min-height:16px;margin:4px 0;color:#555;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button onclick="fecharAssinatura()" style="padding:7px 14px;border:1px solid #999;background:#eee;border-radius:4px;cursor:pointer;font-family:Arial;">Cancelar</button>
+      <button id="assBtn" onclick="confirmarAssinatura()" style="padding:7px 18px;border:none;background:#7b0000;color:#fff;border-radius:4px;cursor:pointer;font-weight:bold;font-family:Arial;">Assinar</button>
     </div>
   </div>
 </div>
@@ -585,10 +608,19 @@ function buildMeses(inicioStr){
   ['mat-period','imr-period'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
-    const cur=el.value;
+    const cur=db.curPeriod||el.value;
     el.innerHTML=MESES.map(ms=>`<option value="${ms}"${ms===cur?' selected':''}>${ms}</option>`).join('');
-    if(!el.value&&MESES.length)el.value=MESES[0];
+    if((!el.value||MESES.indexOf(el.value)<0)&&MESES.length)el.value=MESES[0];
   });
+}
+
+// Troca de período (lista suspensa na aba Material) — reflete em Material e IMR
+function onPeriodChange(){
+  const el=document.getElementById('imr-period');
+  db.curPeriod=el?el.value:(MESES[0]||'');
+  autosave();
+  renderMat();
+  renderIMR();
 }
 
 // ─── UTILITIES ────────────────────────────────────────────────
@@ -676,13 +708,13 @@ function totalMatMes(mes){
 function getIMRData(period){
   if(!db.imr[period]){
     const n={};IMR_GRUPOS.forEach(g=>g.itens.forEach(it=>n[it.id]=3));
-    db.imr[period]={notas:n,diasTrabalhados:30,postos:{},creche:{retido:0,aprovados:0,valorBDI:0},ocorrencias:''};
+    db.imr[period]={notas:n,diasTrabalhados:30,postos:{},creche:{estUnit:0,retido:0,aprovados:0,valorBDI:0},ocorrencias:''};
   }
   if(!db.imr[period].notas||Object.keys(db.imr[period].notas).length===0||Object.values(db.imr[period].notas).every(v=>v===0)){
     const n={};IMR_GRUPOS.forEach(g=>g.itens.forEach(it=>n[it.id]=3));
     db.imr[period].notas=n;
   }
-  if(!db.imr[period].creche)db.imr[period].creche={retido:0,aprovados:0,valorBDI:0};
+  if(!db.imr[period].creche)db.imr[period].creche={estUnit:0,retido:0,aprovados:0,valorBDI:0};
   if(!db.imr[period].postos)db.imr[period].postos={};
   return db.imr[period];
 }
@@ -705,23 +737,16 @@ function calcIMR(notas){
 }
 
 // ─── LOCK ─────────────────────────────────────────────────────
-function _hashPass(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h.toString(16);}
+const LOCK_PASS='123456'; // senha fixa para destravar
 function toggleLock(){
   if(!globalLocked){
-    // Travar → definir senha
-    const pass=prompt('Defina uma senha para travar a planilha:');
-    if(pass===null)return;
-    if(!pass){alert('A senha não pode ser vazia.');return;}
-    const conf=prompt('Confirme a senha:');
-    if(conf===null)return;
-    if(pass!==conf){alert('As senhas não conferem.');return;}
-    db.lockPass=_hashPass(pass);
+    // Travar (sem senha; a planilha sempre abre travada)
     globalLocked=true;
   } else {
-    // Destravar → solicitar senha
+    // Destravar → senha fixa
     const pass=prompt('Digite a senha para destravar:');
     if(pass===null)return;
-    if(db.lockPass&&_hashPass(pass)!==db.lockPass){alert('Senha incorreta.');return;}
+    if(pass!==LOCK_PASS){alert('Senha incorreta.');return;}
     globalLocked=false;
   }
   autosave();
@@ -729,14 +754,41 @@ function toggleLock(){
   renderAll();
 }
 function updateLockUI(){
-  const btn=document.querySelector('.btn-red[onclick="toggleLock()"]');
+  const btn=document.getElementById('btnLock');
   if(btn)btn.textContent=globalLocked?'🔓 Destravar':'🔒 Travar Planilha';
-  document.getElementById('btn-add-posto').style.display=globalLocked?'none':'';
-  // Quando travada, a aba Relatório fica oculta
+  const ap=document.getElementById('btn-add-posto');
+  if(ap)ap.style.display=globalLocked?'none':'';
+  // Quando travada: abas Contrato e Relatório ficam ocultas
+  const cTab=document.getElementById('tab-contrato');
+  if(cTab)cTab.style.display=globalLocked?'none':'';
   const relTab=document.getElementById('tab-relatorio');
   if(relTab)relTab.style.display=globalLocked?'none':'';
-  // Se estava no Relatório ao travar, volta para o Contrato
-  if(globalLocked&&document.getElementById('sec-relatorio')?.classList.contains('active'))showTab('contrato');
+  // Quando travada: lista suspensa de período (na aba Material) fica oculta
+  const psel=document.getElementById('imr-period'), plab=document.getElementById('imr-period-lbl');
+  if(psel)psel.style.display=globalLocked?'none':'';
+  if(plab)plab.style.display=globalLocked?'none':'';
+  // Se estava numa aba oculta ao travar, vai para Materiais
+  if(globalLocked){
+    const act=document.querySelector('.section.active');
+    if(act&&(act.id==='sec-contrato'||act.id==='sec-relatorio'))showTab('materiais');
+  }
+  updateActionBtn();
+}
+// Botão inferior conforme a aba: IMR → Assinar; Relatório → PDF; Materiais/Contrato → oculto
+function updateActionBtn(){
+  const btn=document.getElementById('btnPDF');
+  if(!btn)return;
+  const act=document.querySelector('.section.active');
+  if(!act){btn.style.display='none';return;}
+  if(act.id==='sec-imr'){
+    btn.style.display='';btn.className='btn btn-red';
+    btn.textContent='✍️ Assinar e enviar';btn.onclick=abrirAssinatura;return;
+  }
+  if(act.id==='sec-relatorio'){
+    btn.style.display='';btn.className='btn btn-green';
+    btn.textContent='📄 Salvar PDF (aba atual)';btn.onclick=salvarPDF;return;
+  }
+  btn.style.display='none'; // Materiais e Contrato: sem botão
 }
 
 // ─── FILL FORM ────────────────────────────────────────────────
@@ -763,12 +815,14 @@ function saveField(field,val){
 function onInicioChange(val){
   db.contrato.inicio=val;
   autosave();
+  db.curPeriod=MESES[0]||'';
   buildMeses(val);
   // Reset selects to first period when start date changes
   ['mat-period','imr-period'].forEach(id=>{
     const el=document.getElementById(id);
     if(el&&MESES.length)el.value=MESES[0];
   });
+  autosave();
   renderMat();
   renderIMR();
 }
@@ -842,6 +896,9 @@ function renderMat(uSel){
   const itens=db.mat[u].itens||[];
   const lk=globalLocked;
   const anos=anosGrupos();
+  // Travada: mostra só a coluna do período em exibição no IMR
+  const curP=document.getElementById('imr-period')?.value||db.curPeriod||MESES[0];
+  const MS=lk?[curP]:MESES;
   const previsto=itens.reduce((s,it)=>s+fl2((it.qtd||0)*getLatestPrecoMat(it)),0);
 
   let h=`<div class="sec-title"><span>📦 MATERIAIS – Unidade ${u}</span>
@@ -856,7 +913,8 @@ function renderMat(uSel){
   h+=`<th rowspan="3" style="width:38px;">Und</th>`;
   h+=`<th rowspan="3" style="width:72px;">Valor<br>Unit. (R$)</th>`;
   h+=`<th rowspan="3" style="width:65px;">Qtd Prev.<br>/Mês</th>`;
-  anos.forEach(a=>{ h+=`<th colspan="${a.end-a.start}" style="background:#5a0000;font-size:9.5px;letter-spacing:.5px;">${a.label}</th>`; });
+  if(lk){ h+=`<th style="background:#5a0000;font-size:9.5px;letter-spacing:.5px;">${curP}</th>`; }
+  else { anos.forEach(a=>{ h+=`<th colspan="${a.end-a.start}" style="background:#5a0000;font-size:9.5px;letter-spacing:.5px;">${a.label}</th>`; }); }
   h+=`<th rowspan="3" style="width:92px;">Qtd Total<br>Estimada</th>`;
   h+=`<th rowspan="3" style="width:70px;">Saldo</th>`;
   if(!lk)h+=`<th rowspan="3" style="width:30px;"></th>`;
@@ -864,16 +922,16 @@ function renderMat(uSel){
 
   // Linha 2 — R$ total gasto por mês
   h+=`<tr>`;
-  MESES.forEach(mes=>{ const tot=totalMatMesUnit(mes,u); h+=`<th class="mh-total" id="mh_${mes.replace('-','_')}">${tot>0?BRL(tot):'R$&nbsp;–'}</th>`; });
+  MS.forEach(mes=>{ const tot=totalMatMesUnit(mes,u); h+=`<th class="mh-total" id="mh_${mes.replace('-','_')}">${tot>0?BRL(tot):'R$&nbsp;–'}</th>`; });
   h+=`</tr>`;
 
   // Linha 3 — nomes dos meses
   h+=`<tr>`;
-  MESES.forEach(m=>{ h+=`<th class="mh-name">${m}</th>`; });
+  MS.forEach(m=>{ h+=`<th class="mh-name">${m}</th>`; });
   h+=`</tr></thead><tbody>`;
 
   if(!itens.length){
-    h+=`<tr><td colspan="${5+MESES.length+2+(lk?0:1)}" style="text-align:center;color:#999;padding:10px;">Nenhum item cadastrado. Clique em <b>+ Adicionar Item</b> abaixo.</td></tr>`;
+    h+=`<tr><td colspan="${5+MS.length+2+(lk?0:1)}" style="text-align:center;color:#999;padding:10px;">Nenhum item cadastrado. Clique em <b>+ Adicionar Item</b> abaixo.</td></tr>`;
   }
   // Quando travado, oculta linhas com Qtd Prev./Mês = 0
   const rows=lk?itens.filter(it=>(+it.qtd||0)>0):itens;
@@ -892,7 +950,7 @@ function renderMat(uSel){
     h+=`<td><input class="mi c" value="${escH(it.und)}" placeholder="un" style="width:35px;" ${lk?'disabled':''} oninput="updMatItem(${u},${it.id},'und',this.value)"></td>`;
     h+=`<td style="text-align:center;"><input class="mi r" type="text" value="${BRL(latest||0)}" placeholder="R$ 0,00" style="width:80px;text-align:right;" ${(multi||lk)?'disabled title="Use 🔄 Atualizar Preços para alterar"':''} onblur="updMatPreco0(${u},${it.id},parseBRL(this.value));this.value=BRL(parseBRL(this.value))"></td>`;
     h+=`<td><input class="mi r" type="number" value="${it.qtd||''}" placeholder="0" step="0.01" min="0" style="text-align:center;" ${lk?'disabled':''} oninput="updMatItem(${u},${it.id},'qtd',+this.value||0)"></td>`;
-    MESES.forEach(mes=>{
+    MS.forEach(mes=>{
       const qr=+db.mat[u].lancamentos?.[mes]?.[it.id]||0;
       const inputId=`ci_${mes.replace('-','_')}_${u}_${it.id}`;
       h+=`<td style="padding:1px;background:#fdf5f5;"><input class="mi r" type="number" step="0.01" min="0" id="${inputId}" value="${qr||''}" style="width:58px;font-size:9px;text-align:center;" oninput="saveMatLanc('${mes}',${u},${it.id},+this.value||0)"></td>`;
@@ -1197,6 +1255,77 @@ function salvarPDF(){
 }
 window.addEventListener('afterprint',()=>{const pa=document.getElementById('printArea');if(pa)pa.innerHTML='';});
 
+// ─── ASSINATURA ELETRÔNICA (valida SIAPE + senha no nó /assinaturas) ──────────
+// Mesmo nó usado pelo Angels 05/24. A senha nunca trafega: compara-se o hash
+// (SHA-256 de 'pr6:'+SIAPE+':'+senha; fallback FNV em contexto não seguro).
+const ASSINATURAS_URL='https://fiscalizacao-d9a39-default-rtdb.firebaseio.com/assinaturas.json';
+function hashSenha(senha,siape){
+  var txt='pr6:'+siape+':'+senha;
+  if(window.crypto&&window.crypto.subtle&&window.TextEncoder){
+    return window.crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');
+    });
+  }
+  var h1=0x811c9dc5,h2=0x01000193;
+  for(var i=0;i<txt.length;i++){ h1=((h1^txt.charCodeAt(i))*16777619)>>>0; h2=((h2+txt.charCodeAt(i)*(i+7))*2246822519)>>>0; }
+  return Promise.resolve('fnv:'+('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8));
+}
+function setAssMsg(kind,txt){ var el=document.getElementById('assMsg'); if(!el)return; el.style.color=(kind==='err'?'#b71c1c':(kind==='ok'?'#1b5e20':'#555')); el.textContent=txt; }
+function abrirAssinatura(){
+  const period=document.getElementById('imr-period')?.value||db.curPeriod||MESES[0];
+  const idx=MESES.indexOf(period);
+  const prox=(idx>=0&&idx+1<MESES.length)?MESES[idx+1]:null;
+  const aviso='Enviar o período '+period+'?\n\n'
+    +(prox?('Depois de enviado, este mês sai da tela e aparece '+prox+' para preenchimento.')
+          :'Depois de enviado, este mês sai da tela. Era o último período previsto no formulário.')
+    +'\n\nPara rever os meses já enviados, destravar a planilha (senha com o servidor responsável).';
+  if(!confirm(aviso))return;
+  document.getElementById('assSiapeInp').value='';
+  document.getElementById('assSenhaInp').value='';
+  setAssMsg('','');
+  document.getElementById('assModal').style.display='flex';
+  setTimeout(function(){ var el=document.getElementById('assSiapeInp'); if(el)el.focus(); },50);
+}
+function fecharAssinatura(){ var m=document.getElementById('assModal'); if(m)m.style.display='none'; }
+function confirmarAssinatura(){
+  var siape=(document.getElementById('assSiapeInp').value||'').trim();
+  var senha=document.getElementById('assSenhaInp').value||'';
+  if(!siape||!senha){ setAssMsg('err','Preencha SIAPE e senha.'); return; }
+  var btn=document.getElementById('assBtn'); var ol=btn.textContent; btn.disabled=true; btn.textContent='Verificando…';
+  setAssMsg('','Verificando…');
+  Promise.all([ fetch(ASSINATURAS_URL,{cache:'no-store'}).then(function(r){return r.json();}), hashSenha(senha,siape) ])
+    .then(function(res){
+      var data=res[0]||{}, hash=res[1], achou=null;
+      Object.keys(data||{}).forEach(function(k){
+        var r=data[k]; if(!r)return;
+        if(String(r.siape||'').trim()===siape && r.senhaHash && r.senhaHash===hash) achou=r;
+      });
+      if(!achou){ setAssMsg('err','SIAPE ou senha incorretos (ou SIAPE sem assinatura cadastrada).'); btn.disabled=false; btn.textContent=ol; return; }
+      aplicarAssinatura(achou); btn.disabled=false; btn.textContent=ol;
+    })
+    .catch(function(e){ console.error('assinatura:',e); setAssMsg('err','Não foi possível verificar a assinatura. Verifique a conexão.'); btn.disabled=false; btn.textContent=ol; });
+}
+function aplicarAssinatura(r){
+  var agora=new Date();
+  var dh=agora.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var period=document.getElementById('imr-period')?.value||db.curPeriod||MESES[0];
+  var d=getIMRData(period);
+  d.assinatura={nome:r.nome||'',siape:r.siape||'',cargo:r.cargo||'',dataHora:dh};
+  autosave();
+  // Enviado: avança para o próximo período (o enviado sai da tela enquanto travado)
+  var idx=MESES.indexOf(period);
+  var avancou=false;
+  if(idx>=0&&idx+1<MESES.length){
+    db.curPeriod=MESES[idx+1];
+    var sel=document.getElementById('imr-period'); if(sel)sel.value=db.curPeriod;
+    avancou=true;
+    autosave();
+  }
+  fecharAssinatura();
+  renderIMR(); renderMat();
+  alert('✍️ Assinado por '+(r.nome||'')+' em '+dh+(avancou?('.\n\nPeríodo avançado para '+db.curPeriod+'.'):'.'));
+}
+
 // ─── IMR ──────────────────────────────────────────────────────
 function renderIMR(){
   const period=document.getElementById('imr-period')?.value||MESES[0]||'JAN-26';
@@ -1209,14 +1338,25 @@ function renderIMR(){
   const contratadoMensal=totalPostosMensal(period);
   const insumos=totalMatMes(period);
   const aprov=+(d.creche?.aprovados||0);
-  // Carry: Retido e 'Reembolso por dependente' repetem o ultimo valor informado ate serem alterados.
+  // Creche (modelo Angels 05/24): Retido = Valor estimado unitário × qtde contratada.
+  // 'Valor estimado unitário' e 'Reembolso por dependente' repetem o último valor informado (carry).
   const _ci=MESES.indexOf(period);
   const _carryAt=(key,upto)=>{ for(let i=upto;i>=0;i--){ const c=(db.imr[MESES[i]]||{}).creche; const v=c?fl2(c[key]):0; if(v) return v; } return 0; };
+  const qtdContratada=(db.contrato.postos||[]).reduce((n,p)=>n+(+p.qtd||0),0);
+  const estUnit=(_ci>=0)?_carryAt('estUnit',_ci):fl2(d.creche?.estUnit||0);
   const bdi=(_ci>=0)?_carryAt('valorBDI',_ci):fl2(d.creche?.valorBDI||0);
-  const retido=(_ci>=0)?_carryAt('retido',_ci):fl2(d.creche?.retido||0);
+  const retido=fl2(estUnit*qtdContratada);
   const reembolsoAprov=fl2(aprov*bdi);
+  // Saldo acumulado: Σ (Retido − Total Reembolsos) de todos os períodos até o atual.
   let saldoCreche=fl2(retido-reembolsoAprov);
-  if(_ci>=0){ saldoCreche=0; for(let i=0;i<=_ci;i++){ const ci=(db.imr[MESES[i]]||{}).creche||{}; saldoCreche=fl2(saldoCreche + _carryAt('retido',i) - fl2((+(ci.aprovados||0))*_carryAt('valorBDI',i))); } }
+  if(_ci>=0){
+    saldoCreche=0;
+    for(let i=0;i<=_ci;i++){
+      const ci=(db.imr[MESES[i]]||{}).creche||{};
+      const rb=fl2(_carryAt('estUnit',i)*qtdContratada);
+      saldoCreche=fl2(saldoCreche + rb - fl2((+(ci.aprovados||0))*_carryAt('valorBDI',i)));
+    }
+  }
 
   // Valor postos efetivo = Σ(Qtd × ValUnit × Dias/30 - SemCob × ValHora) × Grade_Pct (grade applied after)
   let valPostosBase=0;
@@ -1355,15 +1495,15 @@ function renderIMR(){
         </td>
         <td class="calc">${BRL(vh)}</td>
         <td class="calc" style="font-size:11px;">${BRL(valItem)}</td>
-        <td style="text-align:center;">${p.item}</td>
-        <td style="text-align:center;">${p.qtd}</td>
-        <td class="calc">${BRL(vuf)}</td>
+        <td class="ic-cell" style="text-align:center;">${p.item}</td>
+        <td class="ic-cell" style="text-align:center;">${p.qtd}</td>
+        <td class="ic-cell calc" style="text-align:center;">${BRL(vuf)}</td>
       </tr>`;
     });
     h+=`<tr style="background:#f5e0e0;font-weight:bold;">
       <td colspan="8" style="text-align:right;padding:5px 10px;">TOTAL DOS POSTOS:</td>
       <td class="calc" style="font-size:12px;">${BRL(totVal)}</td>
-      <td colspan="3"></td>
+      <td class="ic-cell" colspan="3"></td>
     </tr>`;
     h+='</tbody></table></div>';
   }
@@ -1397,29 +1537,29 @@ function renderIMR(){
     </table>
   </div>`;
 
-  // Creche
+  // Creche (estilo Angels 05/24)
   h+=`<div>
-    <div class="sec-title" style="background:#1a5e1a;"><span>🏫 REEMBOLSO CRECHE</span></div>
-    <table class="creche-tbl">
-      <tr><td class="lbl">Valor Reembolso Creche Retido (R$)</td>
-        <td class="val"><input class="mi r" type="number" step="0.01" value="${retido||''}" placeholder="0"
-          style="width:120px;text-align:right;border:1px solid #ccc;border-radius:3px;padding:3px 6px;" ${lk}
-          onchange="setIMRCreche('${period}','retido',+this.value||0)"></td></tr>
-      <tr><td class="lbl">Mensal + Reembolso (R$)</td>
-        <td class="val">${BRL(fl2(contratadoMensal+retido))}</td></tr>
-      <tr><td class="lbl">Reembolsos Aprovados (quantidade)</td>
-        <td class="val"><input class="mi r" type="number" min="0" value="${aprov||''}" placeholder="0"
-          style="width:80px;text-align:center;border:1px solid #ccc;border-radius:3px;padding:3px 6px;"
-          onchange="setIMRCreche('${period}','aprovados',+this.value||0)"></td></tr>
-      <tr><td class="lbl">Reembolso por dependente (R$)</td>
-        <td class="val"><input class="mi r" type="number" step="0.01" value="${bdi||''}" placeholder="0"
-          style="width:120px;text-align:right;border:1px solid #ccc;border-radius:3px;padding:3px 6px;" ${lk}
-          onchange="setIMRCreche('${period}','valorBDI',+this.value||0)"></td></tr>
-      <tr><td class="lbl">Valor Total dos Reembolsos (R$) <i style="font-size:9px;">(Aprovados × Reembolso por dependente)</i></td>
-        <td class="val">${BRL(reembolsoAprov)}</td></tr>
-      <tr><td class="lbl" style="background:#145214;">Saldo de Reembolso (R$) <i style="font-size:9px;">(acumulado: saldo anterior + Retido – Total)</i></td>
-        <td class="val" style="font-size:13px;">${BRL(saldoCreche)}</td></tr>
-    </table>
+    <div class="creche-wrap">
+      <div class="creche-hdr">🏫 REEMBOLSO DE CRECHE</div>
+      <table class="creche2-tbl">
+        <tr><td class="lbl">Valor estimado unitário (R$)</td>
+          <td class="val"><input type="number" step="0.01" min="0" value="${estUnit||''}" placeholder="0" ${lk}
+            style="width:120px;" onchange="setIMRCreche('${period}','estUnit',+this.value||0)"></td></tr>
+        <tr><td class="lbl">Valor Reembolso Creche Retido (R$)<br><small style="font-weight:normal">(Valor estimado unitário × qtde contratada: ${BR2(qtdContratada)})</small></td>
+          <td class="res">${BRL(retido)}</td></tr>
+        <tr><td class="lbl">Reembolsos Aprovados (quantidade)</td>
+          <td class="val"><input type="number" min="0" value="${aprov||''}" placeholder="0"
+            style="width:80px;text-align:center;" onchange="setIMRCreche('${period}','aprovados',+this.value||0)"></td></tr>
+        <tr><td class="lbl">Reembolso por dependente (R$)</td>
+          <td class="val"><input type="number" step="0.01" min="0" value="${bdi||''}" placeholder="0" ${lk}
+            style="width:120px;" onchange="setIMRCreche('${period}','valorBDI',+this.value||0)"></td></tr>
+        <tr><td class="lbl">Valor Total dos Reembolsos (R$)<br><small style="font-weight:normal">(Aprovados × Reembolso por dependente)</small></td>
+          <td class="res">${BRL(reembolsoAprov)}</td></tr>
+        <tr><td class="lbl">Saldo de Reembolso (R$)<br><small style="font-weight:normal">(acumulado: saldo anterior + Retido − Total)</small></td>
+          <td class="res" style="color:${saldoCreche<0?'#b71c1c':'#1b5e20'};font-size:13px;">${BRL(saldoCreche)}</td></tr>
+      </table>
+      ${saldoCreche<0?`<div class="creche-warn">⚠ ATENÇÃO: Saldo negativo — se houver mais de uma unidade neste contrato favor somar o saldo de todas unidades, se permanecer negativo será necessário ADITIVAR O CONTRATO PARA SUPORTAR A DESPESA!</div>`:''}
+    </div>
 
     <div class="sec-title" style="background:#555;margin-top:12px;"><span>📝 OCORRÊNCIAS / JUSTIFICATIVAS</span></div>
     <textarea style="width:100%;height:90px;border:1px solid #ccc;border-radius:3px;padding:6px;font-size:11px;font-family:Arial;resize:vertical;"
@@ -1429,6 +1569,16 @@ function renderIMR(){
   </div>`;
 
   h+=`</div>`; // close grid
+
+  // ── Assinatura do Fiscal Operacional ──
+  const ass=d.assinatura;
+  h+=`<div class="sec-title" style="background:#1b5e20;margin-top:12px;"><span>✍️ ASSINATURA DO FISCAL OPERACIONAL</span></div>`;
+  if(ass&&ass.nome){
+    h+=`<div style="border:2px solid #1b5e20;border-radius:5px;background:#eafbe9;color:#1b5e20;font-weight:bold;font-size:11px;line-height:1.5;padding:10px 14px;text-align:center;">
+      Serviço atestado por ${escH(ass.nome)}<br>SIAPE ${escH(ass.siape)} — ${escH(ass.cargo)}<br><span style="font-weight:normal;color:#444;">Data e hora: ${escH(ass.dataHora)}</span></div>`;
+  }else{
+    h+=`<div style="border:1px dashed #bbb;border-radius:5px;padding:10px 14px;color:#888;font-size:11px;">Período ainda não assinado. Use o botão <b>✍️ Assinar e enviar</b> no rodapé.</div>`;
+  }
 
   document.getElementById('imrContent').innerHTML=h;
 }
@@ -1542,16 +1692,18 @@ function renderRelatorio(){
 
 // ─── TABS ─────────────────────────────────────────────────────
 const tabMap={contrato:'sec-contrato',materiais:'sec-materiais',imr:'sec-imr',relatorio:'sec-relatorio'};
+const tabBtnMap={contrato:'tab-contrato',materiais:'tab-materiais',imr:'tab-imr',relatorio:'tab-relatorio'};
 function showTab(name){
+  // Abas Contrato e Relatório ficam indisponíveis quando travada
+  if(globalLocked&&(name==='contrato'||name==='relatorio'))name='materiais';
   Object.values(tabMap).forEach(id=>document.getElementById(id).classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById(tabMap[name]).classList.add('active');
-  document.querySelectorAll('.nav-tab').forEach(t=>{
-    if(t.textContent.toLowerCase().includes(name.substring(0,4).toLowerCase()))t.classList.add('active');
-  });
+  const tb=document.getElementById(tabBtnMap[name]); if(tb)tb.classList.add('active');
   if(name==='materiais')renderMat();
   if(name==='imr')renderIMR();
   if(name==='relatorio')renderRelatorio();
+  updateActionBtn();
 }
 
 // ─── MODAL ────────────────────────────────────────────────────
@@ -1594,9 +1746,11 @@ function renderAll(){
 
 // ─── INIT ─────────────────────────────────────────────────────
 loadDB();
+globalLocked=true;            // a planilha SEMPRE abre travada (destravar: senha 123456)
 buildMeses(db.contrato.inicio||'JAN-26');
+if(!db.curPeriod||MESES.indexOf(db.curPeriod)<0)db.curPeriod=MESES[0]||'';
 fillForm();
-updateLockUI();
+updateLockUI();               // travada → vai para a aba Materiais, oculta Contrato/Relatório/período
 initCloud();
 </script>
 </body>
