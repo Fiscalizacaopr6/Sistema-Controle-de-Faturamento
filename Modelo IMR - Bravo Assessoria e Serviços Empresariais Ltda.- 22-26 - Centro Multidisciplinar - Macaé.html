@@ -215,6 +215,8 @@ input[type=number]{-moz-appearance:textfield;}
 </style>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="page">
@@ -460,6 +462,7 @@ function getSpread(itemText,startIdx){
   if(t.includes('QUADRIMESTRAL')) return 4;
   if(t.includes('TRIMESTRAL'))    return 3;
   if(t.includes('SEMESTRAL'))     return 6;
+  if(t.includes('ANUAL'))         return 12; // 1 entrega cobre o ano de contrato
   if(t.includes('PERMANENTE'))    return MESES.length-startIdx; // até o fim do contrato
   return 1; // MENSAL ou não especificado
 }
@@ -470,6 +473,7 @@ function getMultiplier(itemText){
   if(t.includes('QUADRIMESTRAL')) return 3;
   if(t.includes('TRIMESTRAL'))    return 4;
   if(t.includes('SEMESTRAL'))     return 2;
+  if(t.includes('ANUAL'))         return 1;  // 1 entrega por ano
   if(t.includes('PERMANENTE'))    return 1;
   if(t.includes('MENSAL'))        return 12;
   return 60;
@@ -1263,34 +1267,73 @@ function printHeaderHTML(sub){
     <div class="p-head-badge">IMR</div>
   </div>`;
 }
-function salvarPDF(){
+// Gera o PDF direto no navegador (html2canvas+jsPDF) e BAIXA, sem diálogo de impressão.
+// `sheets` = array de HTML; cada item vira 1 página A4.
+async function baixarPDF(sheets,filename){
+  if(typeof html2canvas==='undefined' || !(window.jspdf&&window.jspdf.jsPDF)){
+    alert('Não foi possível carregar o gerador de PDF. Verifique sua conexão com a internet e tente novamente.');
+    return false;
+  }
+  const pa=document.getElementById('printArea');
+  const prevStyle=pa.getAttribute('style')||'';
+  pa.innerHTML=sheets.map(s=>`<div class="print-sheet">${s}</div>`).join('');
+  // Renderiza fora da tela (display:none não é capturável)
+  pa.style.cssText='display:block;position:absolute;left:-10000px;top:0;width:1000px;background:#fff;z-index:-1;';
+  const tmp=document.createElement('style');
+  tmp.textContent='#printArea .print-sheet *{overflow:visible!important;max-height:none!important;}'
+    +'#printArea input,#printArea select,#printArea textarea{border:none!important;background:transparent!important;-webkit-appearance:none;appearance:none;}';
+  document.head.appendChild(tmp);
+  try{
+    const jsPDF=window.jspdf.jsPDF;
+    const pdf=new jsPDF('p','mm','a4');
+    const nodes=pa.querySelectorAll('.print-sheet');
+    for(let i=0;i<nodes.length;i++){
+      const canvas=await html2canvas(nodes[i],{scale:2,backgroundColor:'#ffffff',useCORS:true,windowWidth:nodes[i].scrollWidth});
+      const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+      const m=8, availW=pw-2*m, availH=ph-2*m;
+      const sc=Math.min(availW/canvas.width, availH/canvas.height);
+      const w=canvas.width*sc, h=canvas.height*sc;
+      if(i>0)pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',(pw-w)/2,m,w,h);
+    }
+    pdf.save((filename||'IMR').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim()+'.pdf');
+  }catch(e){
+    alert('Falha ao gerar o PDF: '+(e&&e.message?e.message:e));
+  }finally{
+    document.head.removeChild(tmp);
+    pa.setAttribute('style',prevStyle); pa.innerHTML='';
+  }
+  return true;
+}
+async function salvarPDF(){
   const active=document.querySelector('.section.active');
   if(!active){alert('Abra uma aba para gerar o PDF.');return;}
-  let contentEl=null,sub='';
-  if(active.id==='sec-materiais'){renderMat();contentEl=document.getElementById('matContent');sub='Materiais – Unidade '+curMatUnit;}
-  else if(active.id==='sec-imr'){renderIMR();contentEl=document.getElementById('imrContent');sub='IMR '+(document.getElementById('imr-period')?.value||'');}
-  else if(active.id==='sec-relatorio'){renderRelatorio();contentEl=document.getElementById('relContent');sub='Relatório Consolidado';}
+  let contentEl=null,sub='',fn='';
+  const uni=db.contrato?.unidade||'';
+  if(active.id==='sec-materiais'){renderMat();contentEl=document.getElementById('matContent');sub='Materiais – Unidade '+curMatUnit;fn='Materiais U'+curMatUnit+' '+uni;}
+  else if(active.id==='sec-imr'){renderIMR();contentEl=document.getElementById('imrContent');sub='IMR '+(document.getElementById('imr-period')?.value||'');fn='IMR '+uni+' '+(document.getElementById('imr-period')?.value||'');}
+  else if(active.id==='sec-relatorio'){renderRelatorio();contentEl=document.getElementById('relContent');sub='Relatório Consolidado';fn='Relatorio '+uni;}
   else {alert('Selecione a aba Materiais, IMR ou Relatório para gerar o PDF.');return;}
-  const pa=document.getElementById('printArea');
-  pa.innerHTML=`<div class="print-sheet">${printHeaderHTML(sub)}${contentEl.innerHTML}</div>`;
-  window.print();
-  setTimeout(()=>{pa.innerHTML='';},600);
+  const btn=document.getElementById('btnPDF'); const lo=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='⏳ Gerando…';}
+  try{ await baixarPDF([printHeaderHTML(sub)+contentEl.innerHTML], fn); }
+  finally{ if(btn){btn.disabled=false;btn.textContent=lo;} }
 }
-// PDF combinado: planilha de Material + IMR, uma em cada página, e baixa
-function salvarPDFMatImr(){
+// PDF combinado: planilha de Material + IMR, uma em cada página, e baixa direto
+async function salvarPDFMatImr(){
   renderMat();renderIMR();
   const matEl=document.getElementById('matContent');
   const imrEl=document.getElementById('imrContent');
   if(!matEl||!imrEl){alert('Não foi possível montar o PDF.');return;}
   const per=document.getElementById('imr-period')?.value||db.curPeriod||'';
-  const pa=document.getElementById('printArea');
-  pa.innerHTML=
-    `<div class="print-sheet">${printHeaderHTML('Materiais – Unidade '+curMatUnit+(per?(' – '+per):''))}${matEl.innerHTML}</div>`+
-    `<div class="print-sheet">${printHeaderHTML('IMR'+(per?(' – '+per):''))}${imrEl.innerHTML}</div>`;
-  window.print();
-  setTimeout(()=>{pa.innerHTML='';},600);
+  const uni=db.contrato?.unidade||'';
+  const btn=document.getElementById('btnPDF'); const lo=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='⏳ Gerando…';}
+  try{
+    await baixarPDF(
+      [ printHeaderHTML('Materiais – Unidade '+curMatUnit+(per?(' – '+per):''))+matEl.innerHTML,
+        printHeaderHTML('IMR'+(per?(' – '+per):''))+imrEl.innerHTML ],
+      'IMR '+uni+(per?(' - '+per):''));
+  }finally{ if(btn){btn.disabled=false;btn.textContent=lo;} }
 }
-window.addEventListener('afterprint',()=>{const pa=document.getElementById('printArea');if(pa)pa.innerHTML='';});
 
 // ─── ASSINATURA ELETRÔNICA (valida SIAPE + senha no nó /assinaturas) ──────────
 // Mesmo nó usado pelo Angels 05/24. A senha nunca trafega: compara-se o hash
