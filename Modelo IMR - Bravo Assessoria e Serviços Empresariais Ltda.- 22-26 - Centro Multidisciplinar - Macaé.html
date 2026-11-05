@@ -670,9 +670,26 @@ function getLancMat(u,mes){
 function consumoTotalMat(u,itemId){
   return MESES.reduce((s,m)=>s+(+db.mat[u]?.lancamentos?.[m]?.[itemId]||0),0);
 }
-// Qtd Total Estimada = Qtd Prev./Mês × entregas por ano
+// Qtd Total Estimada = Qtd Prev./Mês × entregas por ano (valor de 1 ano de contrato)
 function qtdTotalEstimadaMat(it){
   return fl2((it.qtd||0)*getMultiplier(it.item));
+}
+// Ano de contrato (bloco de 12 meses) que contém o período em exibição
+function curAnoIdx(){
+  const anos=anosGrupos();
+  const p=document.getElementById('imr-period')?.value||db.curPeriod||MESES[0];
+  const idx=MESES.indexOf(p);
+  if(idx<0)return anos.length?anos.length-1:0;
+  return Math.min(Math.floor(idx/12),anos.length-1);
+}
+// Consumo de um item SOMENTE dentro de um ano de contrato (reinicia a cada 12 meses)
+function consumoAnoMat(u,itemId,aIdx){
+  const anos=anosGrupos();
+  const a=anos[aIdx]||anos[anos.length-1];
+  if(!a)return 0;
+  let s=0;
+  for(let i=a.start;i<a.end;i++) s+=(+db.mat[u]?.lancamentos?.[MESES[i]]?.[itemId]||0);
+  return fl2(s);
 }
 // Qtd efetiva de um item num mês (soma lançamentos cuja cobertura inclui o mês)
 function effectiveQtyMat(it,mes,u){
@@ -788,7 +805,11 @@ function updateActionBtn(){
     btn.style.display='';btn.className='btn btn-green';
     btn.textContent='📄 Salvar PDF (aba atual)';btn.onclick=salvarPDF;return;
   }
-  btn.style.display='none'; // Materiais e Contrato: sem botão
+  if(act.id==='sec-materiais'){
+    btn.style.display='';btn.className='btn btn-green';
+    btn.textContent='📄 Salvar PDF (Material + IMR)';btn.onclick=salvarPDFMatImr;return;
+  }
+  btn.style.display='none'; // Contrato: sem botão
 }
 
 // ─── FILL FORM ────────────────────────────────────────────────
@@ -896,6 +917,8 @@ function renderMat(uSel){
   const itens=db.mat[u].itens||[];
   const lk=globalLocked;
   const anos=anosGrupos();
+  const ai=curAnoIdx();
+  const anoLbl=anos[ai]?anos[ai].label:'';
   // Travada: mostra só a coluna do período em exibição no IMR
   const curP=document.getElementById('imr-period')?.value||db.curPeriod||MESES[0];
   const MS=lk?[curP]:MESES;
@@ -915,8 +938,8 @@ function renderMat(uSel){
   h+=`<th rowspan="3" style="width:65px;">Qtd Prev.<br>/Mês</th>`;
   if(lk){ h+=`<th style="background:#5a0000;font-size:9.5px;letter-spacing:.5px;">${curP}</th>`; }
   else { anos.forEach(a=>{ h+=`<th colspan="${a.end-a.start}" style="background:#5a0000;font-size:9.5px;letter-spacing:.5px;">${a.label}</th>`; }); }
-  h+=`<th rowspan="3" style="width:92px;">Qtd Total<br>Estimada</th>`;
-  h+=`<th rowspan="3" style="width:70px;">Saldo</th>`;
+  h+=`<th rowspan="3" style="width:92px;">Qtd Total<br>Estimada<br><small style="font-weight:normal;font-size:8px;">(${escH(anoLbl)})</small></th>`;
+  h+=`<th rowspan="3" style="width:70px;">Saldo<br><small style="font-weight:normal;font-size:8px;">(no ano)</small></th>`;
   if(!lk)h+=`<th rowspan="3" style="width:30px;"></th>`;
   h+=`</tr>`;
 
@@ -937,7 +960,7 @@ function renderMat(uSel){
   const rows=lk?itens.filter(it=>(+it.qtd||0)>0):itens;
   rows.forEach(it=>{
     const qtdEst=qtdTotalEstimadaMat(it);
-    const saldo=fl2(qtdEst-consumoTotalMat(u,it.id));
+    const saldo=fl2(qtdEst-consumoAnoMat(u,it.id,ai));
     const t=String(it.item||'').toUpperCase();
     const tip=t.includes('BIMESTRAL')?'Cobre 2 meses':t.includes('QUADRIMESTRAL')?'Cobre 4 meses':
               t.includes('TRIMESTRAL')?'Cobre 3 meses':t.includes('SEMESTRAL')?'Cobre 6 meses':
@@ -1010,7 +1033,7 @@ function updMatItem(u,id,field,val){
   autosave();
   if(field==='item'||field==='qtd'){
     const qtdEst=qtdTotalEstimadaMat(it);
-    const saldo=fl2(qtdEst-consumoTotalMat(u,id));
+    const saldo=fl2(qtdEst-consumoAnoMat(u,id,curAnoIdx()));
     const qt=document.getElementById(`qt_${u}_${id}`); if(qt)qt.textContent=BR2(qtdEst);
     const sd=document.getElementById(`ms_${u}_${id}`); if(sd){sd.textContent=BR2(saldo);sd.className=`calc${saldo<0?' neg':''}`;}
     if(field==='item')refreshMatHeaders(u); // periodicidade mudou → recalcula R$/mês
@@ -1029,7 +1052,7 @@ function saveMatLanc(mes,u,itemId,val){
   refreshMatHeaders(u);
   const it=db.mat[u]?.itens?.find(i=>i.id===itemId);
   if(it){
-    const saldo=fl2(qtdTotalEstimadaMat(it)-consumoTotalMat(u,itemId));
+    const saldo=fl2(qtdTotalEstimadaMat(it)-consumoAnoMat(u,itemId,curAnoIdx()));
     const sd=document.getElementById(`ms_${u}_${itemId}`); if(sd){sd.textContent=BR2(saldo);sd.className=`calc${saldo<0?' neg':''}`;}
   }
 }
@@ -1250,6 +1273,20 @@ function salvarPDF(){
   else {alert('Selecione a aba Materiais, IMR ou Relatório para gerar o PDF.');return;}
   const pa=document.getElementById('printArea');
   pa.innerHTML=`<div class="print-sheet">${printHeaderHTML(sub)}${contentEl.innerHTML}</div>`;
+  window.print();
+  setTimeout(()=>{pa.innerHTML='';},600);
+}
+// PDF combinado: planilha de Material + IMR, uma em cada página, e baixa
+function salvarPDFMatImr(){
+  renderMat();renderIMR();
+  const matEl=document.getElementById('matContent');
+  const imrEl=document.getElementById('imrContent');
+  if(!matEl||!imrEl){alert('Não foi possível montar o PDF.');return;}
+  const per=document.getElementById('imr-period')?.value||db.curPeriod||'';
+  const pa=document.getElementById('printArea');
+  pa.innerHTML=
+    `<div class="print-sheet">${printHeaderHTML('Materiais – Unidade '+curMatUnit+(per?(' – '+per):''))}${matEl.innerHTML}</div>`+
+    `<div class="print-sheet">${printHeaderHTML('IMR'+(per?(' – '+per):''))}${imrEl.innerHTML}</div>`;
   window.print();
   setTimeout(()=>{pa.innerHTML='';},600);
 }
