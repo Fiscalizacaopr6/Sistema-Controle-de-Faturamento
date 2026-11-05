@@ -217,7 +217,6 @@ input[type=number]{-moz-appearance:textfield;}
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="page">
@@ -316,7 +315,6 @@ input[type=number]{-moz-appearance:textfield;}
 
 <div class="btn-bar">
   <button class="btn btn-green" id="btnPDF">📄 Salvar PDF (aba atual)</button>
-  <button class="btn" id="btnXLS" style="display:none;background:#1d6f42;" onclick="baixarExcel()">📊 Baixar Excel (Material + IMR)</button>
 </div>
 
 <!-- Área montada dinamicamente só para impressão/PDF -->
@@ -800,10 +798,8 @@ function updateLockUI(){
 // Botão inferior conforme a aba: IMR → Assinar; Relatório → PDF; Materiais/Contrato → oculto
 function updateActionBtn(){
   const btn=document.getElementById('btnPDF');
-  const xls=document.getElementById('btnXLS');
   if(!btn)return;
   const act=document.querySelector('.section.active');
-  if(xls)xls.style.display='none'; // Excel só aparece na aba Material
   if(!act){btn.style.display='none';return;}
   if(act.id==='sec-imr'){
     btn.style.display='';btn.className='btn btn-red';
@@ -815,8 +811,7 @@ function updateActionBtn(){
   }
   if(act.id==='sec-materiais'){
     btn.style.display='';btn.className='btn btn-green';
-    btn.textContent='📄 Salvar PDF (Material + IMR)';btn.onclick=salvarPDFMatImr;
-    if(xls)xls.style.display='';return;
+    btn.textContent='📄 Salvar PDF (Material + IMR)';btn.onclick=salvarPDFMatImr;return;
   }
   btn.style.display='none'; // Contrato: sem botão
 }
@@ -1338,73 +1333,6 @@ async function salvarPDFMatImr(){
         printHeaderHTML('IMR'+(per?(' – '+per):''))+imrEl.innerHTML ],
       'IMR '+uni+(per?(' - '+per):''));
   }finally{ if(btn){btn.disabled=false;btn.textContent=lo;} }
-}
-
-// ─── EXPORTAR EXCEL (SheetJS) ─────────────────────────────────────────────────
-// Lê o valor "de verdade" de uma célula: input/select/textarea → value; senão texto.
-function _cellVal(td){
-  const f=td.querySelector('input,select,textarea');
-  if(f){
-    if(f.tagName==='SELECT'){ const o=f.options[f.selectedIndex]; return (o?o.text:f.value)||''; }
-    return f.value||'';
-  }
-  return (td.textContent||'').replace(/\s+/g,' ').trim();
-}
-// Converte UM <table> em matriz de linhas (respeita colspan; rowspan ignorado)
-function _tableToAOA(table){
-  const aoa=[];
-  table.querySelectorAll('tr').forEach(tr=>{
-    const row=[];
-    tr.querySelectorAll('th,td').forEach(td=>{
-      row.push(_cellVal(td));
-      const cs=+(td.getAttribute('colspan')||1);
-      for(let k=1;k<cs;k++)row.push('');
-    });
-    if(row.some(c=>c!==''))aoa.push(row);
-  });
-  return aoa;
-}
-// Junta todas as <table> de um container (com 1 linha em branco entre elas)
-function _containerToAOA(el){
-  let aoa=[];
-  el.querySelectorAll('table').forEach((t,i)=>{ if(i)aoa.push([]); aoa=aoa.concat(_tableToAOA(t)); });
-  return aoa;
-}
-// Gera e BAIXA um .xlsx com 2 abas: Material e IMR
-function baixarExcel(){
-  if(typeof XLSX==='undefined'){
-    alert('Não foi possível carregar o gerador de Excel. Verifique sua conexão com a internet e tente novamente.');
-    return;
-  }
-  renderMat();renderIMR();
-  const matEl=document.getElementById('matContent');
-  const imrEl=document.getElementById('imrContent');
-  if(!matEl||!imrEl){alert('Não foi possível montar o Excel.');return;}
-  const per=document.getElementById('imr-period')?.value||db.curPeriod||'';
-  const c=db.contrato||{};
-  const uni=c.unidade||'';
-  const btn=document.getElementById('btnXLS'); const lo=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='⏳ Gerando…';}
-  try{
-    const cab=[
-      ['INSTRUMENTO DE MEDIÇÃO DE RESULTADO – BOMBEIRO CIVIL'],
-      ['Unidade',uni],
-      ['Contrato',c.numero||''],
-      ['Contratada',c.contratada||''],
-      ['Período',per],
-      []
-    ];
-    const matAOA=cab.concat([['MATERIAIS – Unidade '+curMatUnit],[]]).concat(_containerToAOA(matEl));
-    const imrAOA=cab.concat([['IMR'+(per?(' – '+per):'')],[]]).concat(_containerToAOA(imrEl));
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(matAOA), 'Material');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(imrAOA), 'IMR');
-    const fn=('IMR '+uni+(per?(' - '+per):'')).replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim();
-    XLSX.writeFile(wb, (fn||'IMR')+'.xlsx');
-  }catch(e){
-    alert('Falha ao gerar o Excel: '+(e&&e.message?e.message:e));
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent=lo;}
-  }
 }
 
 // ─── ASSINATURA ELETRÔNICA (valida SIAPE + senha no nó /assinaturas) ──────────
