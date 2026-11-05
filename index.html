@@ -1273,7 +1273,7 @@ html .bar-plot .bar-track{background:transparent}
     <div class="view" id="view-empresas">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;max-width:420px">
-          <input id="empresa-q" type="text" placeholder="Buscar por empresa, responsável ou e-mail..." oninput="buildEmpresasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <input id="empresa-q" type="text" placeholder="Buscar por empresa, CNPJ, responsável ou e-mail..." oninput="buildEmpresasTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;padding:7px 12px;outline:none;flex:1;min-width:0;transition:border-color .15s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
           <button class="btn-export pdf" onclick="exportEmpresasPDF()">⬇ PDF</button>
           <button class="btn-export xlsx" onclick="exportEmpresasExcel()">⬇ Excel</button>
           <button class="btn-new" id="btn-novo-empresa" onclick="openNewEmpresaModal()" style="display:none;white-space:nowrap">+ Nova Empresa</button>
@@ -3252,15 +3252,18 @@ function exportContasExcel() {
 }
 
 // Empresas
+function empresasExportRows() {
+  var h = ['Empresa','CNPJ','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)'];
+  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),e.cnpj||'',(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'']; });
+  return { h: h, r: r };
+}
 function exportEmpresasPDF() {
-  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)'];
-  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'']; });
-  genericExportPDF('Empresas', h, r, 'empresas');
+  var d = empresasExportRows();
+  genericExportPDF('Empresas', d.h, d.r, 'empresas');
 }
 function exportEmpresasExcel() {
-  var h = ['Empresa','Responsável','E-mail','E-mail 2','Telefone','Responsável 2','E-mail (Resp. 2)','Telefone (Resp. 2)'];
-  var r = empFiltered.map(function(e){ return [(e.empresa||'').toUpperCase(),(e.responsavel||'').toUpperCase(),e.email||'',e.email2||'',e.telefone||'',(e.responsavel2||'').toUpperCase(),e.emailResp2||'',e.telefoneResp2||'']; });
-  genericExportExcel('Empresas', h, r, 'empresas');
+  var d = empresasExportRows();
+  genericExportExcel('Empresas', d.h, d.r, 'empresas');
 }
 
 // Unidades
@@ -4675,6 +4678,15 @@ function maskTermoNum(input) {
   var v = input.value.replace(/\D/g, '');
   if (v.length > 4) v = v.slice(0, 4);
   if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+  input.value = v;
+}
+
+// CNPJ: 00.000.000/0000-00
+function maskCnpj(input) {
+  var v = input.value.replace(/\D/g, '').slice(0, 14);
+  v = v.replace(/^(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2})$/, function(_, a, b, c, d, e) {
+    return a + (b ? '.'+b : '') + (c ? '.'+c : '') + (d ? '/'+d : '') + (e ? '-'+e : '');
+  });
   input.value = v;
 }
 
@@ -6409,6 +6421,8 @@ function buildEmpresasTable() {
     if (fEmpresa && String(e.empresa || '').trim() !== fEmpresa) return false;
     if (!q) return true;
     return (e.empresa||'').toLowerCase().indexOf(q) !== -1
+        || (e.cnpj||'').toLowerCase().indexOf(q) !== -1
+        || (e.cnpj||'').replace(/\D/g,'').indexOf(q.replace(/\D/g,'')) !== -1 && !!q.replace(/\D/g,'')
         || (e.responsavel||'').toLowerCase().indexOf(q) !== -1
         || (e.email||'').toLowerCase().indexOf(q) !== -1
         || (e.email2||'').toLowerCase().indexOf(q) !== -1
@@ -6461,12 +6475,19 @@ function renderEmpresasTable() {
       +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
       +';empresaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
   }
+  function edCnpj(id, campo, val) {
+    if (!canEdit) return esc(val || '');
+    return '<input value="'+esc(val||'')+'" oninput="maskCnpj(this)" maxlength="18" placeholder="00.000.000/0000-00"'
+      +' style="'+inpBase+';font-family:\'DM Mono\',monospace;font-size:11px" onfocus="'+inpFocus+'" onblur="'+inpBlur
+      +';empresaInlineSalvar(\''+id+'\',\''+campo+'\',this.value.trim())">';
+  }
   var rows = slice.map(function(e) {
     var actions = canEdit
       ? '<button class="btn-usr-del" onclick="confirmDeleteEmpresa(\''+e.id+'\')">Excluir</button>'
       : '';
     return '<tr>'
       +'<td style="font-weight:600;color:var(--text);white-space:nowrap">'+edInp(e.id,'empresa',(e.empresa||'').toUpperCase(),'',';font-weight:600',true)+'</td>'
+      +'<td style="font-family:\'DM Mono\',monospace;font-size:11px;white-space:nowrap">'+edCnpj(e.id,'cnpj',e.cnpj)+'</td>'
       +'<td style="font-size:12px;white-space:nowrap">'+edInp(e.id,'responsavel',(e.responsavel||'').toUpperCase(),'',';font-size:12px',true)+'</td>'
       +'<td style="font-size:11px">'+edInp(e.id,'email',e.email,'type="email"',';font-size:11px')+'</td>'
       +'<td style="font-size:11px">'+edInp(e.id,'email2',e.email2,'type="email"',';font-size:11px')+'</td>'
@@ -6482,7 +6503,7 @@ function renderEmpresasTable() {
     +'<div class="table-info"><span>'+empFiltered.length+' empresa(s)</span><span>Página '+empPage+' de '+totalPages+'</span></div>'
     +'<div style="overflow-x:auto"><table>'
     +'<thead><tr>'
-    +'<th>Empresa</th><th>Responsável</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th>'
+    +'<th>Empresa</th><th>CNPJ</th><th>Responsável</th><th>E-mail</th><th>E-mail 2</th><th>Telefone</th>'
     +'<th>Responsável 2</th><th>E-mail (Resp. 2)</th><th>Telefone (Resp. 2)</th>'
     +(canEdit ? '<th>Ações</th>' : '')
     +'</tr></thead>'
@@ -6519,6 +6540,7 @@ function empresaFormHtml(e) {
   e = e || {};
   return '<div class="eform">'
     +'<div class="ef full"><label>Empresa *</label><input id="ef-empresa" value="'+esc(e.empresa||'')+'"></div>'
+    +'<div class="ef"><label>CNPJ</label><input id="ef-cnpj" value="'+esc(e.cnpj||'')+'" oninput="maskCnpj(this)" placeholder="00.000.000/0000-00" maxlength="18"></div>'
     +'<div class="ef"><label>Responsável</label><input id="ef-resp" value="'+esc(e.responsavel||'')+'"></div>'
     +'<div class="ef"><label>E-mail</label><input type="email" id="ef-email" value="'+esc(e.email||'')+'"></div>'
     +'<div class="ef"><label>E-mail 2</label><input type="email" id="ef-email2" value="'+esc(e.email2||'')+'"></div>'
@@ -6532,7 +6554,7 @@ function empresaFormHtml(e) {
 function readEmpresaForm() {
   function v(id){ return document.getElementById(id).value.trim(); }
   return {
-    empresa: v('ef-empresa').toUpperCase(),
+    empresa: v('ef-empresa').toUpperCase(), cnpj: v('ef-cnpj'),
     responsavel: v('ef-resp').toUpperCase(), email: v('ef-email'), email2: v('ef-email2'), telefone: v('ef-tel'),
     responsavel2: v('ef-resp2').toUpperCase(), emailResp2: v('ef-emailResp2'), telefoneResp2: v('ef-telResp2')
   };
