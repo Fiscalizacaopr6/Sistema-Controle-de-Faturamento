@@ -1987,12 +1987,17 @@ function launchApp(u) {
   // a identidade visual dele precisa ser aplicada aqui — inclusive durante
   // o carregamento, para a tela não piscar na cor padrão.
   aplicarIdentidadeTela('dashboard');
+  // Conecta os listeners em tempo real ANTES da carga inicial. Com o listener
+  // já ativo, o .once() do loadAllFromFirebase() é servido pelo cache local do
+  // SDK em vez de baixar cada nó do servidor uma 2ª vez — corta ~metade do
+  // download de cada login/F5. Transparente para o usuário (mesmos dados, mesma
+  // ordem: o callback abaixo só roda depois que a carga termina).
+  setupRealtimeListeners();
   loadAllFromFirebase(function() {
     calcLive();
     buildDashboard();
     applyFilters();
     updateSidebar();
-    setupRealtimeListeners();
     // Sempre entra no Dashboard (login ou F5): a tela anterior não é restaurada.
     sessionStorage.removeItem('ufrj_cvform');
     showView('dashboard');
