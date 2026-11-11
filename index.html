@@ -1551,6 +1551,18 @@ function fbSanitizeKeys(data) {
   return data;
 }
 
+// Grava só os campos do patch na chave já existente do nó (não reescreve o
+// array inteiro). Usado na edição inline de contas/reajustes para edições
+// concorrentes de campos/registros diferentes não se sobrescreverem.
+// undefined vira null (o .update() do Firebase rejeita undefined).
+function fbGravarCampos(node, key, patch) {
+  if (key == null) return Promise.resolve();
+  var p = {};
+  Object.keys(patch).forEach(function(c){ p[c] = (patch[c] === undefined ? null : patch[c]); });
+  return fbdb.ref(node + '/' + key).update(fbSanitizeKeys(p))
+    .catch(function(e){ console.error('fbGravarCampos ' + node + '/' + key + ':', e); });
+}
+
 // ── Firebase ──
 var firebaseConfig = {
   apiKey: "AIzaSyCTgZv2JVWs5yNw4T_WjxElGwrGApMk_sQ",
@@ -1563,6 +1575,12 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var fbdb = firebase.database();
 var _suppressRefresh = false;
+// Mapa id→chave do Firebase para 'contas' e 'reajustes'. Preenchido pelos
+// listeners a partir das chaves reais do nó (índice do array OU chave de objeto),
+// para a edição inline gravar só o campo alterado na chave certa — mesmo que o
+// array esteja esparso. Evita reescrever o array inteiro (que sobrescrevia
+// edições concorrentes de outros usuários — o bug do valorNf).
+var CONTA_KEY_BY_ID = {}, REAJ_KEY_BY_ID = {};
 
 function showLoadingOverlay(msg) {
   var el = document.getElementById('fb-loading');
@@ -2049,15 +2067,23 @@ function setupRealtimeListeners() {
   fbdb.ref('contas').on('value', function(snap) {
     if (_suppressRefresh) return;
     var val = snap.val(); if (!val) return;
-    var arr = Array.isArray(val) ? val : Object.values(val);
-    CONTAS.length = 0; arr.forEach(function(d){ if(d) CONTAS.push(d); });
+    CONTAS.length = 0; CONTA_KEY_BY_ID = {};
+    Object.keys(val).forEach(function(k){
+      var d = val[k]; if (!d) return;
+      CONTAS.push(d);
+      if (d.id != null) CONTA_KEY_BY_ID[d.id] = k;
+    });
     refreshAll();
   });
   fbdb.ref('reajustes').on('value', function(snap) {
     if (_suppressRefresh) return;
     var val = snap.val(); if (!val) return;
-    var arr = Array.isArray(val) ? val : Object.values(val);
-    REAJUSTES.length = 0; arr.forEach(function(d){ if(d) REAJUSTES.push(d); });
+    REAJUSTES.length = 0; REAJ_KEY_BY_ID = {};
+    Object.keys(val).forEach(function(k){
+      var d = val[k]; if (!d) return;
+      REAJUSTES.push(d);
+      if (d.id != null) REAJ_KEY_BY_ID[d.id] = k;
+    });
     refreshAll();
   });
   fbdb.ref('retencao').on('value', function(snap) {
@@ -7068,12 +7094,18 @@ function contaInlineSalvar(id, campo, valor) {
   if (!c) return;
   if (campo === 'comprovantePg') valor = contaDataParaBR(valor);
   c[campo] = valor;
+  var _patch = {}; _patch[campo] = valor;
   // Se mudou o contrato via inline (não acontece, mas por segurança), reaplica auto-fill
   if (campo === 'contrato') {
     var a = contaAutoFill(valor);
     c.processo = a.processo; c.empresa = a.empresa; c.responsavel = a.responsavel;
+    _patch.processo = a.processo; _patch.empresa = a.empresa; _patch.responsavel = a.responsavel;
   }
-  saveContasToStorage();
+  // Grava só o(s) campo(s) alterado(s). Fallback para o save completo se, por
+  // algum motivo, a chave do registro ainda não estiver mapeada.
+  var _k = CONTA_KEY_BY_ID[id];
+  if (_k != null) fbGravarCampos('contas', _k, _patch);
+  else saveContasToStorage();
   // Folha de informação, envio à PR-3 e comprovante de resgate afetam a Situação automática.
   // Recomputa cvFiltered a partir de CONTAS — o listener do Firebase recria as instâncias a
   // cada save e deixa cvFiltered defasado (a edição ia para o objeto novo, o render usava o
@@ -7534,7 +7566,11 @@ function reajusteInlineSalvar(id, campo, valor) {
   var r = REAJUSTES.find(function(x){ return x.id === id; });
   if (!r) return;
   r[campo] = valor;
-  saveReajustesToStorage();
+  // Grava só o campo editado na chave do registro (não o array inteiro), para
+  // edições concorrentes não zerarem campos de outros (bug do valorNf).
+  var _k = REAJ_KEY_BY_ID[id];
+  if (_k != null) { var _pch = {}; _pch[campo] = valor; fbGravarCampos('reajustes', _k, _pch); }
+  else saveReajustesToStorage();
   // Só re-renderiza quando o campo afeta as colunas calculadas (Memória de Cálculo / Sit. NF),
   // para não perder o foco durante a edição inline de texto. Preserva a página atual.
   if (campo === 'memoriaRevisada' || campo === 'envioPR3' || campo === 'valorNf'
