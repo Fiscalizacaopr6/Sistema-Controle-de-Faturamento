@@ -7567,13 +7567,7 @@ function buildReajustesTable() {
     if (fSitNf && reajusteSitNfAuto(r) !== fSitNf) return false;
     if (!q) return true;
     return (r.contrato||'').toLowerCase().indexOf(q) !== -1
-        || (r.responsavel||'').toLowerCase().indexOf(q) !== -1
-        || (r.empresa||'').toLowerCase().indexOf(q) !== -1
-        || (r.periodo||'').toLowerCase().indexOf(q) !== -1
-        || reajusteSitNfAuto(r).toLowerCase().indexOf(q) !== -1
-        || reajusteMemoriaAuto(r).toLowerCase().indexOf(q) !== -1
-        || (r.situacao||'').toLowerCase().indexOf(q) !== -1
-        || (r.origem||'').toLowerCase().indexOf(q) !== -1;
+        || (r.empresa||'').toLowerCase().indexOf(q) !== -1;
   });
   rrPage = 1;
   renderReajustesTable();
