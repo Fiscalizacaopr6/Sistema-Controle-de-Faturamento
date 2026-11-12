@@ -154,7 +154,7 @@ html.light[data-tela="usuarios"]{--accent:#6d28d9;--accent-rgb:109,40,217}
 /* Auditoria · verde-lima (Área 51) */
 html[data-tela="auditoria"]{--accent:#a3d14b;--accent-rgb:163,209,75}
 html.light[data-tela="auditoria"]{--accent:#4d7c0f;--accent-rgb:77,124,15}
-/* Férias · turquesa (Área 51) */
+/* Férias · turquesa */
 html[data-tela="ferias"]{--accent:#2dd4bf;--accent-rgb:45,212,191}
 html.light[data-tela="ferias"]{--accent:#0f766e;--accent-rgb:15,118,110}
 .fer-kpi small{display:block;font-size:10.5px;color:var(--text);margin-top:4px;line-height:1.35;white-space:normal}
@@ -1417,7 +1417,7 @@ html .bar-plot .bar-track{background:transparent}
       </div>
       <div id="asg-table"></div>
     </div>
-<!-- FÉRIAS (Área 51) -->
+<!-- FÉRIAS -->
     <div class="view" id="view-ferias">
       <div class="aud-bar">
         <label>Ano<select class="sel" id="fer-ano" onchange="buildFerias()"></select></label>
@@ -2010,14 +2010,14 @@ var ROLES = [
 
 // Telas visíveis para os níveis 1–5. Qualquer tela fora desta lista é
 // considerada "Área 51" e só aparece para quem tem nível area51.
-var PUBLIC_VIEWS = ['dashboard','db-lista','contratos','documentos','fiscais','reajustes','contas','retencao','cvform','empresas','unidades','imr','creche','usuarios'];
+var PUBLIC_VIEWS = ['dashboard','db-lista','contratos','documentos','fiscais','reajustes','contas','retencao','cvform','empresas','unidades','imr','creche','usuarios','ferias'];
 
 // Tela → chave de permissão de edição
 var VIEW_EDIT_KEY = {
   contratos:'contratos', documentos:'documentos', fiscais:'fiscais',
   reajustes:'reajustes', contas:'contavinculada', retencao:'contavinculada',
   cvform:'contavinculada', empresas:'empresas', unidades:'unidades',
-  imr:'imr', creche:'imr', assinaturas:'assinaturas', usuarios:'usuarios'
+  imr:'imr', creche:'imr', assinaturas:'assinaturas', usuarios:'usuarios', ferias:'ferias'
 };
 
 // O que cada nível pode EDITAR ('*' = tudo, inclusive telas futuras)
@@ -2036,7 +2036,8 @@ var EDIT_PERMS = {
 // nível. Ex.: "gabrielacatarino" é Nível 2, mas também pode editar a tela de
 // Reajuste e Repactuação.
 var USER_EXTRA_EDIT = {
-  gabrielacatarino: ['reajustes']
+  gabrielacatarino: ['reajustes'],
+  mayaracruz: ['ferias']   // Férias: só ela (e Área 51) editam
 };
 function userExtraEditKeys(login) {
   return USER_EXTRA_EDIT[String(login || '').toLowerCase()] || [];
@@ -2066,7 +2067,7 @@ function levelNum(role) { role = normalizeRole(role); return role === 'area51' ?
 function canViewView(view, role) {
   role = normalizeRole(role || currentRole);
   if (role === 'area51') return true;               // vê tudo
-  if (role === 'n1') return (view === 'dashboard' || view === 'db-lista');
+  if (role === 'n1') return (view === 'dashboard' || view === 'db-lista' || view === 'ferias');  // Férias: todos veem
   if (PUBLIC_VIEWS.indexOf(view) === -1) return false;              // Área 51
   if (VIEW_MIN_LEVEL[view] && levelNum(role) < VIEW_MIN_LEVEL[view]) return false;
   return true;                                      // n2..n5: tudo menos Área 51
@@ -2509,7 +2510,7 @@ var TELAS = {
   'ic':        {ico:'🛸', k:'COBRANÇA',        t:'IC',                          s:'Instrumento de Cobrança'},
   'usuarios':  {ico:'👥', k:'ADMINISTRAÇÃO',   t:'Usuários',                    s:'Contas de acesso e níveis de permissão'},
   'auditoria': {ico:'🕵️', k:'ÁREA 51',         t:'Auditoria',                   s:'Quem entrou no sistema e o que cada usuário editou'},
-  'ferias':    {ico:'🏖️', k:'ÁREA 51',         t:'Férias',                      s:'Controle de férias da equipe SCFAT'}
+  'ferias':    {ico:'🏖️', k:'EQUIPE',          t:'Férias',                      s:'Controle de férias da equipe SCFAT'}
 };
 
 // Pinta a tela com a cor dela (via data-tela no <html>) e preenche a faixa de
@@ -6662,7 +6663,7 @@ function confirmDeleteCreche(id) {
 //  Cada período é gravado/excluído pela própria chave (sem reescrever o nó).
 //  Dias, Status e Mês são calculados, como as fórmulas da planilha:
 //  CONCLUÍDA (hoje > fim) · EM ANDAMENTO · PRÓXIMA (começa em ≤ 30 dias) · NO PRAZO.
-//  Fora de PUBLIC_VIEWS → só Área 51 vê e edita.
+//  Todos os níveis veem; editam só Área 51 e mayaracruz (USER_EXTRA_EDIT).
 // ══════════════════════════════
 var FERIAS = [];
 var FER_MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -6723,13 +6724,11 @@ function renderFerias() {
   var doAno = FERIAS.filter(function(r){ return ferToca(r, ano) && (!fF || r.funcionario === fF); });
   var agora = FERIAS.filter(function(r){ return ferStatus(r) === 'EM ANDAMENTO'; });
   var prox = FERIAS.filter(function(r){ return ferStatus(r) === 'PRÓXIMA'; }).sort(function(x,y){ return x.inicio.localeCompare(y.inicio); });
-  var dias = doAno.reduce(function(t, r){ return t + (+ferDias(r) || 0); }, 0);
   function nomesDe(arr, comData) { return arr.map(function(r){ return esc(r.funcionario) + (comData ? ' ('+ferBR(r.inicio).slice(0,5)+')' : ' (até '+ferBR(r.fim).slice(0,5)+')'); }).join(', '); }
   document.getElementById('fer-kpis').innerHTML =
       '<div class="aud-kpi fer-kpi"><b>'+agora.length+'</b><span>de férias hoje</span>'+(agora.length?'<small>'+nomesDe(agora,false)+'</small>':'')+'</div>'
     + '<div class="aud-kpi fer-kpi"><b>'+prox.length+'</b><span>começam nos próximos 30 dias</span>'+(prox.length?'<small>'+nomesDe(prox,true)+'</small>':'')+'</div>'
-    + '<div class="aud-kpi"><b>'+doAno.length+'</b><span>períodos em '+ano+'</span></div>'
-    + '<div class="aud-kpi"><b>'+dias+'</b><span>dias de férias em '+ano+'</span></div>';
+    + '<div class="aud-kpi"><b>'+doAno.length+'</b><span>períodos em '+ano+'</span></div>';
 
   // Calendário anual (uma linha por servidor)
   var ini = new Date(ano, 0, 1), totDias = Math.round((new Date(ano+1, 0, 1) - ini) / 864e5);
