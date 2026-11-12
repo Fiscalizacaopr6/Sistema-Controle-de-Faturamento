@@ -4805,6 +4805,8 @@ function doDeleteFiscal(id) {
 
 // ── Storage ──
 function saveDadosToStorage() {
+  _mapaEmpresaPorContrato = null; // nomes de /dados mudaram: refaz o mapa de empresas
+  if (typeof padronizarEmpresasTelas === 'function') padronizarEmpresasTelas();
   _suppressRefresh = true;
   fbdb.ref('dados').set(fbSanitizeKeys(DADOS)).catch(function(e){ console.error('saveDados:', e); });
   setTimeout(function(){ _suppressRefresh = false; }, 1000);
@@ -7361,6 +7363,50 @@ function saveReajustesToStorage() {
 }
 function loadReajustesFromStorage() { /* migrado para loadAllFromFirebase */ }
 
+// ── Padronização do nome da empresa ──────────────────────────────────────────
+// A tela de Contratos (nó /dados, campo EMPRESA) é a fonte única do nome da
+// empresa. As demais telas guardam um campo próprio `empresa` que pode ter
+// divergido (apelidos, grafias antigas). Aqui o nome é DERIVADO do contrato:
+// após cada carga, sobrescrevemos em memória o `empresa` de cada registro com o
+// valor do contrato correspondente em /dados. Não reescreve nada no Firebase.
+var _mapaEmpresaPorContrato = null;
+function construirMapaEmpresa() {
+  var map = {};
+  for (var i = 0; i < DADOS.length; i++) {
+    var d = DADOS[i];
+    var ct = String(d['CONTRATO'] || '').trim();
+    var emp = String(d['EMPRESA'] || '').trim();
+    if (ct && emp && !map[ct]) map[ct] = emp; // cada contrato tem um único nome
+  }
+  _mapaEmpresaPorContrato = map;
+  return map;
+}
+function empresaDoContrato(contrato) {
+  if (!_mapaEmpresaPorContrato) construirMapaEmpresa();
+  return _mapaEmpresaPorContrato[String(contrato || '').trim()] || '';
+}
+function padronizarEmpresaRegistro(rec) {
+  if (!rec || rec.contrato == null) return;
+  var nome = empresaDoContrato(rec.contrato);
+  if (nome) rec.empresa = nome; // sem match em /dados: mantém o valor original
+}
+// Normaliza todas as telas que listam registros por contrato.
+function padronizarEmpresasTelas() {
+  construirMapaEmpresa();
+  var arrays = [
+    typeof FISCAIS    !== 'undefined' ? FISCAIS    : null,
+    typeof CONTAS     !== 'undefined' ? CONTAS     : null,
+    typeof REAJUSTES  !== 'undefined' ? REAJUSTES  : null,
+    typeof IMR        !== 'undefined' ? IMR        : null,
+    typeof CRECHE     !== 'undefined' ? CRECHE     : null,
+    typeof RETENCAO   !== 'undefined' ? RETENCAO   : null,
+    typeof DOCUMENTOS !== 'undefined' ? DOCUMENTOS : null
+  ];
+  arrays.forEach(function(arr) {
+    if (Array.isArray(arr)) arr.forEach(padronizarEmpresaRegistro);
+  });
+}
+
 // ── Firebase: carregar todos os dados em paralelo ──
 function loadAllFromFirebase(callback) {
   showLoadingOverlay('Carregando dados...');
@@ -7478,6 +7524,7 @@ function loadAllFromFirebase(callback) {
     // documentos (planilha base + alterações salvas no Firebase)
     DOC_OVERRIDES = snaps[7].val() || {};
     docRebuild();
+    padronizarEmpresasTelas();
     hideLoadingOverlay();
     updateLoginStats();
     callback();
@@ -8178,6 +8225,7 @@ function docRebuild() {
     if (ov && !ov._del) out.push(docNormalizaSimbolos(ov));
   });
   DOCUMENTOS = out;
+  if (typeof empresaDoContrato === 'function') DOCUMENTOS.forEach(padronizarEmpresaRegistro);
   invalidarCascadingFilters();
   // mantém a lista filtrada apontando para os registros novos, sem perder a ordem/página
   if (docFiltered && docFiltered.length) {
