@@ -1421,7 +1421,7 @@ html .bar-plot .bar-track{background:transparent}
     <div class="view" id="view-ferias">
       <div class="aud-bar">
         <label>Ano<select class="sel" id="fer-ano" onchange="buildFerias()"></select></label>
-        <label>Funcionário<select class="sel" id="fer-func" onchange="renderFerias()"><option value="">Todos</option></select></label>
+        <label>Servidor<select class="sel" id="fer-func" onchange="renderFerias()"><option value="">Todos</option></select></label>
         <label>Status<select class="sel" id="fer-status" onchange="renderFerias()"><option value="">Todos</option><option>EM ANDAMENTO</option><option>PRÓXIMA</option><option>NO PRAZO</option><option>CONCLUÍDA</option></select></label>
         <button class="btn-new" id="btn-novo-ferias" onclick="openFeriasModal()" style="margin-left:auto;white-space:nowrap">+ Adicionar férias</button>
       </div>
@@ -6731,7 +6731,7 @@ function renderFerias() {
     + '<div class="aud-kpi"><b>'+doAno.length+'</b><span>períodos em '+ano+'</span></div>'
     + '<div class="aud-kpi"><b>'+dias+'</b><span>dias de férias em '+ano+'</span></div>';
 
-  // Calendário anual (uma linha por funcionário)
+  // Calendário anual (uma linha por servidor)
   var ini = new Date(ano, 0, 1), totDias = Math.round((new Date(ano+1, 0, 1) - ini) / 864e5);
   function pct(d) { return Math.max(0, Math.min(100, (d - ini) / 864e5 / totDias * 100)); }
   var porNome = {};
@@ -6776,7 +6776,7 @@ function renderFerias() {
   }).join('');
   document.getElementById('fer-table').innerHTML = !lista.length ? '<div class="fiscais-empty">Nenhum registro encontrado.</div>'
     : '<div class="table-wrap"><div class="table-info"><span>'+lista.length+' período(s)</span><span>'+ano+'</span></div>'
-    + '<div style="overflow-x:auto"><table><thead><tr><th>Funcionário</th><th>Setor</th><th>Início</th><th>Fim</th><th>Dias</th><th>Status</th><th>Mês</th><th>Observações</th>'
+    + '<div style="overflow-x:auto"><table><thead><tr><th>Servidor</th><th>Setor</th><th>Início</th><th>Fim</th><th>Dias</th><th>Status</th><th>Mês</th><th>Observações</th>'
     + (canEdit?'<th>Ações</th>':'') + '</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 
@@ -6788,7 +6788,7 @@ function openFeriasModal(k) {
   document.getElementById('mo-t').textContent = k ? 'Editar Férias' : 'Novas Férias';
   document.getElementById('mo-s').textContent = k ? r.funcionario : 'Preencha o período';
   document.getElementById('mo-b').innerHTML = '<div class="eform">'
-    + '<div class="ef"><label>Funcionário *</label><input id="ef-fer-func" list="fer-func-list" value="'+esc(r.funcionario||'')+'">'
+    + '<div class="ef"><label>Servidor *</label><input id="ef-fer-func" list="fer-func-list" value="'+esc(r.funcionario||'')+'">'
     + '<datalist id="fer-func-list">'+nomes.map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist></div>'
     + '<div class="ef"><label>Setor</label><input id="ef-fer-setor" list="fer-setor-list" value="'+esc(r.setor||'')+'">'
     + '<datalist id="fer-setor-list">'+setores.map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist></div>'
@@ -6814,7 +6814,7 @@ function saveFerias(k) {
   if (!canEditView('ferias')) return;
   function v(id){ return document.getElementById(id).value.trim(); }
   var r = {funcionario: v('ef-fer-func'), setor: v('ef-fer-setor'), inicio: v('ef-fer-ini'), fim: v('ef-fer-fim'), obs: v('ef-fer-obs')};
-  if (!r.funcionario || !r.inicio || !r.fim) { alert('Funcionário, início e fim são obrigatórios.'); return; }
+  if (!r.funcionario || !r.inicio || !r.fim) { alert('Servidor, início e fim são obrigatórios.'); return; }
   if (r.fim < r.inicio) { alert('O fim das férias deve ser igual ou posterior ao início.'); return; }
   var ref = k ? fbdb.ref('ferias/' + k) : fbdb.ref('ferias').push();
   ref.set(r).then(closeMo).catch(function(e){ alert('Erro ao salvar: ' + e.message); });
