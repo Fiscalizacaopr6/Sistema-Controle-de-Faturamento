@@ -151,6 +151,27 @@ html.light[data-tela="ic"]{--accent:#0e7490;--accent-rgb:14,116,144}
 /* Usuários · roxo */
 html[data-tela="usuarios"]{--accent:#a78bfa;--accent-rgb:167,139,250}
 html.light[data-tela="usuarios"]{--accent:#6d28d9;--accent-rgb:109,40,217}
+/* Auditoria · verde-lima (Área 51) */
+html[data-tela="auditoria"]{--accent:#a3d14b;--accent-rgb:163,209,75}
+html.light[data-tela="auditoria"]{--accent:#4d7c0f;--accent-rgb:77,124,15}
+.aud-bar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.aud-bar label{display:flex;flex-direction:column;gap:4px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.aud-bar .sel{min-width:150px;text-transform:none}
+.aud-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.aud-kpi{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:14px 16px}
+.aud-kpi b{display:block;font-family:'DM Mono',monospace;font-size:24px;font-weight:600;color:var(--accent);line-height:1.1}
+.aud-kpi span{font-size:11px;color:var(--muted)}
+.aud-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:18px}
+.aud-sec-h{font-size:12px;font-weight:700;color:var(--text)}
+.aud-chg{font-size:11.5px;line-height:1.5;text-align:left !important;min-width:300px;white-space:normal}
+.aud-chg .c{color:var(--muted)}
+.aud-chg .de{color:#e5484d;text-decoration:line-through;font-family:'DM Mono',monospace}
+.aud-chg .pa{color:var(--accent);font-family:'DM Mono',monospace}
+.aud-more{background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:2px 0;font-family:inherit}
+.aud-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(var(--accent-rgb),.14);color:var(--accent);white-space:nowrap}
+.aud-tag.inc{background:rgba(34,197,94,.14);color:#22c55e}
+.aud-tag.exc{background:rgba(229,72,77,.14);color:#e5484d}
+@media (max-width:520px){.aud-grid{grid-template-columns:1fr}}
 
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
@@ -926,6 +947,7 @@ html .bar-plot .bar-track{background:transparent}
       <div class="nav-item" id="nav-assinaturas" title="Assinaturas" onclick="showView('assinaturas')" style="display:none"><span class="sb-ic">✍️</span><span class="sb-tx">Assinaturas</span></div>
       <div class="nav-item" id="nav-ic" title="IC" onclick="showView('ic')" style="display:none"><span class="sb-ic">🛸</span><span class="sb-tx">IC</span></div>
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
+      <div class="nav-item" id="nav-auditoria" title="Auditoria" onclick="showView('auditoria')" style="display:none"><span class="sb-ic">🕵️</span><span class="sb-tx">Auditoria</span></div>
     </nav>
     <div class="sb-foot">
       <div class="sb-fitem">
@@ -1365,6 +1387,23 @@ html .bar-plot .bar-track{background:transparent}
       </div>
       <div id="asg-table"></div>
     </div>
+<!-- AUDITORIA (Área 51) -->
+    <div class="view" id="view-auditoria">
+      <div class="aud-bar">
+        <label>Mês<input type="month" class="sel" id="aud-mes" onchange="audMesMudou()"></label>
+        <label>Dia<input type="date" class="sel" id="aud-dia" onchange="renderAuditoria()"></label>
+        <label>Usuário<select class="sel" id="aud-user" onchange="renderAuditoria()"><option value="">Todos</option></select></label>
+        <label>Edições do<select class="sel" id="aud-escopo" onchange="renderAuditoria()"><option value="dia">Dia selecionado</option><option value="mes">Mês inteiro</option></select></label>
+        <button class="btn-doc" onclick="buildAuditoria()">↻ Atualizar</button>
+        <span id="aud-status" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+      </div>
+      <div class="aud-kpis" id="aud-kpis"></div>
+      <div class="aud-grid">
+        <div id="aud-dia-tbl"></div>
+        <div id="aud-mes-tbl"></div>
+      </div>
+      <div id="aud-edit-tbl"></div>
+    </div>
 <!-- IC -->
     <div class="view" id="view-ic">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap">
@@ -1574,6 +1613,262 @@ var firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 var fbdb = firebase.database();
+// ══════════════════════════════════════════════════════════════════════════
+// AUDITORIA — registra logins e edições (quem, quando, em qual tela e o quê)
+// Nó /auditoria/logins/<AAAA-MM>/<DD>/<push>  e  /auditoria/edicoes/<AAAA-MM>/<DD>/<push>
+// As edições são capturadas interceptando set/update/push/remove de TODAS as
+// referências do Firebase: o valor anterior vem do cache local (os listeners em
+// tempo real já mantêm os nós carregados) e é comparado com o novo para
+// descrever campo a campo o que mudou. Só grava com usuário logado.
+// A tela (view-auditoria) fica fora de PUBLIC_VIEWS → só Área 51 enxerga.
+// ══════════════════════════════════════════════════════════════════════════
+var AUD_IGNORAR = /^(auditoria|conta_vinculada_doc_aplicado)(\/|$)/;
+var AUD_MAX_MUD = 40;
+function audP2(n){ return ('0'+n).slice(-2); }
+function audChaves(t){ var d = new Date(t); return {mes: d.getFullYear()+'-'+audP2(d.getMonth()+1), dia: audP2(d.getDate())}; }
+var _audOrig = null, _audDentro = false;
+function audRawPush(path, val){
+  try { _audDentro = true; return _audOrig.push.call(fbdb.ref(path), val); }
+  catch(e){ console.warn('auditoria:', e); }
+  finally { _audDentro = false; }
+}
+function audRegistrarLogin(u){
+  if (!u || !_audOrig) return;
+  var agora = Date.now(), k = audChaves(agora);
+  var flag = 'aud_login_' + u + '_' + k.mes + '-' + k.dia;   // 1 acesso por aba/dia (F5 não conta de novo)
+  try { if (sessionStorage.getItem(flag)) return; sessionStorage.setItem(flag, '1'); } catch(e){}
+  var info = USERS_DB[u] || {};
+  audRawPush('auditoria/logins/' + k.mes + '/' + k.dia,
+    {login: u, nome: info.nome || '', nivel: normalizeRole(info.role), ts: agora});
+}
+function audTelaAtual(){
+  var el = document.querySelector('.view.active');
+  return el ? el.id.replace(/^view-/, '') : '';
+}
+function audCurto(v){
+  if (v === undefined || v === null || v === '') return '∅';
+  if (typeof v === 'object') { try { v = JSON.stringify(v); } catch(e){ v = '[obj]'; } }
+  v = String(v);
+  return v.length > 120 ? v.slice(0, 117) + '…' : v;
+}
+// Rótulo legível de um registro (linha de contrato, fiscal, empresa…)
+function audRotulo(o){
+  if (!o || typeof o !== 'object') return '';
+  var ct = o['CONTRATO'] || o.contrato || o['Contrato'] || '';
+  var partes = [];
+  if (ct) partes.push(ct);
+  var extra = o['TERMO ATUAL'] || o.unidade || o['UNIDADE'] || o.nome || o['NOME'] || o['FISCAL'] || o.empresa || o['EMPRESA'] || o.razao || o.login || '';
+  if (o.mes && o.ano) extra = (extra ? extra + ' ' : '') + o.mes + '/' + o.ano;
+  if (extra) partes.push(extra);
+  return String(partes.join(' · ')).slice(0, 140);
+}
+function audDiff(a, b, path, out){
+  if (a === b) return;
+  var ao = a && typeof a === 'object', bo = b && typeof b === 'object';
+  // registro novo ou excluído: compara campo a campo com um objeto vazio
+  if (ao && b == null) { b = {}; bo = true; }
+  else if (bo && a == null) { a = {}; ao = true; }
+  if (ao && bo) {
+    var ks = {}; Object.keys(a).forEach(function(k){ ks[k]=1; }); Object.keys(b).forEach(function(k){ ks[k]=1; });
+    Object.keys(ks).forEach(function(k){ audDiff(a[k], b[k], path.concat(k), out); });
+    return;
+  }
+  if ((a == null || a === '') && (b == null || b === '')) return;
+  if (!ao && !bo && String(a) === String(b)) return;
+  out.total++;
+  if (out.lista.length < AUD_MAX_MUD) out.lista.push({p: path, de: a, para: b});
+}
+function audClone(v){ return v == null ? v : JSON.parse(JSON.stringify(v)); }
+function audAplicarUpdate(base, vals){
+  var r = (base && typeof base === 'object') ? audClone(base) : {};
+  Object.keys(vals || {}).forEach(function(k){
+    var ps = k.split('/').filter(Boolean), o = r;
+    for (var i = 0; i < ps.length - 1; i++) { if (!o[ps[i]] || typeof o[ps[i]] !== 'object') o[ps[i]] = {}; o = o[ps[i]]; }
+    if (ps.length) o[ps[ps.length-1]] = vals[k];
+  });
+  return r;
+}
+function audRegistrarEdicao(ref, acao, antigo, novo, conhecido){
+  var caminho = '';
+  try { caminho = decodeURIComponent(ref.toString().replace(/^https?:\/\/[^\/]+\/?/, '')); } catch(e){ return; }
+  if (!caminho || AUD_IGNORAR.test(caminho)) return;
+  var ps = caminho.split('/'), no = ps[0], sub = ps.slice(1);
+  var reg = {login: currentUserLogin, nome: (USERS_DB[currentUserLogin]||{}).nome || '',
+             ts: Date.now(), tela: audTelaAtual(), no: no, caminho: caminho, acao: acao};
+  var out = {total: 0, lista: []};
+  if (conhecido) audDiff(antigo, novo, [], out);
+  if (conhecido && out.total === 0) return;          // regravação idêntica: nada mudou
+  // rótulo do registro de cada mudança (o item do nó raiz, quando o set é do nó inteiro)
+  reg.mudancas = out.lista.map(function(m){
+    var alvo = (m.p.length && sub.length === 0) ? ((novo && novo[m.p[0]]) || (antigo && antigo[m.p[0]])) : (novo || antigo);
+    var rot = audRotulo(alvo);
+    var campo = (sub.length === 0 && m.p.length) ? m.p.slice(1) : m.p;
+    return {r: rot || (sub.length ? sub.join(' › ') : (m.p.length ? '#' + m.p[0] : '')),
+            c: campo.join(' › ') || '(registro)', de: audCurto(m.de), para: audCurto(m.para)};
+  });
+  reg.total = conhecido ? out.total : -1;
+  if (acao === 'remove' || (acao === 'set' && novo == null)) { reg.acao = 'exclusão'; reg.registro = audRotulo(antigo); }
+  else if (acao === 'push' || (acao === 'set' && conhecido && antigo == null)) { reg.acao = 'inclusão'; reg.registro = audRotulo(novo); }
+  else reg.acao = 'alteração';
+  if (!reg.registro && sub.length) reg.registro = audRotulo(novo) || audRotulo(antigo);
+  if (!reg.registro && reg.mudancas.length && reg.mudancas.every(function(m){ return m.r === reg.mudancas[0].r; })) reg.registro = reg.mudancas[0].r;
+  if (!reg.registro) delete reg.registro;
+  var k = audChaves(reg.ts);
+  audRawPush('auditoria/edicoes/' + k.mes + '/' + k.dia, JSON.parse(JSON.stringify(reg)));
+}
+(function audInstalar(){
+  try {
+    var R = firebase.database.Reference.prototype;
+    _audOrig = {set: R.set, update: R.update, push: R.push, remove: R.remove};
+    // valor atual do cache local — só vale se o callback vier NA HORA (listener
+    // já ativo no nó); se o SDK precisar buscar no servidor, fica sem diff.
+    function antes(ref){
+      var r = {ok: false, v: undefined, fim: false};
+      try { ref.once('value', function(s){ if (!r.fim) { r.ok = true; r.v = s.val(); } }); } catch(e){}
+      r.fim = true;
+      return r;
+    }
+    function embrulhar(nome, fn){
+      R[nome] = function(){
+        if (_audDentro || !currentUserLogin) return _audOrig[nome].apply(this, arguments);
+        var ref = this, args = arguments, a = {ok: false};
+        try { if (nome !== 'push') a = antes(ref); } catch(e){}
+        _audDentro = true;
+        var res;
+        try { res = _audOrig[nome].apply(ref, args); } finally { _audDentro = false; }
+        try { fn(ref, args, a, res); } catch(e){ console.warn('auditoria:', e); }
+        return res;
+      };
+    }
+    embrulhar('set',    function(ref, args, a){ audRegistrarEdicao(ref, 'set', a.v, args[0], a.ok); });
+    embrulhar('update', function(ref, args, a){ audRegistrarEdicao(ref, 'update', a.v, a.ok ? audAplicarUpdate(a.v, args[0]) : args[0], a.ok); });
+    embrulhar('remove', function(ref, args, a){ audRegistrarEdicao(ref, 'remove', a.v, null, a.ok); });
+    embrulhar('push',   function(ref, args, a, res){ if (args[0] === undefined) return; audRegistrarEdicao(res || ref, 'push', null, args[0], true); });
+  } catch(e){ console.warn('auditoria: não instalada', e); }
+})();
+
+// ── Tela Auditoria ──
+var AUD = {mes: '', logins: [], edicoes: [], _eds: []};
+var AUD_NOS = {dados:'Contratos', fiscais:'Fiscais', unidades:'Unidades', empresas:'Empresas', contas:'Solicitação Empresa',
+  reajustes:'Reajustes', retencao:'Retenção', retencao_form:'Conta Vinculada Mensal', retencao_empresa:'Conta Vinculada (empresa)',
+  imr:'IMR', creche:'Reembolso Creche', assinaturas:'Assinaturas', documentos_edits:'Documentos', users:'Usuários'};
+function audAchatar(val){
+  var arr = [];
+  Object.keys(val || {}).forEach(function(d){ Object.keys(val[d] || {}).forEach(function(k){ var r = val[d][k]; if (r && r.ts) arr.push(r); }); });
+  return arr.sort(function(x, y){ return y.ts - x.ts; });
+}
+function audMesMudou(){
+  var m = document.getElementById('aud-mes').value, d = document.getElementById('aud-dia');
+  if (m && d && d.value.slice(0, 7) !== m) {
+    var hk = audChaves(Date.now());
+    d.value = (hk.mes === m) ? (m + '-' + hk.dia) : (m + '-01');
+  }
+  buildAuditoria();
+}
+function buildAuditoria(){
+  var mi = document.getElementById('aud-mes'), di = document.getElementById('aud-dia');
+  var hk = audChaves(Date.now());
+  if (!mi.value) mi.value = hk.mes;
+  if (!di.value) di.value = hk.mes + '-' + hk.dia;
+  di.min = mi.value + '-01'; di.max = mi.value + '-31';
+  var mes = mi.value, st = document.getElementById('aud-status');
+  st.textContent = 'Carregando…';
+  Promise.all([fbdb.ref('auditoria/logins/' + mes).once('value'), fbdb.ref('auditoria/edicoes/' + mes).once('value')])
+    .then(function(r){
+      AUD.mes = mes; AUD.logins = audAchatar(r[0].val()); AUD.edicoes = audAchatar(r[1].val());
+      st.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      // usuários conhecidos (cadastro + quem aparece no log)
+      var us = {}; Object.keys(USERS_DB).forEach(function(k){ us[k] = 1; });
+      AUD.logins.concat(AUD.edicoes).forEach(function(x){ if (x.login) us[x.login] = 1; });
+      var sel = document.getElementById('aud-user'), cur = sel.value;
+      sel.innerHTML = '<option value="">Todos</option>' + Object.keys(us).sort(function(a,b){ return a.localeCompare(b); })
+        .map(function(k){ return '<option value="'+esc(k)+'"'+(k===cur?' selected':'')+'>'+esc(k)+'</option>'; }).join('');
+      renderAuditoria();
+    })
+    .catch(function(e){ st.textContent = 'Erro ao carregar: ' + e.message; });
+}
+function audHora(ts){ var d = new Date(ts); return audP2(d.getHours()) + ':' + audP2(d.getMinutes()); }
+function audDataHora(ts){ var d = new Date(ts); return audP2(d.getDate()) + '/' + audP2(d.getMonth()+1) + ' ' + audHora(ts); }
+function audNomeTela(v){ return (TELAS[v] && TELAS[v].t) || v || '—'; }
+function renderAuditoria(){
+  var dia = document.getElementById('aud-dia').value;            // AAAA-MM-DD
+  var fu = document.getElementById('aud-user').value;
+  var escopo = document.getElementById('aud-escopo').value;
+  function doDia(x){ var k = audChaves(x.ts); return (k.mes + '-' + k.dia) === dia; }
+  function doUser(x){ return !fu || x.login === fu; }
+  var logMes = AUD.logins.filter(doUser), logDia = logMes.filter(doDia);
+  var edMes = AUD.edicoes.filter(doUser), edDia = edMes.filter(doDia);
+  function distintos(a){ var s = {}; a.forEach(function(x){ s[x.login] = 1; }); return Object.keys(s).length; }
+  var diaBr = dia ? dia.slice(8, 10) + '/' + dia.slice(5, 7) : '';
+  var mesBr = AUD.mes ? AUD.mes.slice(5, 7) + '/' + AUD.mes.slice(0, 4) : '';
+  var kp = [
+    [distintos(logDia), 'usuários entraram em ' + diaBr], [logDia.length, 'acessos em ' + diaBr],
+    [distintos(logMes), 'usuários entraram em ' + mesBr], [logMes.length, 'acessos em ' + mesBr],
+    [edDia.length, 'edições em ' + diaBr], [edMes.length, 'edições em ' + mesBr]
+  ];
+  document.getElementById('aud-kpis').innerHTML = kp.map(function(k){ return '<div class="aud-kpi"><b>' + k[0] + '</b><span>' + k[1] + '</span></div>'; }).join('');
+
+  // agrupa por usuário
+  function agrupar(logs, eds){
+    var m = {};
+    function g(l){ if (!m[l]) m[l] = {login: l, nome: '', nivel: '', n: 0, dias: {}, prim: 0, ult: 0, ed: 0}; return m[l]; }
+    logs.forEach(function(x){ var r = g(x.login); r.n++; r.nome = r.nome || x.nome; r.nivel = r.nivel || x.nivel;
+      var k = audChaves(x.ts); r.dias[k.dia] = 1;
+      if (!r.prim || x.ts < r.prim) r.prim = x.ts;
+      if (x.ts > r.ult) r.ult = x.ts; });
+    eds.forEach(function(x){ var r = g(x.login); r.ed++; r.nome = r.nome || x.nome; });
+    return Object.keys(m).map(function(k){ var r = m[k]; var u = USERS_DB[k] || {};
+      r.nome = r.nome || u.nome || ''; r.nivel = r.nivel || (u.role ? normalizeRole(u.role) : ''); return r; })
+      .sort(function(a, b){ return (b.ult || 0) - (a.ult || 0) || b.ed - a.ed; });
+  }
+  function tabela(tit, cab, linhas, vazio){
+    return '<div class="table-wrap"><div class="table-info"><span class="aud-sec-h">' + tit + '</span><span>' + linhas.length + ' usuário(s)</span></div>'
+      + (linhas.length ? '<div style="overflow-x:auto"><table><thead><tr>' + cab.map(function(c){ return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>' + linhas.join('') + '</tbody></table></div>'
+                       : '<div class="fiscais-empty" style="padding:30px">' + vazio + '</div>') + '</div>';
+  }
+  var MONO = 'font-family:\'DM Mono\',monospace;font-size:12px';
+  function cUser(r){ return '<td><div style="font-weight:600;font-size:12.5px">' + esc(r.nome || r.login) + '</div><div style="font-size:10.5px;color:var(--muted);font-family:\'DM Mono\',monospace">' + esc(r.login) + '</div></td>'; }
+  function cNivel(r){ return '<td>' + (r.nivel ? '<span class="role-badge ' + roleClass(r.nivel) + '">' + esc(roleLabel(r.nivel)) + '</span>' : '—') + '</td>'; }
+  var gd = agrupar(logDia, edDia).map(function(r){
+    return '<tr>' + cUser(r) + cNivel(r) + '<td style="text-align:center">' + (r.n || '—') + '</td><td style="' + MONO + '">' + (r.prim ? audHora(r.prim) : '—') + '</td><td style="' + MONO + '">' + (r.ult ? audHora(r.ult) : '—') + '</td><td style="text-align:center">' + (r.ed || '—') + '</td></tr>'; });
+  var gm = agrupar(logMes, edMes).map(function(r){
+    return '<tr>' + cUser(r) + cNivel(r) + '<td style="text-align:center">' + (Object.keys(r.dias).length || '—') + '</td><td style="text-align:center">' + (r.n || '—') + '</td><td style="' + MONO + ';white-space:nowrap">' + (r.ult ? audDataHora(r.ult) : '—') + '</td><td style="text-align:center">' + (r.ed || '—') + '</td></tr>'; });
+  document.getElementById('aud-dia-tbl').innerHTML = tabela('Quem entrou em ' + diaBr, ['Usuário', 'Nível', 'Acessos', 'Primeiro', 'Último', 'Edições'], gd, 'Nenhum acesso registrado neste dia.');
+  document.getElementById('aud-mes-tbl').innerHTML = tabela('Quem entrou em ' + mesBr, ['Usuário', 'Nível', 'Dias', 'Acessos', 'Último acesso', 'Edições'], gm, 'Nenhum acesso registrado neste mês.');
+
+  // edições
+  var eds = (escopo === 'mes') ? edMes : edDia;
+  AUD._eds = eds;
+  var linhas = eds.slice(0, 500).map(function(x, i){
+    var tag = x.acao === 'inclusão' ? 'inc' : (x.acao === 'exclusão' ? 'exc' : '');
+    var muds = x.mudancas || [];
+    var onde = esc(AUD_NOS[x.no] || x.no) + (x.registro ? '<div style="font-size:11px;color:var(--muted)">' + esc(x.registro) + '</div>' : '');
+    var det;
+    if (muds.length) {
+      var tot = x.total > 0 ? x.total : muds.length;
+      det = muds.slice(0, 3).map(function(m){ return audLinhaMud(m, x.registro); }).join('')
+        + (tot > 3 ? '<button class="aud-more" onclick="audVerTudo(' + i + ')">ver todas (' + tot + ')</button>' : '');
+    } else det = '<span style="font-size:11px;color:var(--muted)">' + (x.acao === 'exclusão' ? 'registro excluído' : 'gravação em ' + esc(x.caminho)) + '</span>';
+    return '<tr><td style="' + MONO + ';white-space:nowrap">' + audDataHora(x.ts) + '</td>'
+      + cUser(x)
+      + '<td style="font-size:12px">' + esc(audNomeTela(x.tela)) + '</td>'
+      + '<td style="font-size:12px">' + onde + '</td>'
+      + '<td><span class="aud-tag ' + tag + '">' + esc(x.acao) + '</span></td>'
+      + '<td class="aud-chg" id="aud-det-' + i + '">' + det + '</td></tr>';
+  });
+  document.getElementById('aud-edit-tbl').innerHTML = '<div class="table-wrap"><div class="table-info"><span class="aud-sec-h">Edições — ' + (escopo === 'mes' ? mesBr : diaBr) + (fu ? ' · ' + esc(fu) : '') + '</span><span>' + eds.length + ' edição(ões)' + (eds.length > 500 ? ' · mostrando 500' : '') + '</span></div>'
+    + (linhas.length ? '<div style="overflow-x:auto"><table><thead><tr><th>Data/hora</th><th>Usuário</th><th>Tela</th><th>Onde</th><th>Ação</th><th>O que mudou</th></tr></thead><tbody>' + linhas.join('') + '</tbody></table></div>'
+                     : '<div class="fiscais-empty" style="padding:30px">Nenhuma edição registrada.</div>') + '</div>';
+}
+function audLinhaMud(m, regRot){
+  return '<div>' + (m.r && m.r !== regRot ? '<span class="c">' + esc(m.r) + ' › </span>' : '') + '<b>' + esc(m.c) + '</b>: <span class="de">' + esc(m.de) + '</span> → <span class="pa">' + esc(m.para) + '</span></div>';
+}
+function audVerTudo(i){
+  var x = (AUD._eds || [])[i]; if (!x) return;
+  var muds = x.mudancas || [];
+  var td = document.getElementById('aud-det-' + i);
+  td.innerHTML = muds.map(function(m){ return audLinhaMud(m, x.registro); }).join('') + (x.total > muds.length ? '<div class="c">… e mais ' + (x.total - muds.length) + ' alteração(ões) não detalhadas</div>' : '');
+}
 var _suppressRefresh = false;
 // Mapa id→chave do Firebase para 'contas' e 'reajustes'. Preenchido pelos
 // listeners a partir das chaves reais do nó (índice do array OU chave de objeto),
@@ -1959,7 +2254,7 @@ function applyPermissionsUI() {
     'nav-fiscais':'fiscais', 'nav-reajustes':'reajustes', 'nav-contas':'contas',
     'nav-retencao':'retencao', 'nav-empresas':'empresas', 'nav-unidades':'unidades',
     'nav-imr':'imr', 'nav-creche':'creche', 'nav-assinaturas':'assinaturas',
-    'nav-ic':'ic', 'nav-usuarios':'usuarios'
+    'nav-ic':'ic', 'nav-usuarios':'usuarios', 'nav-auditoria':'auditoria'
   };
   Object.keys(navMap).forEach(function(id) {
     var el = document.getElementById(id);
@@ -1991,6 +2286,7 @@ function applyPermissionsUI() {
 
 function launchApp(u) {
   currentUserLogin = u;
+  audRegistrarLogin(u);   // auditoria: 1 acesso por aba/dia
   var userInfo = USERS_DB[u] || {role:'n1'};
   currentRole = normalizeRole(userInfo.role);
   document.getElementById('app').style.display = 'block';
@@ -2164,7 +2460,8 @@ var TELAS = {
   'creche':    {ico:'🏠', k:'BENEFÍCIO',       t:'Reembolso Creche',            s:'Reembolso de auxílio-creche por contrato'},
   'assinaturas':{ico:'✍️', k:'FISCALIZAÇÃO', t:'Assinaturas',       s:'Assinaturas cadastradas pelos fiscais'},
   'ic':        {ico:'🛸', k:'COBRANÇA',        t:'IC',                          s:'Instrumento de Cobrança'},
-  'usuarios':  {ico:'👥', k:'ADMINISTRAÇÃO',   t:'Usuários',                    s:'Contas de acesso e níveis de permissão'}
+  'usuarios':  {ico:'👥', k:'ADMINISTRAÇÃO',   t:'Usuários',                    s:'Contas de acesso e níveis de permissão'},
+  'auditoria': {ico:'🕵️', k:'ÁREA 51',         t:'Auditoria',                   s:'Quem entrou no sistema e o que cada usuário editou'}
 };
 
 // Pinta a tela com a cor dela (via data-tela no <html>) e preenche a faixa de
@@ -2199,6 +2496,7 @@ function showView(v) {
   if (v === 'documentos') { initDocumentos(); buildDocumentosTable(); }
   else { var hb = document.getElementById('doc-hbar'); if (hb) hb.style.display = 'none'; }
   if (v === 'usuarios') buildUsersTable();
+  if (v === 'auditoria') buildAuditoria();
   if (v === 'unidades') buildUnidadesTable();
   if (v === 'imr') buildImrTable();
   if (v === 'creche') buildCrecheTable();
