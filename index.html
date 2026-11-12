@@ -154,6 +154,35 @@ html.light[data-tela="usuarios"]{--accent:#6d28d9;--accent-rgb:109,40,217}
 /* Auditoria · verde-lima (Área 51) */
 html[data-tela="auditoria"]{--accent:#a3d14b;--accent-rgb:163,209,75}
 html.light[data-tela="auditoria"]{--accent:#4d7c0f;--accent-rgb:77,124,15}
+/* Férias · turquesa (Área 51) */
+html[data-tela="ferias"]{--accent:#2dd4bf;--accent-rgb:45,212,191}
+html.light[data-tela="ferias"]{--accent:#0f766e;--accent-rgb:15,118,110}
+.fer-kpi small{display:block;font-size:10.5px;color:var(--text);margin-top:4px;line-height:1.35;white-space:normal}
+.fer-gantt{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;overflow-x:auto}
+.fer-gantt-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.fer-leg{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted)}
+.fer-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.fer-grid{min-width:760px}
+.fer-row{display:grid;grid-template-columns:130px 1fr;align-items:center;border-top:1px solid var(--border)}
+.fer-row.hd{border-top:none}
+.fer-nome{font-size:11.5px;font-weight:600;padding:6px 8px 6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fer-track{position:relative;height:26px;display:grid;grid-template-columns:repeat(12,1fr)}
+.fer-track>.m{border-left:1px solid var(--border);height:100%}
+.fer-track>.m.hd{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;padding-left:6px}
+.fer-bar{position:absolute;top:5px;height:16px;border-radius:5px;min-width:5px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.fer-bar.st-conc{background:#64748b}
+.fer-bar.st-and{background:#22c55e}
+.fer-bar.st-prox{background:#f59e0b}
+.fer-bar.st-prazo{background:var(--accent)}
+.fer-hoje{position:absolute;top:0;bottom:0;width:2px;background:#e5484d;z-index:2;pointer-events:none}
+.fer-st{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.4px;white-space:nowrap}
+.fer-st.st-conc{background:rgba(100,116,139,.16);color:#94a3b8}
+.fer-st.st-and{background:rgba(34,197,94,.15);color:#22c55e}
+.fer-st.st-prox{background:rgba(245,158,11,.16);color:#f59e0b}
+.fer-st.st-prazo{background:rgba(var(--accent-rgb),.15);color:var(--accent)}
+html.light .fer-st.st-conc{color:#475569}
+html.light .fer-st.st-prox{color:#b45309}
+html.light .fer-st.st-and{color:#15803d}
 .aud-bar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .aud-bar label{display:flex;flex-direction:column;gap:4px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .aud-bar .sel{min-width:150px;text-transform:none}
@@ -947,6 +976,7 @@ html .bar-plot .bar-track{background:transparent}
       <div class="nav-item" id="nav-assinaturas" title="Assinaturas" onclick="showView('assinaturas')" style="display:none"><span class="sb-ic">✍️</span><span class="sb-tx">Assinaturas</span></div>
       <div class="nav-item" id="nav-ic" title="IC" onclick="showView('ic')" style="display:none"><span class="sb-ic">🛸</span><span class="sb-tx">IC</span></div>
       <div class="nav-item" id="nav-usuarios" title="Usuários" onclick="showView('usuarios')" style="display:none"><span class="sb-ic">👥</span><span class="sb-tx">Usuários</span></div>
+      <div class="nav-item" id="nav-ferias" title="Férias" onclick="showView('ferias')" style="display:none"><span class="sb-ic">🏖️</span><span class="sb-tx">Férias</span></div>
       <div class="nav-item" id="nav-auditoria" title="Auditoria" onclick="showView('auditoria')" style="display:none"><span class="sb-ic">🕵️</span><span class="sb-tx">Auditoria</span></div>
     </nav>
     <div class="sb-foot">
@@ -1387,6 +1417,18 @@ html .bar-plot .bar-track{background:transparent}
       </div>
       <div id="asg-table"></div>
     </div>
+<!-- FÉRIAS (Área 51) -->
+    <div class="view" id="view-ferias">
+      <div class="aud-bar">
+        <label>Ano<select class="sel" id="fer-ano" onchange="buildFerias()"></select></label>
+        <label>Funcionário<select class="sel" id="fer-func" onchange="renderFerias()"><option value="">Todos</option></select></label>
+        <label>Status<select class="sel" id="fer-status" onchange="renderFerias()"><option value="">Todos</option><option>EM ANDAMENTO</option><option>PRÓXIMA</option><option>NO PRAZO</option><option>CONCLUÍDA</option></select></label>
+        <button class="btn-new" id="btn-novo-ferias" onclick="openFeriasModal()" style="margin-left:auto;white-space:nowrap">+ Adicionar férias</button>
+      </div>
+      <div class="aud-kpis" id="fer-kpis"></div>
+      <div class="fer-gantt" id="fer-gantt"></div>
+      <div id="fer-table"></div>
+    </div>
 <!-- AUDITORIA (Área 51) -->
     <div class="view" id="view-auditoria">
       <div class="aud-bar">
@@ -1751,7 +1793,7 @@ function audRegistrarEdicao(ref, acao, antigo, novo, conhecido){
 var AUD = {mes: '', logins: [], edicoes: [], _eds: []};
 var AUD_NOS = {dados:'Contratos', fiscais:'Fiscais', unidades:'Unidades', empresas:'Empresas', contas:'Solicitação Empresa',
   reajustes:'Reajustes', retencao:'Retenção', retencao_form:'Conta Vinculada Mensal', retencao_empresa:'Conta Vinculada (empresa)',
-  imr:'IMR', creche:'Reembolso Creche', assinaturas:'Assinaturas', documentos_edits:'Documentos', users:'Usuários'};
+  imr:'IMR', creche:'Reembolso Creche', ferias:'Férias', assinaturas:'Assinaturas', documentos_edits:'Documentos', users:'Usuários'};
 function audAchatar(val){
   var arr = [];
   Object.keys(val || {}).forEach(function(d){ Object.keys(val[d] || {}).forEach(function(k){ var r = val[d][k]; if (r && r.ts) arr.push(r); }); });
@@ -2254,7 +2296,7 @@ function applyPermissionsUI() {
     'nav-fiscais':'fiscais', 'nav-reajustes':'reajustes', 'nav-contas':'contas',
     'nav-retencao':'retencao', 'nav-empresas':'empresas', 'nav-unidades':'unidades',
     'nav-imr':'imr', 'nav-creche':'creche', 'nav-assinaturas':'assinaturas',
-    'nav-ic':'ic', 'nav-usuarios':'usuarios', 'nav-auditoria':'auditoria'
+    'nav-ic':'ic', 'nav-usuarios':'usuarios', 'nav-auditoria':'auditoria', 'nav-ferias':'ferias'
   };
   Object.keys(navMap).forEach(function(id) {
     var el = document.getElementById(id);
@@ -2268,7 +2310,7 @@ function applyPermissionsUI() {
   var btnMap = {
     'btn-novo-contrato':'contratos', 'btn-novo-fiscal':'fiscais', 'btn-novo-unidade':'unidades',
     'btn-novo-empresa':'empresas', 'btn-novo-conta':'contas', 'btn-novo-reajuste':'reajustes',
-    'btn-novo-imr':'imr', 'btn-novo-creche':'creche', 'btn-novo-retencao':'retencao', 'btn-novo-documento':'documentos',
+    'btn-novo-imr':'imr', 'btn-novo-creche':'creche', 'btn-novo-ferias':'ferias', 'btn-novo-retencao':'retencao', 'btn-novo-documento':'documentos',
     'btn-lote-documento':'documentos'
   };
   Object.keys(btnMap).forEach(function(id) {
@@ -2404,6 +2446,11 @@ function setupRealtimeListeners() {
     CRECHE.length = 0; arr.forEach(function(d){ if(d) CRECHE.push(d); });
     if (document.getElementById('view-creche') && document.getElementById('view-creche').classList.contains('active')) buildCrecheTable();
   });
+  fbdb.ref('ferias').on('value', function(snap) {
+    setFerias(snap.val());
+    var el = document.getElementById('view-ferias');
+    if (el && el.classList.contains('active')) buildFerias();
+  });
   fbdb.ref('assinaturas').on('value', function(snap) {
     if (_suppressRefresh) return;
     setAssinaturas(snap.val());
@@ -2461,7 +2508,8 @@ var TELAS = {
   'assinaturas':{ico:'✍️', k:'FISCALIZAÇÃO', t:'Assinaturas',       s:'Assinaturas cadastradas pelos fiscais'},
   'ic':        {ico:'🛸', k:'COBRANÇA',        t:'IC',                          s:'Instrumento de Cobrança'},
   'usuarios':  {ico:'👥', k:'ADMINISTRAÇÃO',   t:'Usuários',                    s:'Contas de acesso e níveis de permissão'},
-  'auditoria': {ico:'🕵️', k:'ÁREA 51',         t:'Auditoria',                   s:'Quem entrou no sistema e o que cada usuário editou'}
+  'auditoria': {ico:'🕵️', k:'ÁREA 51',         t:'Auditoria',                   s:'Quem entrou no sistema e o que cada usuário editou'},
+  'ferias':    {ico:'🏖️', k:'ÁREA 51',         t:'Férias',                      s:'Controle de férias da equipe SCFAT'}
 };
 
 // Pinta a tela com a cor dela (via data-tela no <html>) e preenche a faixa de
@@ -2497,6 +2545,7 @@ function showView(v) {
   else { var hb = document.getElementById('doc-hbar'); if (hb) hb.style.display = 'none'; }
   if (v === 'usuarios') buildUsersTable();
   if (v === 'auditoria') buildAuditoria();
+  if (v === 'ferias') buildFerias();
   if (v === 'unidades') buildUnidadesTable();
   if (v === 'imr') buildImrTable();
   if (v === 'creche') buildCrecheTable();
@@ -6604,6 +6653,177 @@ function confirmDeleteCreche(id) {
   CRECHE = CRECHE.filter(function(x){ return x.id !== id; });
   saveCrecheToStorage();
   buildCrecheTable();
+}
+
+// ══════════════════════════════
+//  FÉRIAS — controle de férias da equipe (Área 51)
+//  Origem: "Planilha de Férias - SCFAT.xlsx". Nó /ferias = mapa {pushKey:
+//  {funcionario, setor, inicio:'AAAA-MM-DD', fim:'AAAA-MM-DD', obs}}.
+//  Cada período é gravado/excluído pela própria chave (sem reescrever o nó).
+//  Dias, Status e Mês são calculados, como as fórmulas da planilha:
+//  CONCLUÍDA (hoje > fim) · EM ANDAMENTO · PRÓXIMA (começa em ≤ 30 dias) · NO PRAZO.
+//  Fora de PUBLIC_VIEWS → só Área 51 vê e edita.
+// ══════════════════════════════
+var FERIAS = [];
+var FER_MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+var FER_ST_CLS = {'CONCLUÍDA':'st-conc','EM ANDAMENTO':'st-and','PRÓXIMA':'st-prox','NO PRAZO':'st-prazo'};
+
+function setFerias(val) {
+  FERIAS.length = 0;
+  Object.keys(val || {}).forEach(function(k) {
+    var r = val[k];
+    if (r && typeof r === 'object') FERIAS.push({_k:k, funcionario:r.funcionario||'', setor:r.setor||'', inicio:r.inicio||'', fim:r.fim||'', obs:r.obs||''});
+  });
+}
+function ferData(iso) {   // AAAA-MM-DD → Date local (meia-noite)
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  return m ? new Date(+m[1], +m[2]-1, +m[3]) : null;
+}
+function ferHoje() { var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function ferBR(iso) { var d = ferData(iso); return d ? ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear() : '—'; }
+function ferDias(r) { var a = ferData(r.inicio), b = ferData(r.fim); return (a && b) ? Math.round((b - a) / 864e5) + 1 : ''; }
+function ferStatus(r) {
+  var a = ferData(r.inicio), b = ferData(r.fim), h = ferHoje();
+  if (!a || !b) return '';
+  if (h > b) return 'CONCLUÍDA';
+  if (h >= a) return 'EM ANDAMENTO';
+  return ((a - h) / 864e5 <= 30) ? 'PRÓXIMA' : 'NO PRAZO';
+}
+function ferMes(r) {
+  var a = ferData(r.inicio), b = ferData(r.fim);
+  if (!a || !b) return '';
+  var ma = FER_MESES[a.getMonth()] + '/' + a.getFullYear(), mb = FER_MESES[b.getMonth()] + '/' + b.getFullYear();
+  return ma === mb ? ma : ma + ' a ' + mb;
+}
+function ferToca(r, ano) {   // período encosta no ano?
+  var a = ferData(r.inicio), b = ferData(r.fim);
+  return a && b && a <= new Date(ano, 11, 31) && b >= new Date(ano, 0, 1);
+}
+
+function buildFerias() {
+  var sAno = document.getElementById('fer-ano');
+  var anos = {}; anos[ferHoje().getFullYear()] = 1;
+  FERIAS.forEach(function(r) { [r.inicio, r.fim].forEach(function(x){ var d = ferData(x); if (d) anos[d.getFullYear()] = 1; }); });
+  var cur = sAno.value || String(ferHoje().getFullYear());
+  sAno.innerHTML = Object.keys(anos).sort().map(function(a){ return '<option'+(a===cur?' selected':'')+'>'+a+'</option>'; }).join('');
+  var sF = document.getElementById('fer-func'), fc = sF.value;
+  var nomes = Array.from(new Set(FERIAS.map(function(r){ return r.funcionario; }).filter(Boolean))).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+  sF.innerHTML = '<option value="">Todos</option>' + nomes.map(function(n){ return '<option value="'+esc(n)+'"'+(n===fc?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
+  var btn = document.getElementById('btn-novo-ferias'); if (btn) btn.style.display = canEditView('ferias') ? '' : 'none';
+  renderFerias();
+}
+
+function renderFerias() {
+  var ano = +document.getElementById('fer-ano').value || ferHoje().getFullYear();
+  var fF = document.getElementById('fer-func').value, fS = document.getElementById('fer-status').value;
+  var lista = FERIAS.filter(function(r){ return ferToca(r, ano) && (!fF || r.funcionario === fF) && (!fS || ferStatus(r) === fS); })
+    .sort(function(x, y){ return (x.inicio||'').localeCompare(y.inicio||'') || x.funcionario.localeCompare(y.funcionario); });
+
+  // KPIs (sempre sobre o ano inteiro, sem filtro de status)
+  var doAno = FERIAS.filter(function(r){ return ferToca(r, ano) && (!fF || r.funcionario === fF); });
+  var agora = FERIAS.filter(function(r){ return ferStatus(r) === 'EM ANDAMENTO'; });
+  var prox = FERIAS.filter(function(r){ return ferStatus(r) === 'PRÓXIMA'; }).sort(function(x,y){ return x.inicio.localeCompare(y.inicio); });
+  var dias = doAno.reduce(function(t, r){ return t + (+ferDias(r) || 0); }, 0);
+  function nomesDe(arr, comData) { return arr.map(function(r){ return esc(r.funcionario) + (comData ? ' ('+ferBR(r.inicio).slice(0,5)+')' : ' (até '+ferBR(r.fim).slice(0,5)+')'); }).join(', '); }
+  document.getElementById('fer-kpis').innerHTML =
+      '<div class="aud-kpi fer-kpi"><b>'+agora.length+'</b><span>de férias hoje</span>'+(agora.length?'<small>'+nomesDe(agora,false)+'</small>':'')+'</div>'
+    + '<div class="aud-kpi fer-kpi"><b>'+prox.length+'</b><span>começam nos próximos 30 dias</span>'+(prox.length?'<small>'+nomesDe(prox,true)+'</small>':'')+'</div>'
+    + '<div class="aud-kpi"><b>'+doAno.length+'</b><span>períodos em '+ano+'</span></div>'
+    + '<div class="aud-kpi"><b>'+dias+'</b><span>dias de férias em '+ano+'</span></div>';
+
+  // Calendário anual (uma linha por funcionário)
+  var ini = new Date(ano, 0, 1), totDias = Math.round((new Date(ano+1, 0, 1) - ini) / 864e5);
+  function pct(d) { return Math.max(0, Math.min(100, (d - ini) / 864e5 / totDias * 100)); }
+  var porNome = {};
+  lista.forEach(function(r){ (porNome[r.funcionario] = porNome[r.funcionario] || []).push(r); });
+  var hoje = ferHoje(), hojeLn = (hoje.getFullYear() === ano) ? '<div class="fer-hoje" style="left:'+pct(hoje).toFixed(3)+'%" title="Hoje"></div>' : '';
+  var meses12 = FER_MESES.map(function(){ return '<div class="m"></div>'; }).join('');
+  var linhas = Object.keys(porNome).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); }).map(function(n) {
+    var barras = porNome[n].map(function(r) {
+      var a = ferData(r.inicio), b = ferData(r.fim); b = new Date(b.getFullYear(), b.getMonth(), b.getDate() + 1);
+      var l = pct(a), w = pct(b) - l, st = ferStatus(r);
+      var tip = r.funcionario + ': ' + ferBR(r.inicio) + ' a ' + ferBR(r.fim) + ' (' + ferDias(r) + ' dias) · ' + st + (r.obs ? ' · ' + r.obs : '');
+      return '<div class="fer-bar '+(FER_ST_CLS[st]||'')+'" style="left:'+l.toFixed(3)+'%;width:'+w.toFixed(3)+'%" title="'+esc(tip)+'"'
+        + (canEditView('ferias') ? ' onclick="openFeriasModal(\''+r._k+'\')"' : '') + '></div>';
+    }).join('');
+    return '<div class="fer-row"><div class="fer-nome" title="'+esc(n)+'">'+esc(n)+'</div><div class="fer-track">'+meses12+barras+hojeLn+'</div></div>';
+  }).join('');
+  document.getElementById('fer-gantt').innerHTML =
+      '<div class="fer-gantt-h"><span class="aud-sec-h">Calendário '+ano+'</span><span class="fer-leg">'
+    + '<span><i style="background:#22c55e"></i>Em andamento</span><span><i style="background:#f59e0b"></i>Próxima</span>'
+    + '<span><i style="background:var(--accent)"></i>No prazo</span><span><i style="background:#64748b"></i>Concluída</span>'
+    + '<span><i style="background:#e5484d;width:2px"></i>Hoje</span></span></div>'
+    + '<div class="fer-grid"><div class="fer-row hd"><div></div><div class="fer-track">'
+    + FER_MESES.map(function(m){ return '<div class="m hd">'+m.slice(0,3)+'</div>'; }).join('') + '</div></div>'
+    + (linhas || '<div class="fiscais-empty">Nenhum período de férias em '+ano+'.</div>') + '</div>';
+
+  // Tabela
+  var canEdit = canEditView('ferias');
+  var rows = lista.map(function(r) {
+    var st = ferStatus(r);
+    return '<tr>'
+      + '<td style="font-weight:600">'+esc(r.funcionario)+'</td>'
+      + '<td style="font-size:12px">'+esc(r.setor||'—')+'</td>'
+      + '<td style="font-family:\'DM Mono\',monospace;font-size:12px">'+ferBR(r.inicio)+'</td>'
+      + '<td style="font-family:\'DM Mono\',monospace;font-size:12px">'+ferBR(r.fim)+'</td>'
+      + '<td style="font-family:\'DM Mono\',monospace;font-weight:600;color:var(--accent)">'+ferDias(r)+'</td>'
+      + '<td>'+(st?'<span class="fer-st '+FER_ST_CLS[st]+'">'+st+'</span>':'—')+'</td>'
+      + '<td style="font-size:12px">'+esc(ferMes(r))+'</td>'
+      + '<td style="font-size:12px;white-space:normal;min-width:160px">'+esc(r.obs||'')+'</td>'
+      + (canEdit ? '<td style="white-space:nowrap"><button class="btn-usr-edit" onclick="openFeriasModal(\''+r._k+'\')">Editar</button> '
+                 + '<button class="btn-usr-del" onclick="confirmDeleteFerias(\''+r._k+'\')">Excluir</button></td>' : '')
+      + '</tr>';
+  }).join('');
+  document.getElementById('fer-table').innerHTML = !lista.length ? '<div class="fiscais-empty">Nenhum registro encontrado.</div>'
+    : '<div class="table-wrap"><div class="table-info"><span>'+lista.length+' período(s)</span><span>'+ano+'</span></div>'
+    + '<div style="overflow-x:auto"><table><thead><tr><th>Funcionário</th><th>Setor</th><th>Início</th><th>Fim</th><th>Dias</th><th>Status</th><th>Mês</th><th>Observações</th>'
+    + (canEdit?'<th>Ações</th>':'') + '</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+
+function openFeriasModal(k) {
+  if (!canEditView('ferias')) return;
+  var r = k ? (FERIAS.find(function(x){ return x._k === k; }) || {}) : {setor:'FATURAMENTO PR6'};
+  var nomes = Array.from(new Set(FERIAS.map(function(x){ return x.funcionario; }).filter(Boolean))).sort();
+  var setores = Array.from(new Set(FERIAS.map(function(x){ return x.setor; }).filter(Boolean))).sort();
+  document.getElementById('mo-t').textContent = k ? 'Editar Férias' : 'Novas Férias';
+  document.getElementById('mo-s').textContent = k ? r.funcionario : 'Preencha o período';
+  document.getElementById('mo-b').innerHTML = '<div class="eform">'
+    + '<div class="ef"><label>Funcionário *</label><input id="ef-fer-func" list="fer-func-list" value="'+esc(r.funcionario||'')+'">'
+    + '<datalist id="fer-func-list">'+nomes.map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist></div>'
+    + '<div class="ef"><label>Setor</label><input id="ef-fer-setor" list="fer-setor-list" value="'+esc(r.setor||'')+'">'
+    + '<datalist id="fer-setor-list">'+setores.map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist></div>'
+    + '<div class="ef"><label>Início das férias *</label><input id="ef-fer-ini" type="date" value="'+esc(r.inicio||'')+'" oninput="ferPrevDias()"></div>'
+    + '<div class="ef"><label>Fim das férias *</label><input id="ef-fer-fim" type="date" value="'+esc(r.fim||'')+'" oninput="ferPrevDias()"></div>'
+    + '<div class="ef full"><label>Observações</label><input id="ef-fer-obs" value="'+esc(r.obs||'')+'"></div>'
+    + '<div class="ef full" id="ef-fer-prev" style="font-size:12px;color:var(--muted)"></div>'
+    + '</div>';
+  document.getElementById('mo-actions').innerHTML =
+      '<button class="btn-cancel-e" onclick="closeMo()">Cancelar</button>'
+    + '<button class="btn-save" onclick="saveFerias(\''+(k||'')+'\')">Salvar</button>';
+  document.getElementById('mo').classList.add('open');
+  ferPrevDias();
+}
+function ferPrevDias() {
+  var el = document.getElementById('ef-fer-prev'); if (!el) return;
+  var r = {inicio: document.getElementById('ef-fer-ini').value, fim: document.getElementById('ef-fer-fim').value};
+  var d = ferDias(r);
+  el.innerHTML = d === '' ? '' : (d < 1 ? '<span style="color:var(--red)">O fim deve ser igual ou posterior ao início.</span>'
+    : '<b style="color:var(--accent)">'+d+' dia(s)</b> · '+esc(ferMes(r))+' · '+ferStatus(r));
+}
+function saveFerias(k) {
+  if (!canEditView('ferias')) return;
+  function v(id){ return document.getElementById(id).value.trim(); }
+  var r = {funcionario: v('ef-fer-func'), setor: v('ef-fer-setor'), inicio: v('ef-fer-ini'), fim: v('ef-fer-fim'), obs: v('ef-fer-obs')};
+  if (!r.funcionario || !r.inicio || !r.fim) { alert('Funcionário, início e fim são obrigatórios.'); return; }
+  if (r.fim < r.inicio) { alert('O fim das férias deve ser igual ou posterior ao início.'); return; }
+  var ref = k ? fbdb.ref('ferias/' + k) : fbdb.ref('ferias').push();
+  ref.set(r).then(closeMo).catch(function(e){ alert('Erro ao salvar: ' + e.message); });
+}
+function confirmDeleteFerias(k) {
+  if (!canEditView('ferias')) return;
+  var r = FERIAS.find(function(x){ return x._k === k; }); if (!r) return;
+  if (!confirm('Excluir as férias de ' + r.funcionario + ' (' + ferBR(r.inicio) + ' a ' + ferBR(r.fim) + ')?')) return;
+  fbdb.ref('ferias/' + k).remove().catch(function(e){ alert('Erro ao excluir: ' + e.message); });
 }
 
 // ══════════════════════════════
