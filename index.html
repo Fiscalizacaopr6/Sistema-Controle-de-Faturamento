@@ -7531,6 +7531,18 @@ function verDocumentosAutNota() {
 // do usuário logado (BRUNA e afins veem todos), como os demais alertas.
 var CONTAVINC_SITUACOES = ['AGUARDANDO IMR', 'AUTORIZAR NOTA', 'DENTRO DO PRAZO', 'EM ATRASO', 'NOTA AUTORIZADA'];
 
+// Logins que, mesmo sendo Área 51, recebem só os alertas de Conta Vinculada
+// Recebida dos SEUS contratos (filtrados por responsável).
+var LOGINS_CV_RECEBIDA_FILTRA = ['ismaeloliveira'];
+
+// Vê TODAS as Contas Vinculadas Recebidas (sem filtro por responsável)?
+// BRUNA (usuarioSemFiltroPadrao) e Área 51 veem todas — exceto os logins em
+// LOGINS_CV_RECEBIDA_FILTRA, que sempre filtram pelo próprio responsável.
+function _cvRecebidaVeTodas() {
+  if (LOGINS_CV_RECEBIDA_FILTRA.indexOf(String(currentUserLogin || '').toLowerCase()) !== -1) return false;
+  return usuarioSemFiltroPadrao() || currentRole === 'area51';
+}
+
 function _contasVinculadasRecebidas() {
   if (!DOCUMENTOS.length) docRebuild();
   var vistos = {}, lista = [];
@@ -7552,8 +7564,8 @@ function _contasVinculadasRecebidas() {
                  dataIso: iso, responsavel: docResponsavel(r) });
   });
   // Filtro por responsável do usuário logado (mesma regra dos outros alertas).
-  // Exceção: Área 51 recebe TODOS os alertas de Conta Vinculada Recebida.
-  if (!usuarioSemFiltroPadrao() && currentRole !== 'area51') {
+  // Exceção: BRUNA e Área 51 recebem TODOS (menos LOGINS_CV_RECEBIDA_FILTRA).
+  if (!_cvRecebidaVeTodas()) {
     var chaves = respChavesUsuario();
     if (chaves.length) {
       lista = lista.filter(function(x){ return chaves.indexOf(chaveResponsavel(x.responsavel)) !== -1; });
@@ -7598,7 +7610,7 @@ function verDocumentosContaVinc() {
   showView('documentos');
   if (typeof initDocumentos === 'function') initDocumentos();
   var selResp = document.getElementById('doc-f-resp');
-  if (selResp && !usuarioSemFiltroPadrao() && currentRole !== 'area51') {
+  if (selResp && !_cvRecebidaVeTodas()) {
     var chaves = respChavesUsuario();
     for (var j = 0; j < selResp.options.length; j++) {
       var v = selResp.options[j].value;
