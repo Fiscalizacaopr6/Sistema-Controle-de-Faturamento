@@ -998,6 +998,17 @@ function renderMat(uSel){
       <button class="add-btn" style="background:#b26a00;" onclick="openPrecoMatImport()">📥 Importar Preços</button>
     </div>`;
   }
+
+  // ── Assinatura do Fiscal Operacional (mesma do IMR, do período em exibição) ──
+  const assMat=getIMRData(curP).assinatura;
+  h+=`<div class="sec-title" style="background:#1b5e20;margin-top:12px;"><span>✍️ ASSINATURA DO FISCAL OPERACIONAL</span></div>`;
+  if(assMat&&assMat.nome){
+    h+=`<div style="border:2px solid #1b5e20;border-radius:5px;background:#eafbe9;color:#1b5e20;font-weight:bold;font-size:11px;line-height:1.5;padding:10px 14px;text-align:center;">
+      Serviço atestado por ${escH(assMat.nome)}<br>SIAPE ${escH(assMat.siape)} — ${escH(assMat.cargo)}<br><span style="font-weight:normal;color:#444;">Data e hora: ${escH(assMat.dataHora)}</span></div>`;
+  }else{
+    h+=`<div style="border:1px dashed #bbb;border-radius:5px;padding:10px 14px;color:#888;font-size:11px;">Período ainda não assinado. Use o botão <b>✍️ Assinar e enviar</b> no rodapé.</div>`;
+  }
+
   document.getElementById('matContent').innerHTML=h;
   applyStickyHeader();
 }
