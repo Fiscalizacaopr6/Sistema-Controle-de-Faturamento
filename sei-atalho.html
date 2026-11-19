@@ -61,6 +61,24 @@
      <a href="sei-ob.user.js">sei-ob.user.js</a>, nem o favorito é preciso: o clique no sistema
      abre o SEI e a pesquisa dispara sozinha, inclusive depois do login.</p>
 
+  <h2>Folhas do bloco 743 → tela Documentos</h2>
+  <p>Com o script <a href="sei-bloco743.user.js">sei-bloco743.user.js</a> (também no Tampermonkey),
+     toda <b>Folha de Informação</b> que entra no bloco de assinatura <b>743</b> tem o número lançado
+     na coluna <b>Folha de Informação</b> da tela Documentos, no contrato e mês dela — a situação passa
+     a <i>BLOCO 743</i> sozinha.</p>
+  <ul>
+    <li>O contrato vem do processo da folha (Proc. Pagamento cadastrado em Contratos); o mês vem da
+        anotação do bloco (“29/23 - Atlântica - Pagamento - Outubro 2026”). Linha da anotação que
+        cita uma unidade (“Macaé - Junho, Julho e Agosto/2026”) vale só para ela.</li>
+    <li>Ao abrir o bloco 743 no SEI aparece um painel com o resultado de cada folha; nas outras
+        páginas do SEI ele confere sozinho a cada 10 minutos.</li>
+    <li>Nunca sobrescreve uma folha já lançada. Fica de fora (e aparece no painel): folha de atesto,
+        conta vinculada, repactuação, correção, e folha sem mês na anotação quando o contrato tem mais
+        de um mês aguardando folha — nesses casos, lance à mão ou escreva o mês na anotação.</li>
+  </ul>
+  <p class="dica">Para ver o que ele lançaria sem gravar nada: console (<code>F12</code>) numa página
+     do SEI → <code>window.__pr6Bloco743Simular()</code>.</p>
+
   <h2>O número aparece na pesquisa e some, sem abrir nada</h2>
   <p>Era isto que a versão <b>1.2.0</b> corrigiu, e a causa é de tempo — por isso o mesmo
      script funcionava num computador e falhava em outro:</p>
