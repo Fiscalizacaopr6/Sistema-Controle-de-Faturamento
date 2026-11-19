@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         SEI UFRJ — Bloco 743 → Folha de Informação no Controle de Faturamento
 // @namespace    https://fiscalizacaopr6.github.io/
-// @version      1.0.0
-// @description  Lê o bloco de assinatura 743 (Pagamento de Notas Fiscais e Movimentação de Conta Vinculada) e lança o número de cada Folha de Informação na coluna "Folha de Informação" da tela Documentos, no contrato/mês certos.
+// @version      1.1.0
+// @description  Lê o bloco de assinatura 743 (Pagamento de Notas Fiscais e Movimentação de Conta Vinculada) e lança o número de cada Folha de Informação na coluna "Folha de Informação" da tela Documentos, no contrato/competência/unidade que a própria folha informa.
 // @author       Fiscalização PR6 / UFRJ
 // @match        https://sei.ufrj.br/sei/*
 // @run-at       document-idle
@@ -14,7 +14,7 @@
 /*
  * O que faz
  *   Toda folha de informação que entra no bloco 743 tem o número gravado em
- *   `folhaInfo` das linhas da tela Documentos daquele contrato/mês (situação
+ *   `folhaInfo` das linhas da tela Documentos a que ela se refere (a situação
  *   passa a "BLOCO 743" sozinha, pela regra do sistema).
  *
  * Quando roda
@@ -23,19 +23,20 @@
  *   - em qualquer outra página do SEI, no máximo a cada 10 minutos, em segundo
  *     plano (só avisa se lançou alguma coisa).
  *
- * Como acha o contrato e o mês de cada folha
- *   contrato: o processo da folha é o PROCESSO PAGAMENTO de qual contrato (nó
- *             /dados)? Se o processo não resolve sozinho, vale o "NN/AA" do
- *             início da anotação do bloco.
- *   mês/ano:  meses escritos na anotação ("Pagamento - Outubro 2026",
- *             "OUT 26", "Setembro/ Outubro 2026"). Linha da anotação que cita
- *             uma unidade ("Macaé - Junho, Julho e Agosto/2026") vale só para
- *             aquela unidade. Sem mês na anotação: usa o único mês do contrato
- *             que já tem NF lançada e ainda está sem folha; se houver mais de
- *             um, não lança.
- *   Não lança: folha de atesto; anotação de conta vinculada, repactuação,
- *             correção, férias, 13º, rescisão; processo de conta vinculada;
- *             linha que já tem outra folha (nunca sobrescreve).
+ * De onde vêm contrato, mês e unidade: da PRÓPRIA folha de informação
+ *   (aberta pelo link de navegação do bloco, o mesmo que o SEI usa para assinar):
+ *   - contrato: célula CONTRATO do cabeçalho da folha;
+ *   - tabela "NOTA FISCAL PARA LIQUIDAÇÃO DA DESPESA": cada linha tem
+ *     COMPETÊNCIA (o mês), UNIDADE(S) e FATURA (o nº da NF).
+ *   Para cada linha da tabela, as linhas da tela Documentos são:
+ *     1. as do contrato nessa competência cuja Nota Fiscal = FATURA;
+ *     2. se a NF ainda não foi lançada no sistema: as linhas sem folha dessa
+ *        competência cuja unidade bate com a unidade da folha (nome, parte do
+ *        nome ou sigla — "PU" = PREFEITURA UNIVERSITÁRIA); "TODAS"/"UFRJ" = todas;
+ *        se o mês só tem uma linha sem folha, é ela.
+ *   Linhas da tabela que não são competência mensal (Repactuação, Serviço
+ *   eventual, Diferença…) são ignoradas. Folha sem essa tabela (conta
+ *   vinculada etc.) não é lançada. Nunca sobrescreve uma folha já lançada.
  *
  * Gravação: PATCH em /documentos_edits com o registro inteiro (base + folha),
  * relido do Firebase na hora; registro em /auditoria/edicoes.
@@ -51,15 +52,17 @@
 
   if (window.top !== window.self) return;
 
-  var VERSAO   = '1.0.0';
+  var VERSAO   = '1.1.0';
   var BLOCO    = '743';
   var FB       = 'https://fiscalizacao-d9a39-default-rtdb.firebaseio.com';
   var BASE_URL = 'https://fiscalizacaopr6.github.io/Sistema-Controle-de-Faturamento/documentos-data.js';
   var INTERVALO_MS = 10 * 60 * 1000;
-  var TRAVA_MS     = 90 * 1000;
+  var TRAVA_MS     = 5 * 60 * 1000;
+  var CACHE_MS     = 30 * 60 * 1000;   // conteúdo de folha pendente é relido após 30 min
   var K_ULTIMA = 'pr6_b743_ultima';
   var K_TRAVA  = 'pr6_b743_trava';
   var K_LOG    = 'pr6_b743_log';
+  var K_CACHE  = 'pr6_b743_folhas';
   var K_URL    = 'pr6_b743_url';      // sessionStorage: link do bloco (hash vale na sessão)
 
   try { window.__pr6Bloco743 = VERSAO; } catch (e) {}
@@ -67,19 +70,23 @@
   var MESES = ['JANEIRO', 'FEVEREIRO', 'MARCO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO',
                'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
   var ABREV = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-  // mês + ano opcional ("OUTUBRO 2026", "OUT/26", "OUTUBRO DE 2026"); o separador só
-  // é consumido junto com o ano, senão engoliria a "/" de "SETEMBRO/ OUTUBRO"
-  var MES_RE = new RegExp('(^|[^A-Z])(' + MESES.join('|') + '|' + ABREV.join('|') + ')(?![A-Z])'
-    + '\\.?(?:(?:\\s*(?:\\/|-|DE)\\s*|\\s*)(\\d{4}|\\d{2}(?![\\d\\/])))?', 'g');
-  var NAO_PAGAMENTO = /CONTA VINCULADA|REPACTUA|CORRECAO|FERIAS|13\s*[ºO°]?\s*SAL|RESCIS|ATESTO EXCEPCIONAL/;
+  // competência: começa pelo mês e traz o ano ("OUTUBRO/2026", "Outubro/26",
+  // "OUTUBRO 2026", "Outubro de 2026", "OUT/26")
+  var COMP_RE = new RegExp('^(' + MESES.join('|') + '|' + ABREV.join('|') + ')\\.?\\s*(?:\\/|-|DE)?\\s*(\\d{4}|\\d{2})(?!\\d)');
+  var NAO_MENSAL = /REPACTUA|DIFEREN|EVENTUAL|RETROATIV|\sA\s.*\d/;
+  var GENERICAS = /^(UFRJ|TODAS?|TODOS|TODAS AS UNIDADES|TODOS OS LOCAIS|VARIAS UNIDADES)$/;
+  var ACENTOS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
 
   // ── utilidades ──
   function norm(s) {
-    return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    return String(s == null ? '' : s).normalize('NFD').replace(ACENTOS, '')
       .toUpperCase().replace(/\s+/g, ' ').trim();
   }
+  // nome de unidade comparável: sem acento, sem pontuação
+  function normUn(s) { return norm(s).replace(/[^A-Z0-9]+/g, ' ').trim(); }
   function soDigitos(s) { return String(s == null ? '' : s).replace(/\D/g, ''); }
   function vazio(v) { return !String(v == null ? '' : v).trim(); }
+  function texto(el) { return el ? String(el.innerText || el.textContent || '') : ''; }
   function numerosDoc(v) {
     return String(v == null ? '' : v).split(/[\/,;\s]+/)
       .map(function (t) { return t.trim(); })
@@ -90,6 +97,7 @@
       return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c];
     });
   }
+  function unicos(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
   function log(ev, info) {
     try {
       var l = JSON.parse(localStorage.getItem(K_LOG) || '[]');
@@ -182,30 +190,93 @@
     });
   }
 
-  // ── ler as folhas do bloco ──
+  // ── ler as linhas do bloco ──
   function lerBloco(doc) {
     var t = doc.querySelector('table.infraTable');
     if (!t || !t.rows.length) return null;
     var cab = Array.prototype.map.call(t.rows[0].cells, function (c) { return norm(c.textContent); });
     function col(re) { for (var i = 0; i < cab.length; i++) if (re.test(cab[i])) return i; return -1; }
-    var iProc = col(/^PROCESSO/), iDoc = col(/^DOCUMENTO/), iTipo = col(/^TIPO/),
-        iAss = col(/^ASSINATURA/), iAnot = col(/^ANOTA/);
+    var iProc = col(/^PROCESSO/), iDoc = col(/^DOCUMENTO/), iTipo = col(/^TIPO/), iAnot = col(/^ANOTA/);
     if (iDoc < 0 || iTipo < 0) return null;
     var out = [];
     for (var r = 1; r < t.rows.length; r++) {
-      var c = t.rows[r].cells;
+      var tr = t.rows[r], c = tr.cells;
       if (!c[iDoc]) continue;
-      var anot = iAnot >= 0 ? c[iAnot].innerText || c[iAnot].textContent : '';
+      // link de navegação do bloco: abre o conteúdo da folha sem abrir o processo
+      var nav = '', a = tr.querySelector('a[onclick*="bloco_navegar"]');
+      var m = a && a.getAttribute('onclick').match(/'(controlador\.php\?acao=bloco_navegar[^']+)'/);
+      if (m) nav = abs(m[1].replace(/&amp;/g, '&'));
       out.push({
         doc: c[iDoc].textContent.trim(),
         tipo: c[iTipo].textContent.trim(),
         processo: iProc >= 0 ? c[iProc].textContent.trim() : '',
-        assinaturas: iAss >= 0 ? Array.prototype.map.call(c[iAss].querySelectorAll('.divRotuloItemCelula'),
-          function (x) { return x.textContent.trim(); }) : [],
-        anotacao: String(anot || '').replace(/\r/g, '').trim()
+        anotacao: iAnot >= 0 ? texto(c[iAnot]).replace(/\r/g, '').trim() : '',
+        nav: nav
       });
     }
     return out;
+  }
+
+  // ── conteúdo da folha: contrato + tabela de NF ──
+  function lerConteudoFolha(doc) {
+    var out = {contrato: '', nfs: [], tabela: false};
+    var idx = null;   // colunas do cabeçalho COMPETÊNCIA | UNIDADE(S) | FATURA da vez
+    Array.prototype.forEach.call(doc.querySelectorAll('table'), function (t) {
+      var linhas = Array.prototype.map.call(t.rows, function (r) {
+        return Array.prototype.map.call(r.cells, function (c) { return texto(c).replace(/\r/g, '').trim(); });
+      });
+      linhas.forEach(function (cel, k) {
+        var up = cel.map(norm);
+        var ic = up.indexOf('CONTRATO');
+        if (ic >= 0 && !out.contrato && linhas[k + 1] && linhas[k + 1][ic]) out.contrato = contratoNorm(linhas[k + 1][ic]);
+        var iComp = -1, iUni = -1, iFat = -1;
+        up.forEach(function (x, i) {
+          if (/^COMPETENCIA/.test(x)) iComp = i;
+          else if (/^UNIDADE/.test(x)) iUni = i;
+          else if (/^(FATURA|NOTA FISCAL|N\W*F\W*$|NF)/.test(x)) iFat = i;
+        });
+        if (iComp >= 0) { idx = {comp: iComp, uni: iUni, fat: iFat}; out.tabela = true; return; }
+        if (!idx) return;
+        if (cel.length <= Math.max(idx.comp, idx.uni, idx.fat)) { idx = null; return; }
+        var comp = cel[idx.comp];
+        if (vazio(comp)) return;
+        out.nfs.push({comp: comp, unidades: idx.uni >= 0 ? cel[idx.uni] : '', fatura: idx.fat >= 0 ? cel[idx.fat] : ''});
+      });
+      idx = null;
+    });
+    return out;
+  }
+
+  function cacheLer() { try { return JSON.parse(localStorage.getItem(K_CACHE) || '{}'); } catch (e) { return {}; } }
+  function cacheGravar(c) {
+    try {
+      var ks = Object.keys(c).sort(function (a, b) { return c[b].t - c[a].t; });
+      var novo = {}; ks.slice(0, 200).forEach(function (k) { novo[k] = c[k]; });
+      localStorage.setItem(K_CACHE, JSON.stringify(novo));
+    } catch (e) {}
+  }
+
+  // lê as folhas uma a uma (o SEI atende uma requisição por vez na sessão)
+  function lerFolhas(folhas, progresso) {
+    var cache = cacheLer(), agora = Date.now(), i = 0;
+    return (function proxima() {
+      if (i >= folhas.length) { cacheGravar(cache); return Promise.resolve(); }
+      var f = folhas[i++];
+      if (progresso) progresso(i, folhas.length);
+      var c = cache[f.doc];
+      if (c && agora - c.t < CACHE_MS) { f.conteudo = c.v; return proxima(); }
+      if (!f.nav) { f.erroLeitura = 'sem link de navegação do bloco'; return proxima(); }
+      return htmlDe(f.nav).then(function (d) {
+        var ifr = d.querySelector('iframe[src*="documento_visualizar"]');
+        if (!ifr) throw new Error('folha sem visualização');
+        return htmlDe(abs(ifr.getAttribute('src')));
+      }).then(function (d) {
+        f.conteudo = lerConteudoFolha(d);
+        cache[f.doc] = {t: Date.now(), v: f.conteudo};
+      }).catch(function (e) {
+        f.erroLeitura = String(e && e.message || e);
+      }).then(proxima);
+    })();
   }
 
   // ── dados do sistema ──
@@ -242,40 +313,50 @@
     var m = String(s || '').match(/(\d{1,3})\s*\/\s*(\d{4}|\d{2})(?!\d)/);
     return m ? (('0' + parseInt(m[1], 10)).slice(-2) + '/' + m[2].slice(-2)) : '';
   }
-  function contratosDoProcesso(dados, campo, processo) {
+  function contratosDoProcesso(dados, processo) {
     var alvo = soDigitos(processo);
     if (alvo.length < 15) return [];
     var achou = {};
     dados.forEach(function (d) {
-      var v = String(d[campo] || '');
+      var v = String(d['PROCESSO PAGAMENTO'] || '');
       var tem = v.split(/[^\d.\/-]+/).some(function (p) { return soDigitos(p) === alvo; });
       if (tem && d.CONTRATO) achou[contratoNorm(d.CONTRATO) || String(d.CONTRATO).trim()] = 1;
     });
     return Object.keys(achou);
   }
 
-  // meses citados em uma linha da anotação: [{m: 0..11, ano: 2026|null}]
-  function mesesDaLinha(linhaNorm) {
-    var out = [], m;
-    MES_RE.lastIndex = 0;
-    while ((m = MES_RE.exec(linhaNorm))) {
-      var nome = m[2];
-      var idx = MESES.indexOf(nome); if (idx < 0) idx = ABREV.indexOf(nome);
-      var ano = m[3] ? (m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10)) : null;
-      out.push({m: idx, ano: ano});
-    }
-    // "Setembro/ Outubro 2026": mês sem ano herda o do próximo que tem
-    for (var i = out.length - 2; i >= 0; i--) if (!out[i].ano && out[i + 1].ano) out[i].ano = out[i + 1].ano;
-    return out;
+  function competencia(s) {
+    var n = norm(s);
+    if (NAO_MENSAL.test(n)) return null;
+    var m = n.match(COMP_RE);
+    if (!m) return null;
+    var idx = MESES.indexOf(m[1]); if (idx < 0) idx = ABREV.indexOf(m[1]);
+    return {mes: MESES[idx], ano: m[2].length === 2 ? 2000 + parseInt(m[2], 10) : parseInt(m[2], 10)};
   }
-  function anoPadrao(m) {
-    var hoje = new Date();
-    return m <= hoje.getMonth() ? hoje.getFullYear() : hoje.getFullYear() - 1;
+
+  // nomes de unidade escritos na folha ("CCJE E PALÁCIO", "PU, SIARQ, STIC",
+  // "MACAÉ ( NUPEM / AJUDA )") → lista normalizada
+  function unidadesDaFolha(s) {
+    return unicos(String(s || '').split(/\n|;|,|\/|\(|\)|\s+[eE]\s+|\s+-\s+/)
+      .map(normUn).filter(function (x) { return x.length >= 2; }));
+  }
+  function sigla(nome) {
+    return nome.split(' ').filter(function (w) { return w && !/^(DE|DA|DO|DAS|DOS|E)$/.test(w); })
+      .map(function (w) { return w[0]; }).join('');
+  }
+  function unidadeCasa(unSistema, toks) {
+    var su = normUn(unSistema);
+    if (!su) return false;
+    var sg = sigla(su);
+    return toks.some(function (t) {
+      return t === su || (' ' + su + ' ').indexOf(' ' + t + ' ') >= 0 || (' ' + t + ' ').indexOf(' ' + su + ' ') >= 0
+        || (sg.length >= 2 && sg === t.replace(/ /g, ''));
+    });
   }
 
   // ── decide as linhas de Documentos de uma folha ──
   function planejar(f, sis) {
-    var r = {doc: f.doc, processo: f.processo, anotacao: f.anotacao.split('\n')[0], linhas: []};
+    var r = {doc: f.doc, processo: f.processo, anotacao: f.anotacao.split('\n')[0], linhas: [], avisos: []};
     var jaTem = sis.lista.filter(function (o) { return numerosDoc(o.folhaInfo).indexOf(f.doc) >= 0; });
     if (jaTem.length) {
       r.status = 'ja';
@@ -283,108 +364,58 @@
       r.detalhe = jaTem.map(function (o) { return o.mes + '/' + o.ano + ' ' + o.unidade; }).join(', ');
       return r;
     }
-    var linhasAnot = f.anotacao.split('\n').map(norm).filter(Boolean);
-    var primeira = linhasAnot[0] || '';
-    if (NAO_PAGAMENTO.test(primeira)) {
-      r.status = 'pula'; r.detalhe = 'anotação não é de pagamento mensal'; return r;
-    }
+    if (f.erroLeitura) { r.status = 'pend'; r.detalhe = 'não consegui abrir a folha: ' + f.erroLeitura; return r; }
+    var ct = f.conteudo || {nfs: []};
+    if (!ct.tabela) { r.status = 'pula'; r.detalhe = 'folha sem tabela de nota fiscal (conta vinculada, medição…)'; return r; }
 
-    // contrato
-    var porProc = contratosDoProcesso(sis.dados, 'PROCESSO PAGAMENTO', f.processo);
-    var porCv = contratosDoProcesso(sis.dados, 'PROCESSO CONTA VINCULADA', f.processo);
-    var porAnot = contratoNorm(primeira);
-    var contrato = '';
-    if (porProc.length === 1) contrato = porProc[0];
-    else if (porAnot && (!porProc.length || porProc.indexOf(porAnot) >= 0)) contrato = porAnot;
-    if (!contrato && porCv.length && !porProc.length) {
-      r.status = 'pula'; r.detalhe = 'processo de conta vinculada (' + porCv.join(', ') + ')'; return r;
-    }
-    if (!contrato) {
-      r.status = 'pend';
-      r.detalhe = porProc.length > 1 ? 'processo é de mais de um contrato (' + porProc.join(', ') + ') e a anotação não decide'
-        : 'contrato não identificado (processo fora de /dados e anotação sem nº do contrato)';
-      return r;
-    }
+    // contrato: o da folha; sem ele, o do processo
+    var porProc = contratosDoProcesso(sis.dados, f.processo);
+    var contrato = ct.contrato || (porProc.length === 1 ? porProc[0] : '');
+    if (!contrato) { r.status = 'pend'; r.detalhe = 'contrato não identificado na folha nem pelo processo'; return r; }
     r.contrato = contrato;
-    if (porAnot && porAnot !== contrato) r.aviso = 'anotação diz ' + porAnot + ', processo é do ' + contrato;
-
     var doContrato = sis.lista.filter(function (o) { return contratoNorm(o.contrato) === contrato; });
     if (!doContrato.length) { r.status = 'pend'; r.detalhe = 'contrato ' + contrato + ' sem linhas na tela Documentos'; return r; }
-    var unidades = {};
-    doContrato.forEach(function (o) { var u = norm(o.unidade); if (u) unidades[u] = 1; });
-    unidades = Object.keys(unidades);
 
-    // texto da anotação sem o nº do contrato (senão o "/2026" dele vira ano)
-    var alvos = [];   // {m, ano, unidades:[]|null}
-    linhasAnot.forEach(function (ln, n) {
-      var limpa = n === 0 ? ln.replace(/(\d{1,3})\s*\/\s*(\d{4}|\d{2})(?!\d)/, ' ') : ln;
-      if (n > 0 && /^\D*,?\s*\d{1,2}\/\d{1,2}\/\d{2,4}\.?$/.test(ln)) return;   // "Mayara, 19/11/26."
-      var ms = mesesDaLinha(limpa);
-      if (!ms.length) return;
-      var us = unidades.filter(function (u) {
-        return u.length >= 2 && new RegExp('(^|[^A-Z0-9])' + u.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&') + '([^A-Z0-9]|$)').test(limpa);
-      });
-      ms.forEach(function (x) { alvos.push({m: x.m, ano: x.ano || anoPadrao(x.m), unidades: us.length ? us : null}); });
+    var escolhidas = {}, partes = [], ignoradas = [];
+    ct.nfs.forEach(function (nf) {
+      var cp = competencia(nf.comp);
+      var rotulo = String(nf.comp).replace(/\s+/g, ' ').trim();
+      if (!cp) { ignoradas.push(rotulo.slice(0, 40)); return; }
+      var doMes = doContrato.filter(function (o) { return norm(o.mes) === cp.mes && String(o.ano) === String(cp.ano); });
+      var ref = cp.mes + '/' + cp.ano + (soDigitos(nf.fatura) ? ' NF ' + nf.fatura.replace(/\s+/g, ' ') : '');
+      if (!doMes.length) { r.avisos.push(ref + ': sem linha na tela Documentos'); return; }
+      var fat = soDigitos(nf.fatura).replace(/^0+/, '');
+      var alvo = fat ? doMes.filter(function (o) { return soDigitos(o.notaFiscal).replace(/^0+/, '') === fat; }) : [];
+      var como = 'pela NF';
+      if (!alvo.length) {
+        var livres = doMes.filter(function (o) { return vazio(o.folhaInfo) && vazio(o.semPrestacao); });
+        var toks = unidadesDaFolha(nf.unidades);
+        if (toks.some(function (t) { return GENERICAS.test(t); })) {
+          var semNf = livres.filter(function (o) { return vazio(o.notaFiscal); });
+          alvo = semNf.length ? semNf : livres; como = 'todas as unidades';
+        } else {
+          alvo = livres.filter(function (o) { return unidadeCasa(o.unidade, toks); }); como = 'pela unidade';
+          if (!alvo.length && livres.length === 1) { alvo = livres; como = 'única linha do mês'; }
+        }
+      }
+      if (!alvo.length) { r.avisos.push(ref + ' (' + String(nf.unidades).replace(/\s+/g, ' ').slice(0, 50) + '): unidade não encontrada'); return; }
+      var outra = alvo.filter(function (o) { return !vazio(o.folhaInfo); });
+      if (outra.length) r.avisos.push(ref + ': ' + outra.length + ' linha(s) já com a folha ' + unicos(outra.map(function (o) { return o.folhaInfo; })).join(', '));
+      var novas = alvo.filter(function (o) { return vazio(o.folhaInfo) && vazio(o.semPrestacao) && !escolhidas[o.id]; });
+      novas.forEach(function (o) { escolhidas[o.id] = o; });
+      if (novas.length) partes.push(ref + ' → ' + novas.map(function (o) { return o.unidade; }).join(', ') + ' (' + como + ')');
     });
+    if (ignoradas.length) r.avisos.push('ignorado(s): ' + ignoradas.join('; '));
 
-    var candidatas;
-    if (alvos.length) {
-      candidatas = doContrato.filter(function (o) {
-        var mes = norm(o.mes), u = norm(o.unidade);
-        return alvos.some(function (a) {
-          return mes === MESES[a.m] && String(o.ano) === String(a.ano) && (!a.unidades || a.unidades.indexOf(u) >= 0);
-        });
-      });
-      r.meses = alvos.map(function (a) { return MESES[a.m] + '/' + a.ano + (a.unidades ? ' (' + a.unidades.join(', ') + ')' : ''); })
-        .filter(function (x, i, arr) { return arr.indexOf(x) === i; }).join(', ');
-      var semLinha = alvos.filter(function (a) {
-        return !candidatas.some(function (o) { return norm(o.mes) === MESES[a.m] && String(o.ano) === String(a.ano); });
-      }).map(function (a) { return MESES[a.m] + '/' + a.ano; })
-        .filter(function (x, i, arr) { return arr.indexOf(x) === i; });
-      if (semLinha.length && semLinha.length < alvos.length) r.aviso = 'sem linha de ' + semLinha.join(', ') + ' na tela Documentos';
-    } else {
-      // sem mês na anotação: único mês com NF lançada e sem folha
-      if (!porProc.length) {
-        r.status = 'pend'; r.detalhe = 'anotação sem mês e processo não é o de pagamento do contrato'; return r;
-      }
-      var grupos = {};
-      doContrato.forEach(function (o) {
-        if (!vazio(o.folhaInfo) || !vazio(o.semPrestacao) || !vazio(o.envioPr3) || vazio(o.notaFiscal)) return;
-        var k = norm(o.mes) + '/' + o.ano;
-        (grupos[k] = grupos[k] || []).push(o);
-      });
-      var ks = Object.keys(grupos);
-      if (ks.length !== 1) {
-        r.status = 'pend';
-        r.detalhe = ks.length ? 'anotação sem mês e há ' + ks.length + ' meses com NF sem folha (' + ks.join(', ') + ')'
-          : 'anotação sem mês e nenhum mês com NF lançada aguardando folha';
-        return r;
-      }
-      r.meses = ks[0] + ' (único mês com NF sem folha)';
-      candidatas = grupos[ks[0]];
-    }
-
-    if (!candidatas.length) { r.status = 'pend'; r.detalhe = 'sem linha de ' + r.meses + ' na tela Documentos'; return r; }
-    var livres = candidatas.filter(function (o) { return vazio(o.folhaInfo) && vazio(o.semPrestacao); });
-    // a folha cobre as NFs do mês: se só parte das unidades já tem NF lançada,
-    // as que estão sem NF ficam de fora (a NF delas virá em outra folha)
-    var comNf = livres.filter(function (o) { return !vazio(o.notaFiscal); });
-    if (comNf.length && comNf.length < livres.length) {
-      r.aviso = (r.aviso ? r.aviso + '; ' : '') + (livres.length - comNf.length) + ' linha(s) sem NF lançada ficaram de fora';
-      livres = comNf;
-    }
-    var outras = candidatas.filter(function (o) { return !vazio(o.folhaInfo); })
-      .map(function (o) { return o.folhaInfo; }).filter(function (x, i, arr) { return arr.indexOf(x) === i; });
-    if (!livres.length) {
-      r.status = 'pend';
-      r.detalhe = outras.length ? r.meses + ' já tem outra folha (' + outras.join(', ') + ') — não sobrescrevo'
-        : 'linhas de ' + r.meses + ' marcadas como sem prestação';
+    r.linhas = Object.keys(escolhidas);
+    if (!r.linhas.length) {
+      r.status = ct.nfs.length && ignoradas.length === ct.nfs.length ? 'pula' : 'pend';
+      r.detalhe = r.status === 'pula' ? 'nenhuma competência mensal na tabela (repactuação, serviço eventual…)'
+        : (r.avisos.shift() || 'nenhuma linha correspondente');
       return r;
     }
     r.status = 'ok';
-    r.linhas = livres.map(function (o) { return o.id; });
-    r.detalhe = livres.map(function (o) { return o.mes + '/' + o.ano + ' ' + o.unidade; }).join(', ');
-    if (outras.length) r.aviso = (r.aviso ? r.aviso + '; ' : '') + 'outras linhas do mesmo mês já têm a folha ' + outras.join(', ');
+    r.detalhe = partes.join(' · ');
     return r;
   }
 
@@ -455,13 +486,19 @@
       if (!folhas) throw new Error('não consegui ler a tabela do bloco ' + BLOCO);
       var infos = folhas.filter(function (f) { return /INFORMACAO/.test(norm(f.tipo)); });
       return carregarSistema().then(function (sis) {
-        var planos = infos.map(function (f) { return planejar(f, sis); });
-        var res = {folhas: folhas.length, informacao: infos.length, planos: planos, gravadas: 0};
-        if (opts.simular) return res;
-        return gravar(planos, sis).then(function (n) {
-          res.gravadas = n;
-          log('sincronizado', n + ' linha(s) gravada(s); ' + planos.filter(function (p) { return p.status === 'ok'; }).length + ' folha(s) lançada(s)');
-          return res;
+        // só abre o conteúdo das folhas que ainda não estão no sistema
+        var lancadas = {};
+        sis.lista.forEach(function (o) { numerosDoc(o.folhaInfo).forEach(function (n) { lancadas[n] = 1; }); });
+        var aLer = infos.filter(function (f) { return !lancadas[f.doc]; });
+        return lerFolhas(aLer, opts.progresso).then(function () {
+          var planos = infos.map(function (f) { return planejar(f, sis); });
+          var res = {folhas: folhas.length, informacao: infos.length, planos: planos, gravadas: 0};
+          if (opts.simular) return res;
+          return gravar(planos, sis).then(function (n) {
+            res.gravadas = n;
+            log('sincronizado', n + ' linha(s) gravada(s); ' + planos.filter(function (p) { return p.status === 'ok'; }).length + ' folha(s) lançada(s)');
+            return res;
+          });
         });
       });
     });
@@ -471,7 +508,7 @@
     window.__pr6Bloco743Simular = function () {
       return sincronizar({simular: true}).then(function (r) {
         if (console.table) console.table(r.planos.map(function (p) {
-          return {doc: p.doc, status: p.status, contrato: p.contrato || '', meses: p.meses || '', detalhe: p.detalhe || '', aviso: p.aviso || ''};
+          return {doc: p.doc, status: p.status, contrato: p.contrato || '', detalhe: p.detalhe || '', avisos: p.avisos.join(' | ')};
         }));
         return r;
       });
@@ -481,7 +518,7 @@
   // ── painel na página do bloco ──
   var ROTULO = {ok: ['✔ Lançada', '#1b7a3a', '#e9f6ee'], ja: ['• Já estava no sistema', '#456', '#f1f4f8'],
                 pula: ['— Ignorada', '#777', '#f6f6f6'], pend: ['⚠ Não lançada', '#a35a00', '#fff4e5']};
-  function painel(res, erro) {
+  function painel(res, erro, progresso) {
     var antigo = document.getElementById('pr6-b743'); if (antigo) antigo.parentNode.removeChild(antigo);
     var cx = document.createElement('div');
     cx.id = 'pr6-b743';
@@ -494,7 +531,7 @@
     if (erro) {
       html += '<div style="color:#a00">Não foi possível sincronizar: ' + esc(erro) + '</div>';
     } else if (!res) {
-      html += '<div style="color:#567">Conferindo com a tela Documentos…</div>';
+      html += '<div id="pr6-b743-prog" style="color:#567">' + esc(progresso || 'Conferindo com a tela Documentos…') + '</div>';
     } else {
       var cont = {ok: 0, ja: 0, pula: 0, pend: 0};
       res.planos.forEach(function (p) { cont[p.status]++; });
@@ -512,7 +549,8 @@
           + '<td style="padding:3px 6px;font-family:monospace">' + esc(p.doc) + '</td>'
           + '<td style="padding:3px 6px;color:' + rt[1] + ';white-space:nowrap;font-weight:600">' + rt[0] + '</td>'
           + '<td style="padding:3px 6px;white-space:nowrap">' + esc(p.contrato || '—') + '</td>'
-          + '<td style="padding:3px 6px">' + esc(p.detalhe || '') + (p.aviso ? '<div style="color:#a35a00">' + esc(p.aviso) + '</div>' : '') + '</td>'
+          + '<td style="padding:3px 6px">' + esc(p.detalhe || '')
+          + p.avisos.map(function (a) { return '<div style="color:#a35a00">' + esc(a) + '</div>'; }).join('') + '</td>'
           + '<td style="padding:3px 6px;color:#567">' + esc(p.anotacao || '') + '</td></tr>';
       });
       html += '</table>';
@@ -555,7 +593,12 @@
       if (naPagina) setTimeout(function () { rodar(true); }, 5000);
       return;
     }
-    sincronizar().then(function (res) {
+    var opts = {};
+    if (naPagina) opts.progresso = function (i, n) {
+      var el = document.getElementById('pr6-b743-prog');
+      if (el) el.textContent = 'Lendo as folhas no SEI (' + i + ' de ' + n + ')…';
+    };
+    sincronizar(opts).then(function (res) {
       destravar();
       try { localStorage.setItem(K_ULTIMA, String(Date.now())); } catch (e) {}
       if (naPagina) { painel(res); return; }
@@ -586,6 +629,9 @@
     rodar(false);
   }
 
+  try { window.__pr6Bloco743Interno = {sincronizar: sincronizar, planejar: planejar, lerConteudoFolha: lerConteudoFolha, competencia: competencia, unidadesDaFolha: unidadesDaFolha}; } catch (e) {}
+
+  if (window.__pr6Bloco743SemAuto) return;
   if (document.readyState === 'complete') setTimeout(iniciar, 500);
   else window.addEventListener('load', function () { setTimeout(iniciar, 500); });
 })();

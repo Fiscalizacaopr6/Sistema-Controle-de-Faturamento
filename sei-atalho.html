@@ -67,14 +67,16 @@
      na coluna <b>Folha de Informação</b> da tela Documentos, no contrato e mês dela — a situação passa
      a <i>BLOCO 743</i> sozinha.</p>
   <ul>
-    <li>O contrato vem do processo da folha (Proc. Pagamento cadastrado em Contratos); o mês vem da
-        anotação do bloco (“29/23 - Atlântica - Pagamento - Outubro 2026”). Linha da anotação que
-        cita uma unidade (“Macaé - Junho, Julho e Agosto/2026”) vale só para ela.</li>
+    <li>Tudo vem da <b>própria folha</b>: o contrato do cabeçalho e, da tabela <i>Nota Fiscal para
+        Liquidação da Despesa</i>, a <b>Competência</b> (mês), a <b>Unidade</b> e a <b>Fatura</b>.</li>
+    <li>A folha vai para as linhas daquele contrato/competência cuja <b>Nota Fiscal</b> é a fatura.
+        Se a NF ainda não foi lançada no sistema, vale a unidade (nome, parte do nome ou sigla —
+        “PU” = Prefeitura Universitária; “UFRJ”/“Todas” = todas as unidades).</li>
     <li>Ao abrir o bloco 743 no SEI aparece um painel com o resultado de cada folha; nas outras
         páginas do SEI ele confere sozinho a cada 10 minutos.</li>
     <li>Nunca sobrescreve uma folha já lançada. Fica de fora (e aparece no painel): folha de atesto,
-        conta vinculada, repactuação, correção, e folha sem mês na anotação quando o contrato tem mais
-        de um mês aguardando folha — nesses casos, lance à mão ou escreva o mês na anotação.</li>
+        folha sem tabela de NF (conta vinculada, medição), linhas de repactuação/serviço eventual e
+        unidade que não foi reconhecida — nesses casos, lance à mão.</li>
   </ul>
   <p class="dica">Para ver o que ele lançaria sem gravar nada: console (<code>F12</code>) numa página
      do SEI → <code>window.__pr6Bloco743Simular()</code>.</p>
