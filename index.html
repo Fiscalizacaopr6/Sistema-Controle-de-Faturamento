@@ -2043,6 +2043,15 @@ function userExtraEditKeys(login) {
   return USER_EXTRA_EDIT[String(login || '').toLowerCase()] || [];
 }
 
+// Telas EXTRAS que um usuário pode VER (login em minúsculas) além do que o nível
+// permite — inclusive telas Área 51. Ex.: "bruna" (Nível 4) vê a Auditoria.
+var USER_EXTRA_VIEW = {
+  bruna: ['auditoria']
+};
+function userExtraViews(login) {
+  return USER_EXTRA_VIEW[String(login || '').toLowerCase()] || [];
+}
+
 // Usuários "somente leitura": mesmo com nível que permitiria editar, não editam
 // nada — apenas visualizam. Sobrepõe o nível e o USER_EXTRA_EDIT.
 var USER_VIEW_ONLY = ['danieledelgado', 'flaviofernandes', 'renatariffan', 'johnnykovalcik'];
@@ -2067,6 +2076,8 @@ function levelNum(role) { role = normalizeRole(role); return role === 'area51' ?
 function canViewView(view, role) {
   role = normalizeRole(role || currentRole);
   if (role === 'area51') return true;               // vê tudo
+  // Override por usuário: só ao avaliar o próprio usuário logado
+  if (role === normalizeRole(currentRole) && userExtraViews(currentUserLogin).indexOf(view) !== -1) return true;
   if (role === 'n1') return (view === 'dashboard' || view === 'db-lista' || view === 'ferias');  // Férias: todos veem
   if (PUBLIC_VIEWS.indexOf(view) === -1) return false;              // Área 51
   if (VIEW_MIN_LEVEL[view] && levelNum(role) < VIEW_MIN_LEVEL[view]) return false;
